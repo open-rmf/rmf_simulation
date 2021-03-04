@@ -37,14 +37,14 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
 
-#include <rmf_plugins_common/dispenser_common.hpp>
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/dispenser_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 using namespace ignition::gazebo;
 using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;
 
-namespace rmf_ignition_plugins {
+namespace rmf_robot_sim_ignition_plugins {
 
 class IGNITION_GAZEBO_VISIBLE TeleportDispenserPlugin
   : public System,
@@ -332,4 +332,4 @@ IGNITION_ADD_PLUGIN(
 // TODO would prefer namespaced
 IGNITION_ADD_PLUGIN_ALIAS(TeleportDispenserPlugin, "teleport_dispenser")
 
-} // namespace rmf_ignition_plugins
+} // namespace rmf_robot_sim_ignition_plugins

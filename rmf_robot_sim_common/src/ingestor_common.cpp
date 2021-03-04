@@ -1,4 +1,4 @@
-#include <rmf_plugins_common/ingestor_common.hpp>
+#include <rmf_robot_sim_common/ingestor_common.hpp>
 
 using namespace rmf_plugins_utils;
 

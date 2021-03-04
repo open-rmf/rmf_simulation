@@ -27,13 +27,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
 
-#include <rmf_plugins_common/ingestor_common.hpp>
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/ingestor_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 using namespace rmf_plugins_utils;
 using namespace rmf_ingestor_common;
 
-namespace rmf_gazebo_plugins {
+namespace rmf_robot_sim_gazebo_plugins {
 
 class TeleportIngestorPlugin : public gazebo::ModelPlugin
 {
@@ -237,6 +237,6 @@ TeleportIngestorPlugin::~TeleportIngestorPlugin()
   rclcpp::shutdown();
 }
 
-} // namespace rmf_gazebo_plugins
+} // namespace rmf_robot_sim_gazebo_plugins
 
-GZ_REGISTER_MODEL_PLUGIN(rmf_gazebo_plugins::TeleportIngestorPlugin)
+GZ_REGISTER_MODEL_PLUGIN(rmf_robot_sim_gazebo_plugins::TeleportIngestorPlugin)

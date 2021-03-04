@@ -33,12 +33,12 @@
 #include <building_map_msgs/msg/level.hpp>
 #include <building_map_msgs/msg/graph.hpp>
 
-#include <rmf_plugins_common/utils.hpp>
-#include <rmf_plugins_common/readonly_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
+#include <rmf_robot_sim_common/readonly_common.hpp>
 
 using namespace ignition::gazebo;
 
-namespace rmf_ignition_plugins {
+namespace rmf_robot_sim_ignition_plugins {
 
 class IGNITION_GAZEBO_VISIBLE ReadonlyPlugin
   : public System,
@@ -99,4 +99,4 @@ IGNITION_ADD_PLUGIN(
 // TODO would prefer namespaced
 IGNITION_ADD_PLUGIN_ALIAS(ReadonlyPlugin, "readonly")
 
-} // namespace rmf_ignition_plugins
+} // namespace rmf_robot_sim_ignition_plugins

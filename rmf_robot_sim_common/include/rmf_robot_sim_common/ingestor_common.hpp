@@ -15,8 +15,8 @@
  *
 */
 
-#ifndef RMF_PLUGINS_COMMON__INGESTOR_COMMON_HPP
-#define RMF_PLUGINS_COMMON__INGESTOR_COMMON_HPP
+#ifndef RMF_ROBOT_SIM_COMMON__INGESTOR_COMMON_HPP
+#define RMF_ROBOT_SIM_COMMON__INGESTOR_COMMON_HPP
 
 #include <string>
 #include <unordered_map>
@@ -29,7 +29,7 @@
 #include <rmf_ingestor_msgs/msg/ingestor_result.hpp>
 #include <rmf_ingestor_msgs/msg/ingestor_request.hpp>
 
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 using namespace rmf_plugins_utils;
 
