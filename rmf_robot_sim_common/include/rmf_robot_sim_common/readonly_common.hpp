@@ -15,8 +15,8 @@
  *
 */
 
-#ifndef RMF_PLUGINS_COMMON__READONLY_COMMON_HPP
-#define RMF_PLUGINS_COMMON__READONLY_COMMON_HPP
+#ifndef RMF_ROBOT_SIM_COMMON__READONLY_COMMON_HPP
+#define RMF_ROBOT_SIM_COMMON__READONLY_COMMON_HPP
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/logger.hpp>

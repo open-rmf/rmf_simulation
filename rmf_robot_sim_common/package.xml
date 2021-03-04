@@ -1,5 +1,5 @@
 <package format="3">
-  <name>rmf_plugins_common</name>
+  <name>rmf_robot_sim_common</name>
   <version>1.2.0</version>
   <description>
     Common utility functions for Gazebo and ignition RMF plugins

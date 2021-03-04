@@ -192,7 +192,7 @@ std::shared_ptr<ResultMsgT> make_response(uint8_t status,
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 // Version agnostic conversion functions between Ignition Math and Eigen. Removes need for Ignition
-// Math dependencies in rmf_plugins_common
+// Math dependencies in rmf_robot_sim_common
 
 template<typename IgnQuatT>
 inline void convert(const Eigen::Quaterniond& _q, IgnQuatT& quat)

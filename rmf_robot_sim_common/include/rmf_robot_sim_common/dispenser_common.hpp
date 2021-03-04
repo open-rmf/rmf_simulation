@@ -15,8 +15,8 @@
  *
 */
 
-#ifndef RMF_PLUGINS_COMMON__DISPENSER_COMMON_HPP
-#define RMF_PLUGINS_COMMON__DISPENSER_COMMON_HPP
+#ifndef RMF_ROBOT_SIM_COMMON__DISPENSER_COMMON_HPP
+#define RMF_ROBOT_SIM_COMMON__DISPENSER_COMMON_HPP
 
 #include <string>
 #include <unordered_map>
@@ -28,7 +28,7 @@
 #include <rmf_dispenser_msgs/msg/dispenser_result.hpp>
 #include <rmf_dispenser_msgs/msg/dispenser_request.hpp>
 
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 namespace rmf_dispenser_common {
 

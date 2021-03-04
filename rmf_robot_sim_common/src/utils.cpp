@@ -1,7 +1,7 @@
 #include <cmath>
 #include <algorithm>
 
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 namespace rmf_plugins_utils {
 

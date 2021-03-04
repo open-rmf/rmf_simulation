@@ -1,5 +1,5 @@
 <package format="3">
-  <name>rmf_ignition_plugins</name>
+  <name>rmf_robot_sim_ignition_plugins</name>
   <version>1.2.0</version>
   <description>
     ROS 2 Ignition plugins for TeleportIngestors and TeleportDispensers
@@ -22,7 +22,7 @@
   <depend>rmf_dispenser_msgs</depend>
   <depend>rmf_ingestor_msgs</depend>
   <depend>building_map_msgs</depend>
-  <depend>rmf_plugins_common</depend>
+  <depend>rmf_robot_sim_common</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

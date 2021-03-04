@@ -1,5 +1,5 @@
-#include <rmf_plugins_common/readonly_common.hpp>
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/readonly_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 using namespace rmf_readonly_common;
 

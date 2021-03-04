@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(rmf_ignition_plugins)
+project(rmf_robot_sim_ignition_plugins)
 
 set (CMAKE_AUTOMOC ON)
 
@@ -57,7 +57,7 @@ find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
 find_package(building_map_msgs REQUIRED)
-find_package(rmf_plugins_common REQUIRED)
+find_package(rmf_robot_sim_common REQUIRED)
 find_package (Qt5
   COMPONENTS
     Core
@@ -82,7 +82,7 @@ ament_target_dependencies(teleport_ingestor
     rmf_fleet_msgs
     rmf_ingestor_msgs
     rclcpp
-    rmf_plugins_common
+    rmf_robot_sim_common
     Eigen3
 )
 
@@ -107,7 +107,7 @@ ament_target_dependencies(teleport_dispenser
     rmf_fleet_msgs
     rmf_dispenser_msgs
     rclcpp
-    rmf_plugins_common
+    rmf_robot_sim_common
     Eigen3
 )
 
@@ -130,7 +130,7 @@ ament_target_dependencies(readonly
     rclcpp
     ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}
-    rmf_plugins_common
+    rmf_robot_sim_common
     Eigen3
 )
 

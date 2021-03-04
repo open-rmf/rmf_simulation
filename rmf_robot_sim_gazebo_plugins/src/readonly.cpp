@@ -33,8 +33,8 @@
 #include <building_map_msgs/msg/level.hpp>
 #include <building_map_msgs/msg/graph.hpp>
 
-#include <rmf_plugins_common/utils.hpp>
-#include <rmf_plugins_common/readonly_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
+#include <rmf_robot_sim_common/readonly_common.hpp>
 
 class ReadonlyPlugin : public gazebo::ModelPlugin
 {

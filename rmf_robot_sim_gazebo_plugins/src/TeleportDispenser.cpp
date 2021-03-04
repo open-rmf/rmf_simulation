@@ -27,8 +27,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <rmf_plugins_common/dispenser_common.hpp>
-#include <rmf_plugins_common/utils.hpp>
+#include <rmf_robot_sim_common/dispenser_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
 
 using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;

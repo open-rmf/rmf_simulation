@@ -29,7 +29,7 @@ find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
 find_package(building_map_msgs REQUIRED)
-find_package(rmf_plugins_common REQUIRED)
+find_package(rmf_robot_sim_common REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -44,7 +44,7 @@ ament_target_dependencies(teleport_dispenser
   gazebo_ros
   rmf_fleet_msgs
   rmf_dispenser_msgs
-  rmf_plugins_common
+  rmf_robot_sim_common
   Eigen3
 )
 
@@ -67,7 +67,7 @@ ament_target_dependencies(teleport_ingestor
   gazebo_ros
   rmf_fleet_msgs
   rmf_ingestor_msgs
-  rmf_plugins_common
+  rmf_robot_sim_common
   Eigen3
 )
 
@@ -90,7 +90,7 @@ ament_target_dependencies(readonly
     building_map_msgs
     rclcpp
     gazebo_ros
-    rmf_plugins_common
+    rmf_robot_sim_common
     Eigen3
 )
 
