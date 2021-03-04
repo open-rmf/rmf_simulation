@@ -1,5 +1,5 @@
 <package format="3">
-  <name>rmf_gazebo_plugins</name>
+  <name>rmf_robot_sim_gazebo_plugins</name>
   <version>1.2.0</version>
   <description>
     ROS 2 Gazebo plugins for TeleportIngestors, TeleportDispensers and Readonly Objects

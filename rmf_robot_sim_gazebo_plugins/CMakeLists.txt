@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(rmf_gazebo_plugins)
+project(rmf_robot_sim_gazebo_plugins)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)

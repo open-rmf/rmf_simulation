@@ -33,7 +33,7 @@
 using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;
 
-namespace rmf_gazebo_plugins {
+namespace rmf_robot_sim_gazebo_plugins {
 
 class TeleportDispenserPlugin : public gazebo::ModelPlugin
 {
@@ -219,6 +219,6 @@ void TeleportDispenserPlugin::Load(gazebo::physics::ModelPtr _parent,
     std::bind(&TeleportDispenserPlugin::on_update, this));
 }
 
-} // namespace rmf_gazebo_plugins
+} // namespace rmf_robot_sim_gazebo_plugins
 
-GZ_REGISTER_MODEL_PLUGIN(rmf_gazebo_plugins::TeleportDispenserPlugin)
+GZ_REGISTER_MODEL_PLUGIN(rmf_robot_sim_gazebo_plugins::TeleportDispenserPlugin)
