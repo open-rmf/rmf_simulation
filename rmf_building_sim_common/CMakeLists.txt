@@ -159,7 +159,7 @@ install(
 )
 
 install(
-  DIRECTORY include/building_sim_common
+  DIRECTORY include/rmf_building_sim_common
   DESTINATION include
 )
 
