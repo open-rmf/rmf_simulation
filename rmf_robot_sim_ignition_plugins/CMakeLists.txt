@@ -56,7 +56,7 @@ find_package(std_msgs REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
-find_package(building_map_msgs REQUIRED)
+find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
 find_package (Qt5
   COMPONENTS
@@ -126,7 +126,7 @@ add_library(readonly SHARED ${PROJECT_SOURCE_DIR}/src/readonly.cpp)
 
 ament_target_dependencies(readonly
     rmf_fleet_msgs
-    building_map_msgs
+    rmf_building_map_msgs
     rclcpp
     ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}

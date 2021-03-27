@@ -30,9 +30,9 @@
 #include <Eigen/Geometry>
 
 #include <rmf_fleet_msgs/msg/robot_state.hpp>
-#include <building_map_msgs/msg/building_map.hpp>
-#include <building_map_msgs/msg/level.hpp>
-#include <building_map_msgs/msg/graph.hpp>
+#include <rmf_building_map_msgs/msg/building_map.hpp>
+#include <rmf_building_map_msgs/msg/level.hpp>
+#include <rmf_building_map_msgs/msg/graph.hpp>
 
 namespace rmf_readonly_common {
 
@@ -40,9 +40,9 @@ class ReadonlyCommon
 {
 public:
 
-  using BuildingMap = building_map_msgs::msg::BuildingMap;
-  using Level = building_map_msgs::msg::Level;
-  using Graph = building_map_msgs::msg::Graph;
+  using BuildingMap = rmf_building_map_msgs::msg::BuildingMap;
+  using Level = rmf_building_map_msgs::msg::Level;
+  using Graph = rmf_building_map_msgs::msg::Graph;
   using Location = rmf_fleet_msgs::msg::Location;
   using Path = std::vector<Location>;
 

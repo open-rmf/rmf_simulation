@@ -3,9 +3,9 @@
 
 using namespace rmf_readonly_common;
 
-using BuildingMap = building_map_msgs::msg::BuildingMap;
-using Level = building_map_msgs::msg::Level;
-using Graph = building_map_msgs::msg::Graph;
+using BuildingMap = rmf_building_map_msgs::msg::BuildingMap;
+using Level = rmf_building_map_msgs::msg::Level;
+using Graph = rmf_building_map_msgs::msg::Graph;
 using Location = rmf_fleet_msgs::msg::Location;
 using Path = std::vector<Location>;
 

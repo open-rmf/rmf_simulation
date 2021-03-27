@@ -147,9 +147,9 @@ It is assumed tobe at **Quality Level 4** based on its widespread use and use of
 
 `std_srvs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_srvs/QUALITY_DECLARATION.md).
 
-#### building_map_msgs
+#### rmf_building_map_msgs
 
-`building_map_msgs` is [**Quality Level 3**](https://github.com/osrf/traffic_editor/blob/master/building_map_msgs/QUALITY_DECLARATION.md).
+`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/osrf/traffic_editor/blob/master/rmf_building_map_msgs/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 

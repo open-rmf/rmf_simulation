@@ -30,7 +30,7 @@ find_package(std_srvs REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_door_msgs REQUIRED)
 find_package(rmf_lift_msgs REQUIRED)
-find_package(building_map_msgs REQUIRED)
+find_package(rmf_building_map_msgs REQUIRED)
 find_package(menge QUIET)
 
 include(GNUInstallDirs)
@@ -40,7 +40,7 @@ add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
 ament_target_dependencies(slotcar_common
     Eigen3
     rmf_fleet_msgs
-    building_map_msgs
+    rmf_building_map_msgs
     rclcpp
     std_msgs
     geometry_msgs
