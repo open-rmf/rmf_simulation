@@ -128,7 +128,7 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
   auto qos_profile = rclcpp::QoS(10);
   qos_profile.transient_local();
   _building_map_sub =
-    _ros_node->create_subscription<building_map_msgs::msg::BuildingMap>(
+    _ros_node->create_subscription<rmf_building_map_msgs::msg::BuildingMap>(
     "/map",
     qos_profile,
     std::bind(&SlotcarCommon::map_cb, this, std::placeholders::_1));
@@ -702,7 +702,7 @@ void SlotcarCommon::mode_request_cb(
 }
 
 void SlotcarCommon::map_cb(
-  const building_map_msgs::msg::BuildingMap::SharedPtr msg)
+  const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg)
 {
   if (msg->levels.empty())
   {

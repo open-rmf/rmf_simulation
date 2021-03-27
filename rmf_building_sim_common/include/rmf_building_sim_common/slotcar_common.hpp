@@ -30,7 +30,7 @@
 #include <rmf_fleet_msgs/msg/path_request.hpp>
 #include <rmf_fleet_msgs/msg/pause_request.hpp>
 #include <rmf_fleet_msgs/msg/mode_request.hpp>
-#include <building_map_msgs/msg/building_map.hpp>
+#include <rmf_building_map_msgs/msg/building_map.hpp>
 
 namespace rmf_building_sim_common {
 
@@ -210,7 +210,7 @@ private:
   rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr _traj_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::PauseRequest>::SharedPtr _pause_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::ModeRequest>::SharedPtr _mode_sub;
-  rclcpp::Subscription<building_map_msgs::msg::BuildingMap>::SharedPtr
+  rclcpp::Subscription<rmf_building_map_msgs::msg::BuildingMap>::SharedPtr
     _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
@@ -275,7 +275,7 @@ private:
 
   void mode_request_cb(const rmf_fleet_msgs::msg::ModeRequest::SharedPtr msg);
 
-  void map_cb(const building_map_msgs::msg::BuildingMap::SharedPtr msg);
+  void map_cb(const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg);
 
   bool near_charger(const Eigen::Isometry3d& pose) const;
 

@@ -23,7 +23,7 @@ find_package(std_msgs REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
-find_package(building_map_msgs REQUIRED)
+find_package(rmf_building_map_msgs REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -53,7 +53,7 @@ add_library(ingestor_common SHARED ${PROJECT_SOURCE_DIR}/src/ingestor_common.cpp
 
 ament_target_dependencies(ingestor_common 
     rmf_fleet_msgs
-    building_map_msgs
+    rmf_building_map_msgs
     rmf_ingestor_msgs
     rclcpp
     std_msgs
@@ -75,7 +75,7 @@ add_library(dispenser_common SHARED ${PROJECT_SOURCE_DIR}/src/dispenser_common.c
 
 ament_target_dependencies(dispenser_common
     rmf_fleet_msgs
-    building_map_msgs
+    rmf_building_map_msgs
     rmf_dispenser_msgs
     rclcpp
     std_msgs
@@ -97,7 +97,7 @@ add_library(readonly_common SHARED ${PROJECT_SOURCE_DIR}/src/readonly_common.cpp
 
 ament_target_dependencies(readonly_common
     rmf_fleet_msgs
-    building_map_msgs
+    rmf_building_map_msgs
     rclcpp
     std_msgs
     Eigen3
