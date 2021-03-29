@@ -45,6 +45,6 @@ Changelog for package rmf_building_sim_gazebo_plugins
 * migrated single door changes to plugin
 * Merge branch 'master' into feature/single-doors
 * Merge pull request `#89 <https://github.com/osrf/traffic_editor/issues/89>`_ from osrf/add_gazebo_plugins
-  add gazebo plugins used by building_map_tools generators
-* add gazebo plugins used by building_map_tools generators
+  add gazebo plugins used by rmf_building_map_tools generators
+* add gazebo plugins used by rmf_building_map_tools generators
 * Contributors: Aaron, Aaron Chong, Michael X. Grey, Morgan Quigley, Yadu, Yadunund
