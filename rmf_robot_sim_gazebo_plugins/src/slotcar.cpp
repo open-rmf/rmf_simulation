@@ -7,10 +7,8 @@
 #include <gazebo/transport/transport.hh>
 #include <gazebo/msgs/msgs.hh>
 
-#include <rmf_building_sim_common/utils.hpp>
-#include <rmf_building_sim_common/slotcar_common.hpp>
-
-using namespace rmf_building_sim_common;
+#include <rmf_robot_sim_common/utils.hpp>
+#include <rmf_robot_sim_common/slotcar_common.hpp>
 
 class SlotcarPlugin : public gazebo::ModelPlugin
 {
@@ -22,7 +20,7 @@ public:
   void OnUpdate();
 
 private:
-  std::unique_ptr<SlotcarCommon> dataPtr;
+  std::unique_ptr<rmf_robot_sim_common::SlotcarCommon> dataPtr;
 
   gazebo::transport::NodePtr _gazebo_node;
   gazebo::transport::SubscriberPtr _charge_state_sub;
@@ -61,7 +59,7 @@ private:
 };
 
 SlotcarPlugin::SlotcarPlugin()
-: dataPtr(std::make_unique<SlotcarCommon>())
+: dataPtr(std::make_unique<rmf_robot_sim_common::SlotcarCommon>())
 {
   // Listen for messages that enable/disable charging
   _gazebo_node = gazebo::transport::NodePtr(new gazebo::transport::Node());
@@ -140,7 +138,7 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
     const auto p_obstacle = m->WorldPose().Pos();
     if (m->IsStatic() == false &&
       infrastructure.find(m.get()) == infrastructure.end())
-      obstacle_positions.push_back(convert_vec(p_obstacle));
+      obstacle_positions.push_back(rmf_plugins_utils::convert_vec(p_obstacle));
   }
 
   return obstacle_positions;
@@ -160,7 +158,7 @@ void SlotcarPlugin::OnUpdate()
   auto obstacle_positions = get_obstacle_positions(world);
 
   auto velocities =
-    dataPtr->update(convert_pose(pose), obstacle_positions, time);
+    dataPtr->update(rmf_plugins_utils::convert_pose(pose), obstacle_positions, time);
 
   send_control_signals(velocities, dt);
 }
