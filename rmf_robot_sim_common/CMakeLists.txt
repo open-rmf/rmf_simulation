@@ -19,7 +19,9 @@ endif()
 find_package(Eigen3 REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
@@ -110,6 +112,30 @@ target_include_directories(readonly_common
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+###################################
+# Slotcar Plugin Common           #
+###################################
+
+add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
+
+ament_target_dependencies(slotcar_common
+    Eigen3
+    rmf_fleet_msgs
+    rmf_building_map_msgs
+    rclcpp
+    std_msgs
+    geometry_msgs
+    tf2_ros
+)
+
+target_include_directories(slotcar_common
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${EIGEN3_INCLUDE_DIRS}
+    ${GAZEBO_INCLUDE_DIRS}
+)
+
 ###############################
 # Install Targets             #
 ###############################
@@ -119,6 +145,7 @@ ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
 ament_export_targets(rmf_sim_utils HAS_LIBRARY_TARGET)
+ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
 
 install(
   TARGETS ingestor_common
@@ -144,6 +171,13 @@ install(
 install(
   TARGETS rmf_sim_utils
   EXPORT rmf_sim_utils
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+install(
+  TARGETS slotcar_common
+  EXPORT slotcar_common
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )

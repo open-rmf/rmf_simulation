@@ -16,8 +16,9 @@
   <depend>rclcpp</depend>
   <depend>eigen</depend>
 
+  <depend>geometry_msgs</depend>
   <depend>std_msgs</depend>
-
+  <depend>tf2_ros</depend>
   <depend>rmf_fleet_msgs</depend>
   <depend>rmf_dispenser_msgs</depend>
   <depend>rmf_ingestor_msgs</depend>
