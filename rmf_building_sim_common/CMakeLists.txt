@@ -22,9 +22,6 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
@@ -35,24 +32,16 @@ find_package(menge QUIET)
 
 include(GNUInstallDirs)
 
-add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
+###############################
+# Utils                       #
+###############################
 
-ament_target_dependencies(slotcar_common
-    Eigen3
-    rmf_fleet_msgs
-    rmf_building_map_msgs
-    rclcpp
-    std_msgs
-    geometry_msgs
-    tf2_ros
-)
+add_library(rmf_building_sim_utils SHARED ${PROJECT_SOURCE_DIR}/src/utils.cpp)
 
-target_include_directories(slotcar_common
+target_include_directories(rmf_building_sim_utils
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${EIGEN3_INCLUDE_DIRS}
-    ${GAZEBO_INCLUDE_DIRS}
 )
 
 ###############################
@@ -73,6 +62,10 @@ target_include_directories(door_common
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_link_libraries(door_common
+    rmf_building_sim_utils
+)
+
 ###############################
 # lift stuff
 ###############################
@@ -86,11 +79,14 @@ ament_target_dependencies(lift_common
    rmf_lift_msgs
 )
 
-
 target_include_directories(lift_common
  PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+target_link_libraries(lift_common
+    rmf_building_sim_utils
 )
 
 ###############################
@@ -129,17 +125,15 @@ endif()
 ###############################
 # install stuff
 ###############################
-ament_export_include_directories(include)
 
-ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_targets(rmf_building_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(door_common HAS_LIBRARY_TARGET)
 ament_export_targets(lift_common HAS_LIBRARY_TARGET)
 
-ament_export_dependencies(Eigen3)
-
 install(
-  TARGETS slotcar_common 
-  EXPORT slotcar_common
+  TARGETS rmf_building_sim_utils
+  EXPORT rmf_building_sim_utils
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )

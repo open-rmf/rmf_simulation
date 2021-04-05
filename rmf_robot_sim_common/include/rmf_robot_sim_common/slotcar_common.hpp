@@ -32,7 +32,7 @@
 #include <rmf_fleet_msgs/msg/mode_request.hpp>
 #include <rmf_building_map_msgs/msg/building_map.hpp>
 
-namespace rmf_building_sim_common {
+namespace rmf_robot_sim_common {
 
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
 
@@ -428,6 +428,6 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
 
   RCLCPP_INFO(logger(), "Setting name to: " + _model_name);
 }
-} // namespace rmf_building_sim_common
+} // namespace rmf_robot_sim_common
 
 #endif // RMF_BUILDING_SIM_COMMON__SLOTCAR_COMMON_HPP

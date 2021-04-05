@@ -3,7 +3,7 @@
 
 #include <rmf_building_sim_common/utils.hpp>
 
-namespace rmf_building_sim_gazebo_plugins {
+namespace rmf_building_sim_common {
 
 //==============================================================================
 double compute_ds(
@@ -98,20 +98,4 @@ double compute_desired_rate_of_change(
   // Flip the sign to the correct direction before returning the value
   return sign * v_next;
 }
-
-//==============================================================================
-bool get_element_required(
-  const sdf::ElementPtr& _sdf,
-  const std::string& _element_name,
-  sdf::ElementPtr& _element)
-{
-  if (!_sdf->HasElement(_element_name))
-  {
-    std::cerr << "Element [" << _element_name << "] not found" << std::endl;
-    return false;
-  }
-  _element = _sdf->GetElement(_element_name);
-  return true;
-}
-
-} // namespace rmf_building_sim_gazebo_plugins
+} // namespace rmf_building_sim_common

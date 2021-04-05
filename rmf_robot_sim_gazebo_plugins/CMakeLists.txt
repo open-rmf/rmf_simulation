@@ -24,7 +24,9 @@ find_package(gazebo_ros REQUIRED)
 find_package(gazebo_dev REQUIRED)
 find_package(gazebo_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
@@ -103,6 +105,32 @@ target_include_directories(readonly
 )
 
 ###############################
+# Slotcar Plugin
+###############################
+
+add_library(slotcar SHARED ${PROJECT_SOURCE_DIR}/src/slotcar.cpp)
+
+ament_target_dependencies(slotcar
+  Eigen3
+  rmf_robot_sim_common
+  rmf_fleet_msgs
+  rclcpp
+  gazebo_ros
+  std_msgs
+  geometry_msgs
+  tf2_ros
+  rmf_building_map_msgs
+)
+
+target_include_directories(slotcar
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${EIGEN3_INCLUDE_DIRS}
+    ${GAZEBO_INCLUDE_DIRS}
+)
+
+###############################
 # Install Targets
 ###############################
 
@@ -111,6 +139,7 @@ install(
     teleport_dispenser
     teleport_ingestor
     readonly
+    slotcar
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

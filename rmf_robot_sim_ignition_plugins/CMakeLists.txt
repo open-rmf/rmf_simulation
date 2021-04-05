@@ -52,7 +52,9 @@ set(IGN_RENDERING_VER 4)
 ign_find_package(sdformat10 REQUIRED)
 
 find_package(Eigen3 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
@@ -142,6 +144,35 @@ target_include_directories(readonly
 )
 
 ###############################
+# Slotcar Plugin              #
+###############################
+
+add_library(slotcar SHARED ${PROJECT_SOURCE_DIR}/src/slotcar.cpp)
+
+ament_target_dependencies(slotcar
+  PUBLIC
+    ignition-gazebo${IGN_GAZEBO_VER}
+    ignition-plugin${IGN_PLUGIN_VER}
+    rmf_robot_sim_common
+    rmf_fleet_msgs
+    rclcpp
+    geometry_msgs
+    tf2_ros
+)
+
+target_include_directories(slotcar
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${rmf_robot_sim_common_INCLUDE_DIRS}
+    ${geometry_msgs_INCLUDE_DIRS}
+    ${std_msgs_INCLUDE_DIRS}
+    ${rmf_fleet_msgs_INCLUDE_DIRS}
+    ${rmf_building_map_msgs_INCLUDE_DIRS}
+    ${tf2_ros_INCLUDE_DIRS}
+)
+
+###############################
 # LightTuning
 ###############################
 
@@ -176,10 +207,11 @@ target_include_directories(LightTuning
 ###############################
 
 install(
-  TARGETS 
+  TARGETS
     teleport_dispenser
     teleport_ingestor
     readonly
+    slotcar
     LightTuning
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

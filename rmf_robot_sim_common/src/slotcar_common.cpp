@@ -21,10 +21,9 @@
 #include <rmf_fleet_msgs/msg/destination_request.hpp>
 #include <rclcpp/logger.hpp>
 
-#include <rmf_building_sim_common/utils.hpp>
-#include <rmf_building_sim_common/slotcar_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
+#include <rmf_robot_sim_common/slotcar_common.hpp>
 
-using namespace rmf_building_sim_common;
 
 static double compute_yaw(const Eigen::Isometry3d& pose)
 {
@@ -86,6 +85,8 @@ double compute_friction_energy(
   const double g = 9.81; // ms-1
   return f * m * g * v * dt;
 }
+
+using SlotcarCommon = rmf_robot_sim_common::SlotcarCommon;
 
 SlotcarCommon::SlotcarCommon()
 {
@@ -260,11 +261,11 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   const double v_robot = curr_velocities[0];
   const double w_robot = curr_velocities[1];
 
-  const double v_target = compute_ds(velocities.first, v_robot,
+  const double v_target = rmf_plugins_utils::compute_ds(velocities.first, v_robot,
       _nominal_drive_speed,
       _nominal_drive_acceleration, _max_drive_acceleration, dt);
 
-  const double w_target = compute_ds(velocities.second, w_robot,
+  const double w_target = rmf_plugins_utils::compute_ds(velocities.second, w_robot,
       _nominal_turn_speed,
       _nominal_turn_acceleration, _max_turn_acceleration, dt);
 

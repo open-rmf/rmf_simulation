@@ -19,12 +19,10 @@
 #include <ignition/transport.hh>
 #include <rclcpp/rclcpp.hpp>
 
-#include <rmf_building_sim_common/utils.hpp>
-#include <rmf_building_sim_common/slotcar_common.hpp>
+#include <rmf_robot_sim_common/utils.hpp>
+#include <rmf_robot_sim_common/slotcar_common.hpp>
 
 using namespace ignition::gazebo;
-
-using namespace rmf_building_sim_common;
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
 std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
@@ -45,7 +43,7 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
-  std::unique_ptr<SlotcarCommon> dataPtr;
+  std::unique_ptr<rmf_robot_sim_common::SlotcarCommon> dataPtr;
   ignition::transport::Node _ign_node;
   rclcpp::Node::SharedPtr _ros_node;
 
@@ -75,7 +73,7 @@ private:
 };
 
 SlotcarPlugin::SlotcarPlugin()
-: dataPtr(std::make_unique<SlotcarCommon>())
+: dataPtr(std::make_unique<rmf_robot_sim_common::SlotcarCommon>())
 {
   // Listen for messages that enable/disable charging
   if (!_ign_node.Subscribe("/charge_state", &SlotcarPlugin::charge_state_cb,
@@ -241,7 +239,7 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
       if (is_static->Data() == false &&
       _infrastructure.find(entity) == _infrastructure.end())
       {
-        obstacle_positions.push_back(convert_vec(obstacle_position));
+        obstacle_positions.push_back(rmf_plugins_utils::convert_vec(obstacle_position));
       }
       return true;
     });
@@ -346,7 +344,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   auto obstacle_positions = get_obstacle_positions(ecm);
 
   auto velocities =
-    dataPtr->update(convert_pose(pose), obstacle_positions, time);
+    dataPtr->update(rmf_plugins_utils::convert_pose(pose), obstacle_positions, time);
 
   send_control_signals(ecm, velocities, _payloads, dt);
 }
