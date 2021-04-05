@@ -57,10 +57,10 @@ struct SimEntity
 double compute_ds(
   double s_target,
   double v_actual,
-  double v_max,
-  double accel_nom,
-  double accel_max,
-  double dt);
+  const double v_max,
+  const double accel_nom,
+  const double accel_max,
+  const double dt);
 
 struct MotionParams
 {

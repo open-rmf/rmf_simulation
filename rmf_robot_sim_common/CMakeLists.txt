@@ -33,14 +33,14 @@ include(GNUInstallDirs)
 # Utils                       #
 ###############################
 
-add_library(rmf_sim_utils SHARED ${PROJECT_SOURCE_DIR}/src/utils.cpp)
+add_library(rmf_robot_sim_utils SHARED ${PROJECT_SOURCE_DIR}/src/utils.cpp)
 
-ament_target_dependencies(rmf_sim_utils
+ament_target_dependencies(rmf_robot_sim_utils
   rclcpp
   Eigen3
 )
 
-target_include_directories(rmf_sim_utils
+target_include_directories(rmf_robot_sim_utils
   PUBLIC
     ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -136,6 +136,10 @@ target_include_directories(slotcar_common
     ${GAZEBO_INCLUDE_DIRS}
 )
 
+target_link_libraries(slotcar_common
+    rmf_robot_sim_utils
+)
+
 ###############################
 # Install Targets             #
 ###############################
@@ -144,7 +148,7 @@ ament_export_include_directories(include)
 ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
-ament_export_targets(rmf_sim_utils HAS_LIBRARY_TARGET)
+ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
 
 install(
@@ -169,8 +173,8 @@ install(
 )
 
 install(
-  TARGETS rmf_sim_utils
-  EXPORT rmf_sim_utils
+  TARGETS rmf_robot_sim_utils
+  EXPORT rmf_robot_sim_utils
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
