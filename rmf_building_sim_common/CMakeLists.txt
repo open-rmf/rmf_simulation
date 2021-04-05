@@ -33,6 +33,18 @@ find_package(menge QUIET)
 include(GNUInstallDirs)
 
 ###############################
+# Utils                       #
+###############################
+
+add_library(rmf_building_sim_utils SHARED ${PROJECT_SOURCE_DIR}/src/utils.cpp)
+
+target_include_directories(rmf_building_sim_utils
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+###############################
 # door stuff
 ###############################
 
@@ -50,6 +62,10 @@ target_include_directories(door_common
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_link_libraries(door_common
+    rmf_building_sim_utils
+)
+
 ###############################
 # lift stuff
 ###############################
@@ -63,11 +79,14 @@ ament_target_dependencies(lift_common
    rmf_lift_msgs
 )
 
-
 target_include_directories(lift_common
  PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+target_link_libraries(lift_common
+    rmf_building_sim_utils
 )
 
 ###############################
@@ -108,8 +127,16 @@ endif()
 ###############################
 
 ament_export_include_directories(include)
+ament_export_targets(rmf_building_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(door_common HAS_LIBRARY_TARGET)
 ament_export_targets(lift_common HAS_LIBRARY_TARGET)
+
+install(
+  TARGETS rmf_building_sim_utils
+  EXPORT rmf_building_sim_utils
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
 
 install(
   TARGETS door_common 
