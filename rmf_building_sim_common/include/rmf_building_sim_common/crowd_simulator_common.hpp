@@ -188,7 +188,7 @@ public:
   double get_sim_time_step() const;
   size_t get_num_objects() const;
   ObjectPtr get_object_by_id(size_t id) const;
-  void one_step_sim() const;
+  void one_step_sim(double time_step) const;
   double get_switch_anim_distance_th() const;
   std::vector<std::string> get_switch_anim_name() const;
   bool enabled() const;

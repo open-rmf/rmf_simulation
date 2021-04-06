@@ -97,7 +97,7 @@ void CrowdSimulatorPlugin::PreUpdate(
   if (_crowd_sim_interface->get_sim_time_step() <= delta_sim_time)
   {
     _last_sim_time = info.simTime;
-    _crowd_sim_interface->one_step_sim();
+    _crowd_sim_interface->one_step_sim(delta_sim_time);
     _update_all_objects(delta_sim_time, ecm);
   }
 }
@@ -459,10 +459,10 @@ void CrowdSimulatorPlugin::_update_internal_object(
   traj_pose_comp->Data() = agent_pose;
   ecm.SetChanged(entity,
     ignition::gazebo::components::TrajectoryPose::typeId,
-    ignition::gazebo::ComponentState::OneTimeChange);
+    ignition::gazebo::ComponentState::PeriodicChange);
   ecm.SetChanged(entity,
     ignition::gazebo::components::AnimationTime::typeId,
-    ignition::gazebo::ComponentState::OneTimeChange);
+    ignition::gazebo::ComponentState::PeriodicChange);
 }
 
 } //namespace crowd_simulation_ign
