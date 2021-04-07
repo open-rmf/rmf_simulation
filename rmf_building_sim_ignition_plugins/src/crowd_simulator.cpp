@@ -37,7 +37,7 @@ void CrowdSimulatorPlugin::Configure(
   const ignition::gazebo::Entity& entity,
   const std::shared_ptr<const sdf::Element>& sdf,
   ignition::gazebo::EntityComponentManager& ecm,
-  ignition::gazebo::EventManager& event_mgr)
+  ignition::gazebo::EventManager& /*event_mgr*/)
 {
   _world = std::make_shared<ignition::gazebo::Model>(entity);
   RCLCPP_INFO(_crowd_sim_interface->logger(),
@@ -65,7 +65,7 @@ void CrowdSimulatorPlugin::Configure(
     exit(EXIT_FAILURE);
   }
 
-  if (!_spawn_agents_in_world(ecm))
+  if (!_spawn_agents_in_world())
   {
     RCLCPP_ERROR(
       _crowd_sim_interface->logger(),
@@ -103,8 +103,7 @@ void CrowdSimulatorPlugin::PreUpdate(
 }
 
 //==========================================================
-bool CrowdSimulatorPlugin::_spawn_agents_in_world(
-  ignition::gazebo::EntityComponentManager& ecm)
+bool CrowdSimulatorPlugin::_spawn_agents_in_world()
 {
   size_t object_count = this->_crowd_sim_interface->get_num_objects();
   for (size_t id = 0; id < object_count; ++id)
@@ -118,7 +117,7 @@ bool CrowdSimulatorPlugin::_spawn_agents_in_world(
       auto type_ptr = _crowd_sim_interface->_model_type_db_ptr->get(
         object_ptr->type_name);
       assert(type_ptr);
-      if (!this->_create_entity(ecm, object_ptr->model_name, type_ptr) )
+      if (!this->_create_entity(object_ptr->model_name, type_ptr) )
       {
         RCLCPP_ERROR(_crowd_sim_interface->logger(),
           "Failed to insert model [ " + object_ptr->model_name + " ] in world");
@@ -211,7 +210,6 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
 
 //===================================================================
 bool CrowdSimulatorPlugin::_create_entity(
-  ignition::gazebo::EntityComponentManager& ecm,
   const std::string& model_name,
   const crowd_simulator::ModelTypeDatabase::RecordPtr model_type_ptr) const
 {
@@ -412,9 +410,6 @@ void CrowdSimulatorPlugin::_update_internal_object(
       "Model [" + obj_ptr->model_name + "] has no AnimationTime component.");
     exit(EXIT_FAILURE);
   }
-  auto actor_comp =
-    ecm.Component<ignition::gazebo::components::Actor>(entity);
-
   ignition::math::Pose3d current_pose = traj_pose_comp->Data();
   auto distance_traveled_vector = agent_pose.Pos() - current_pose.Pos();
   // might need future work on 3D case
