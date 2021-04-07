@@ -28,10 +28,10 @@ double compute_ds(
 
 //==============================================================================
 double compute_desired_rate_of_change(
-    double _s_target,
-    double _v_actual,
-    const MotionParams& _motion_params,
-    const double _dt);
+  double _s_target,
+  double _v_actual,
+  const MotionParams& _motion_params,
+  const double _dt);
 
 //==============================================================================
 template<typename SdfPtrT, typename SdfElementPtrT>

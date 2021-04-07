@@ -32,6 +32,7 @@ jobs:
         cd rmf_ws/src
         git clone https://github.com/open-rmf/menge_vendor
         git clone https://github.com/open-rmf/rmf_internal_msgs
+        git clone https://github.com/open-rmf/rmf_building_map_msgs
     - name: ros-deps
       run: |
         cd rmf_ws

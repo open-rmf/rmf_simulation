@@ -261,11 +261,13 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   const double v_robot = curr_velocities[0];
   const double w_robot = curr_velocities[1];
 
-  const double v_target = rmf_plugins_utils::compute_ds(velocities.first, v_robot,
+  const double v_target = rmf_plugins_utils::compute_ds(velocities.first,
+      v_robot,
       _nominal_drive_speed,
       _nominal_drive_acceleration, _max_drive_acceleration, dt);
 
-  const double w_target = rmf_plugins_utils::compute_ds(velocities.second, w_robot,
+  const double w_target = rmf_plugins_utils::compute_ds(velocities.second,
+      w_robot,
       _nominal_turn_speed,
       _nominal_turn_acceleration, _max_turn_acceleration, dt);
 
