@@ -91,15 +91,15 @@ void CrowdSimulatorPlugin::PreUpdate(
     return;
   }
 
+  // Note, the update_time_step parameter is ignored in ignition
+  // through GPU animated actors the performance is good enough that
+  // we can afford to update at every iteration and have smooth animations
   std::chrono::duration<double> delta_sim_time_tmp = info.simTime -
     _last_sim_time;
   double delta_sim_time = delta_sim_time_tmp.count();
-  if (_crowd_sim_interface->get_sim_time_step() <= delta_sim_time)
-  {
-    _last_sim_time = info.simTime;
-    _crowd_sim_interface->one_step_sim(delta_sim_time);
-    _update_all_objects(delta_sim_time, ecm);
-  }
+  _last_sim_time = info.simTime;
+  _crowd_sim_interface->one_step_sim(delta_sim_time);
+  _update_all_objects(delta_sim_time, ecm);
 }
 
 //==========================================================
@@ -435,8 +435,7 @@ void CrowdSimulatorPlugin::_update_internal_object(
       anim_time_comp->Data() +=
         std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::duration<double>(distance_traveled / animation_speed));
-      if (obj_ptr->current_state != next_state)
-        anim_name_comp->Data() = model_type->animation;
+      anim_name_comp->Data() = model_type->animation;
       break;
 
     case AnimState::IDLE:
@@ -444,15 +443,13 @@ void CrowdSimulatorPlugin::_update_internal_object(
         std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::duration<double>(delta_sim_time));
       agent_pose.Rot() = current_pose.Rot();
-      if (obj_ptr->current_state != next_state)
-        anim_name_comp->Data() = model_type->idle_animation;
+      anim_name_comp->Data() = model_type->idle_animation;
       break;
   }
 
-  if (obj_ptr->current_state != next_state)
-    ecm.SetChanged(entity,
-      ignition::gazebo::components::AnimationName::typeId,
-      ignition::gazebo::ComponentState::OneTimeChange);
+  ecm.SetChanged(entity,
+    ignition::gazebo::components::AnimationName::typeId,
+    ignition::gazebo::ComponentState::PeriodicChange);
   obj_ptr->current_state = next_state;
 
   // set trajectory
