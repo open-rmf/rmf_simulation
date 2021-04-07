@@ -23,7 +23,7 @@ jobs:
     - name: create-ws
       run: |
         mkdir -p rmf_ws/src
-    - name: checkout # This will check out the current rmf_demos branch for build tests
+    - name: checkout # This will check out the current branch for build tests
       uses: actions/checkout@v2
       with:
         path: rmf_ws/src/rmf_simulation/
@@ -34,12 +34,12 @@ jobs:
         git clone https://github.com/open-rmf/rmf_internal_msgs
     - name: ros-deps
       run: |
-        cd rmf_demos_ws
+        cd rmf_ws
         rosdep update
         rosdep install --from-paths src --ignore-src --rosdistro foxy -yr
     - name: build
       shell: bash
       run: |
-        cd rmf_demos_ws
+        cd rmf_ws
         source /opt/ros/foxy/setup.bash
         colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
