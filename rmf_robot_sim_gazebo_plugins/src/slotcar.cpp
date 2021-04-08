@@ -158,7 +158,8 @@ void SlotcarPlugin::OnUpdate()
   auto obstacle_positions = get_obstacle_positions(world);
 
   auto velocities =
-    dataPtr->update(rmf_plugins_utils::convert_pose(pose), obstacle_positions, time);
+    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
+      obstacle_positions, time);
 
   send_control_signals(velocities, dt);
 }

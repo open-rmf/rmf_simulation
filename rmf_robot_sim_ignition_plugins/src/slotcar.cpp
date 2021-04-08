@@ -239,7 +239,8 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
       if (is_static->Data() == false &&
       _infrastructure.find(entity) == _infrastructure.end())
       {
-        obstacle_positions.push_back(rmf_plugins_utils::convert_vec(obstacle_position));
+        obstacle_positions.push_back(rmf_plugins_utils::convert_vec(
+          obstacle_position));
       }
       return true;
     });
@@ -344,7 +345,8 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   auto obstacle_positions = get_obstacle_positions(ecm);
 
   auto velocities =
-    dataPtr->update(rmf_plugins_utils::convert_pose(pose), obstacle_positions, time);
+    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
+      obstacle_positions, time);
 
   send_control_signals(ecm, velocities, _payloads, dt);
 }
