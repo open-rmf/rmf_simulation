@@ -44,6 +44,11 @@ std::shared_ptr<MengeHandle> MengeHandle::init_and_make(
 void MengeHandle::set_sim_time_step(float sim_time_step)
 {
   this->_sim_time_step = sim_time_step;
+  // Set it if a valid handle is present
+  if (this->_sim)
+  {
+    this->_sim->setTimeStep(sim_time_step);
+  }
 }
 
 float MengeHandle::get_sim_time_step() const
@@ -241,8 +246,9 @@ const
   return _objects[id];
 }
 
-void CrowdSimInterface::one_step_sim() const
+void CrowdSimInterface::one_step_sim(double time_step) const
 {
+  _menge_handle->set_sim_time_step(time_step);
   _menge_handle->sim_step();
 }
 
