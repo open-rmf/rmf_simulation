@@ -90,10 +90,10 @@ void CrowdSimulatorPlugin::_update(
   }
 
   auto delta_sim_time = (update_info.simTime - _last_sim_time).Double();
-  if (delta_sim_time > _crowd_sim_interface->get_sim_time_step())
+  if (delta_sim_time >= _crowd_sim_interface->get_sim_time_step())
   {
     _last_sim_time = update_info.simTime;
-    _crowd_sim_interface->one_step_sim();
+    _crowd_sim_interface->one_step_sim(delta_sim_time);
     _update_all_objects(delta_sim_time);
   }
 }

@@ -37,7 +37,7 @@ void CrowdSimulatorPlugin::Configure(
   const ignition::gazebo::Entity& entity,
   const std::shared_ptr<const sdf::Element>& sdf,
   ignition::gazebo::EntityComponentManager& ecm,
-  ignition::gazebo::EventManager& event_mgr)
+  ignition::gazebo::EventManager& /*event_mgr*/)
 {
   _world = std::make_shared<ignition::gazebo::Model>(entity);
   RCLCPP_INFO(_crowd_sim_interface->logger(),
@@ -65,7 +65,7 @@ void CrowdSimulatorPlugin::Configure(
     exit(EXIT_FAILURE);
   }
 
-  if (!_spawn_agents_in_world(ecm))
+  if (!_spawn_agents_in_world())
   {
     RCLCPP_ERROR(
       _crowd_sim_interface->logger(),
@@ -91,20 +91,19 @@ void CrowdSimulatorPlugin::PreUpdate(
     return;
   }
 
+  // Note, the update_time_step parameter is ignored in ignition
+  // through GPU animated actors the performance is good enough that
+  // we can afford to update at every iteration and have smooth animations
   std::chrono::duration<double> delta_sim_time_tmp = info.simTime -
     _last_sim_time;
   double delta_sim_time = delta_sim_time_tmp.count();
-  if (_crowd_sim_interface->get_sim_time_step() <= delta_sim_time)
-  {
-    _last_sim_time = info.simTime;
-    _crowd_sim_interface->one_step_sim();
-    _update_all_objects(delta_sim_time, ecm);
-  }
+  _last_sim_time = info.simTime;
+  _crowd_sim_interface->one_step_sim(delta_sim_time);
+  _update_all_objects(delta_sim_time, ecm);
 }
 
 //==========================================================
-bool CrowdSimulatorPlugin::_spawn_agents_in_world(
-  ignition::gazebo::EntityComponentManager& ecm)
+bool CrowdSimulatorPlugin::_spawn_agents_in_world()
 {
   size_t object_count = this->_crowd_sim_interface->get_num_objects();
   for (size_t id = 0; id < object_count; ++id)
@@ -118,7 +117,7 @@ bool CrowdSimulatorPlugin::_spawn_agents_in_world(
       auto type_ptr = _crowd_sim_interface->_model_type_db_ptr->get(
         object_ptr->type_name);
       assert(type_ptr);
-      if (!this->_create_entity(ecm, object_ptr->model_name, type_ptr) )
+      if (!this->_create_entity(object_ptr->model_name, type_ptr) )
       {
         RCLCPP_ERROR(_crowd_sim_interface->logger(),
           "Failed to insert model [ " + object_ptr->model_name + " ] in world");
@@ -211,7 +210,6 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
 
 //===================================================================
 bool CrowdSimulatorPlugin::_create_entity(
-  ignition::gazebo::EntityComponentManager& ecm,
   const std::string& model_name,
   const crowd_simulator::ModelTypeDatabase::RecordPtr model_type_ptr) const
 {
@@ -412,9 +410,6 @@ void CrowdSimulatorPlugin::_update_internal_object(
       "Model [" + obj_ptr->model_name + "] has no AnimationTime component.");
     exit(EXIT_FAILURE);
   }
-  auto actor_comp =
-    ecm.Component<ignition::gazebo::components::Actor>(entity);
-
   ignition::math::Pose3d current_pose = traj_pose_comp->Data();
   auto distance_traveled_vector = agent_pose.Pos() - current_pose.Pos();
   // might need future work on 3D case
@@ -435,8 +430,7 @@ void CrowdSimulatorPlugin::_update_internal_object(
       anim_time_comp->Data() +=
         std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::duration<double>(distance_traveled / animation_speed));
-      if (obj_ptr->current_state != next_state)
-        anim_name_comp->Data() = model_type->animation;
+      anim_name_comp->Data() = model_type->animation;
       break;
 
     case AnimState::IDLE:
@@ -444,25 +438,23 @@ void CrowdSimulatorPlugin::_update_internal_object(
         std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::duration<double>(delta_sim_time));
       agent_pose.Rot() = current_pose.Rot();
-      if (obj_ptr->current_state != next_state)
-        anim_name_comp->Data() = model_type->idle_animation;
+      anim_name_comp->Data() = model_type->idle_animation;
       break;
   }
 
-  if (obj_ptr->current_state != next_state)
-    ecm.SetChanged(entity,
-      ignition::gazebo::components::AnimationName::typeId,
-      ignition::gazebo::ComponentState::OneTimeChange);
+  ecm.SetChanged(entity,
+    ignition::gazebo::components::AnimationName::typeId,
+    ignition::gazebo::ComponentState::PeriodicChange);
   obj_ptr->current_state = next_state;
 
   // set trajectory
   traj_pose_comp->Data() = agent_pose;
   ecm.SetChanged(entity,
     ignition::gazebo::components::TrajectoryPose::typeId,
-    ignition::gazebo::ComponentState::OneTimeChange);
+    ignition::gazebo::ComponentState::PeriodicChange);
   ecm.SetChanged(entity,
     ignition::gazebo::components::AnimationTime::typeId,
-    ignition::gazebo::ComponentState::OneTimeChange);
+    ignition::gazebo::ComponentState::PeriodicChange);
 }
 
 } //namespace crowd_simulation_ign
