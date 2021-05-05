@@ -161,7 +161,7 @@ It is assumed to be QL1 based on wide-spread use.
 ## Platform Support [6]
 
 `rmf_gazebo_plugins` does not support all of the tier 1 platforms as described in [REP-2000](https://www.ros.org/reps/rep-2000.html#support-tiers).
-`rmf_gazebo_plugins` supports ROS Eloquent and ROS Foxy.
+`rmf_gazebo_plugins` supports ROS Foxy.
 
 ## Security [7]
 
