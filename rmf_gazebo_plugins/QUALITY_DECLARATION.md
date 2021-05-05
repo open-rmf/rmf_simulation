@@ -76,7 +76,7 @@ The license for `rmf_gazebo_plugins` is Apache 2.0, the type is declared in the 
 
 ### Copyright Statement [3.iv]
 
-The copyright holders each provide a statement of copyright in each source code file in `rmf_demo_tasks`.
+The copyright holders each provide a statement of copyright in each source code file in `rmf_gazebo_plugins`.
 
 ### Quality declaration document [3.v]
 
