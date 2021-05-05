@@ -675,6 +675,18 @@ void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
   robot_state_msg.location.t = t;
   robot_state_msg.location.level_name = get_level_name(_pose.translation()[2]);
 
+  if (robot_state_msg.location.level_name.empty())
+  {
+    RCLCPP_ERROR(
+      logger(),
+      "Unable to determine the current level_name for robot [%s]. Kindly "
+      "ensure the building_map_server is running. The RobotState message for"
+      "this robot will not be published.",
+      _model_name.c_str());
+
+    return;
+  }
+
   robot_state_msg.task_id = _current_task_id;
   robot_state_msg.path = _remaining_path;
   robot_state_msg.mode = _current_mode;
