@@ -86,7 +86,7 @@ void ReadonlyCommon::on_update(Eigen::Isometry3d& pose, double sim_time)
       if (compute_ds(_pose, _next_wp[0]) <= _waypoint_threshold)
       {
         _start_wp = _next_wp[0];
-        RCLCPP_INFO(logger(), "Reached waypoint [%d,%s]",
+        RCLCPP_DEBUG(logger(), "Reached waypoint [%d,%s]",
           _next_wp[0], _graph.vertices[_next_wp[0]].name.c_str());
       }
       _robot_state_msg.path = compute_path(_pose);
@@ -104,24 +104,24 @@ void ReadonlyCommon::map_cb(const BuildingMap::SharedPtr msg)
     return;
   }
 
-  RCLCPP_INFO(logger(), "Received building map with %d levels",
+  RCLCPP_DEBUG(logger(), "Received building map with %d levels",
     msg->levels.size());
   _found_level = false;
   _found_graph = false;
   for (const auto& level: msg->levels)
   {
-    RCLCPP_INFO(logger(), "Level name: [%s]", level.name.c_str());
+    RCLCPP_DEBUG(logger(), "Level name: [%s]", level.name.c_str());
     if (level.name.c_str() == _level_name)
     {
       _level = level;
       _found_level = true;
-      RCLCPP_INFO(logger(), "Found level [%s] with %d nav_graphs",
+      RCLCPP_DEBUG(logger(), "Found level [%s] with %d nav_graphs",
         level.name.c_str(), level.nav_graphs.size());
 
       if (_nav_graph_index < level.nav_graphs.size())
       {
         _found_graph = true;
-        RCLCPP_INFO(logger(), "Graph index [%d] containts [%d] waypoints",
+        RCLCPP_DEBUG(logger(), "Graph index [%d] containts [%d] waypoints",
           _nav_graph_index,
           level.nav_graphs[_nav_graph_index].vertices.size());
         initialize_graph();
@@ -152,7 +152,7 @@ void ReadonlyCommon::initialize_graph()
   _initialized_graph = false;
 
   _graph = _level.nav_graphs[_nav_graph_index];
-  RCLCPP_INFO(logger(), "Nav graph contains [%d] lanes", _graph.edges.size());
+  RCLCPP_DEBUG(logger(), "Nav graph contains [%d] lanes", _graph.edges.size());
   for (const auto& edge : _graph.edges)
   {
     // Inserting entry for v1_idx
@@ -226,7 +226,7 @@ void ReadonlyCommon::initialize_start(const Eigen::Isometry3d& pose)
     {
       found = true;
       _start_wp = i;
-      RCLCPP_INFO(logger(), "Start waypoint found in nav graph");
+      RCLCPP_DEBUG(logger(), "Start waypoint found in nav graph");
     }
   }
 
@@ -236,7 +236,7 @@ void ReadonlyCommon::initialize_start(const Eigen::Isometry3d& pose)
     _initialized_start = true;
     // Here we initialize the next waypoint
     compute_path(pose);
-    RCLCPP_INFO(logger(), "Start waypoint successfully initialized");
+    RCLCPP_DEBUG(logger(), "Start waypoint successfully initialized");
   }
 
   else if (found)
