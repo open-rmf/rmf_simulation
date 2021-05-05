@@ -1,8 +1,8 @@
-This document is a declaration of software quality for the `rmf_robot_sim_gazebo_plugins` package, based on the guidelines in [REP-2004](https://www.ros.org/reps/rep-2004.html).
+This document is a declaration of software quality for the `rmf_gazebo_plugins` package, based on the guidelines in [REP-2004](https://www.ros.org/reps/rep-2004.html).
 
-# `rmf_robot_sim_gazebo_plugins` Quality Declaration
+# `rmf_gazebo_plugins` Quality Declaration
 
-The package `rmf_robot_sim_gazebo_plugins` claims to be in the **Quality Level 4** category.
+The package `rmf_gazebo_plugins` claims to be in the **Quality Level 4** category.
 
 Below are the detailed rationales, notes, and caveats for this claim, organized by each requirement listed in the [Package Requirements for Quality Level 4 in REP-2004](https://www.ros.org/reps/rep-2004.html).
 
@@ -10,40 +10,40 @@ Below are the detailed rationales, notes, and caveats for this claim, organized 
 
 ### Version Scheme [1.i]
 
-`rmf_robot_sim_gazebo_plugins` uses `semver` according to the recommendation for ROS Core packages in the [ROS 2 Developer Guide](https://index.ros.org/doc/ros2/Contributing/Developer-Guide/#versioning).
+`rmf_gazebo_plugins` uses `semver` according to the recommendation for ROS Core packages in the [ROS 2 Developer Guide](https://index.ros.org/doc/ros2/Contributing/Developer-Guide/#versioning).
 
 ### Version Stability [1.ii]
 
-`rmf_robot_sim_gazebo_plugins` is at a stable version, i.e. `>= 1.0.0`.
+`rmf_gazebo_plugins` is at a stable version, i.e. `>= 1.0.0`.
 The current version can be found in its [package.xml](package.xml), and its change history can be found in its [CHANGELOG](CHANGELOG.rst).
 
 ### Public API Declaration [1.iii]
 
-`rmf_robot_sim_gazebo_plugins` does not have a public API.
+`rmf_gazebo_plugins` does not have a public API.
 
 ### API Stability Policy [1.iv]
 
-`rmf_robot_sim_gazebo_plugins` does not have a public API.
+`rmf_gazebo_plugins` does not have a public API.
 
 ### ABI Stability Policy [1.v]
 
-`rmf_robot_sim_gazebo_plugins` does not have a public API.
+`rmf_gazebo_plugins` does not have a public API.
 
 ### API and ABI Stability Within a Released ROS Distribution [1.vi]
 
-`rmf_robot_sim_gazebo_plugins` does not have a public API.
+`rmf_gazebo_plugins` does not have a public API.
 
 ## Change Control Process [2]
 
-`rmf_robot_sim_gazebo_plugins` follows the recommended guidelines for ROS Core packages in the [ROS 2 Developer Guide](https://index.ros.org/doc/ros2/Contributing/Developer-Guide/#package-requirements).
+`rmf_gazebo_plugins` follows the recommended guidelines for ROS Core packages in the [ROS 2 Developer Guide](https://index.ros.org/doc/ros2/Contributing/Developer-Guide/#package-requirements).
 
 ### Change Requests [2.i]
 
-`rmf_robot_sim_gazebo_plugins` requires that all changes occur through a pull request.
+`rmf_gazebo_plugins` requires that all changes occur through a pull request.
 
 ### Contributor Origin [2.ii]
 
-`rmf_robot_sim_gazebo_plugins` uses DCO as its confirmation of contributor origin policy.
+`rmf_gazebo_plugins` uses DCO as its confirmation of contributor origin policy.
 More information can be found in [CONTRIBUTING](../CONTRIBUTING.md).
 
 ### Peer Review Policy [2.iii]
@@ -64,15 +64,15 @@ All pull requests must resolve related documentation changes before merging.
 
 ### Feature Documentation [3.i]
 
-`rmf_robot_sim_gazebo_plugins` is documented in the [parent repository's README.md file](https://github.com/open-rmf/rmf_simulation/blob/master/README.md).
+`rmf_gazebo_plugins` is documented in the [parent repository's README.md file](https://github.com/open-rmf/rmf_simulation/blob/master/README.md).
 
 ### Public API Documentation [3.ii]
 
-`rmf_robot_sim_gazebo_plugins` does not have a public API.
+`rmf_gazebo_plugins` does not have a public API.
 
 ### License [3.iii]
 
-The license for `rmf_robot_sim_gazebo_plugins` is Apache 2.0, the type is declared in the [package.xml](package.xml) manifest file, and a full copy of the license is in the repository level [LICENSE](../LICENSE) file.
+The license for `rmf_gazebo_plugins` is Apache 2.0, the type is declared in the [package.xml](package.xml) manifest file, and a full copy of the license is in the repository level [LICENSE](../LICENSE) file.
 
 ### Copyright Statement [3.iv]
 
@@ -88,29 +88,29 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 ### Feature Testing [4.i]
 
-`rmf_robot_sim_gazebo_plugins` does not have any tests.
+`rmf_gazebo_plugins` does not have any tests.
 
 ### Public API Testing [4.ii]
 
-`rmf_robot_sim_gazebo_plugins` does not have a public API.
+`rmf_gazebo_plugins` does not have a public API.
 
 ### Coverage [4.iii]
 
-`rmf_robot_sim_gazebo_plugins` does not track coverage statistics.
+`rmf_gazebo_plugins` does not track coverage statistics.
 
 ### Performance [4.iv]
 
-`rmf_robot_sim_gazebo_plugins` does not have performance tests.
+`rmf_gazebo_plugins` does not have performance tests.
 
 ### Linters and Static Analysis [4.v]
 
-`rmf_robot_sim_gazebo_plugins` does not use the standard linters and static analysis tools for its CMake code to ensure it follows the [ROS 2 Developer Guide](https://index.ros.org/doc/ros2/Contributing/Developer-Guide/#linters).
+`rmf_gazebo_plugins` does not use the standard linters and static analysis tools for its CMake code to ensure it follows the [ROS 2 Developer Guide](https://index.ros.org/doc/ros2/Contributing/Developer-Guide/#linters).
 
 ## Dependencies [5]
 
 ### Direct Runtime ROS Dependencies [5.i]
 
-`rmf_robot_sim_gazebo_plugins` has the following direct runtime ROS dependencies.
+`rmf_gazebo_plugins` has the following direct runtime ROS dependencies.
 
 #### rclcpp
 
@@ -147,11 +147,11 @@ It is assumed tobe at **Quality Level 4** based on its widespread use.
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
-`rmf_robot_sim_gazebo_plugins` does not have any optional direct runtime ROS dependencies.
+`rmf_gazebo_plugins` does not have any optional direct runtime ROS dependencies.
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 
-`rmf_robot_sim_gazebo_plugins` has the following runtime non-ROS dependencies.
+`rmf_gazebo_plugins` has the following runtime non-ROS dependencies.
 
 #### eigen
 
@@ -160,8 +160,8 @@ It is assumed to be QL1 based on wide-spread use.
 
 ## Platform Support [6]
 
-`rmf_robot_sim_gazebo_plugins` does not support all of the tier 1 platforms as described in [REP-2000](https://www.ros.org/reps/rep-2000.html#support-tiers).
-`rmf_robot_sim_gazebo_plugins` supports ROS Eloquent and ROS Foxy.
+`rmf_gazebo_plugins` does not support all of the tier 1 platforms as described in [REP-2000](https://www.ros.org/reps/rep-2000.html#support-tiers).
+`rmf_gazebo_plugins` supports ROS Eloquent and ROS Foxy.
 
 ## Security [7]
 
