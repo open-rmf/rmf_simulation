@@ -46,7 +46,8 @@ Headers in any other folders are not installed and are considered private.
 
 ### Contributor Origin [2.ii]
 
-`rmf_building_sim_common` does not require a confirmation of contributor origin.
+`rmf_building_sim_common` uses DCO as its confirmation of contributor origin policy.
+More information can be found in [CONTRIBUTING](../CONTRIBUTING.md).
 
 ### Peer Review Policy [2.iii]
 

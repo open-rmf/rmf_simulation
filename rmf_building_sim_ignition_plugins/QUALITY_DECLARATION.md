@@ -43,7 +43,8 @@ The current version can be found in its [package.xml](package.xml), and its chan
 
 ### Contributor Origin [2.ii]
 
-`rmf_building_sim_ignition_plugins` does not require a confirmation of contributor origin.
+`rmf_building_sim_ignition_plugins` uses DCO as its confirmation of contributor origin policy.
+More information can be found in [CONTRIBUTING](../CONTRIBUTING.md).
 
 ### Peer Review Policy [2.iii]
 
