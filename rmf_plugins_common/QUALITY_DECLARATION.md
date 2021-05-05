@@ -114,11 +114,11 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 #### rclcpp
 
-`rclcpp` is [**Quality Level 3**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
+`rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
 #### std_msgs
 
-`std_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
+`std_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
 
 #### rmf\_fleet\_msgs
 

@@ -112,42 +112,9 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 `rmf_building_sim_ignition_plugins` has the following direct runtime ROS dependencies.
 
-#### rclcpp
+#### rmf\_building\_sim\_common
 
-`rclcpp` is [**Quality Level 3**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
-
-#### rmf\_fleet\_msgs
-
-`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_fleet_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_door\_msgs
-
-`rmf_door_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_door_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_lift\_msgs
-
-`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_lift_msgs/QUALITY_DECLARATION.md).
-
-#### tf2\_ros
-
-`ignition_dev` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use and use of CI.
-
-#### geometry\_msgs
-
-`geometry_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/QUALITY_DECLARATION.md).
-
-#### std\_msgs
-
-`std_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
-
-#### std\_srvs
-
-`std_srvs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_srvs/QUALITY_DECLARATION.md).
-
-#### building\_sim\_common
-
-`rmf_building_sim_common` is [**Quality Level 4**](https://github.com/open-rmf/rmf_simulation/blob/master/rmf_building_sim_common/QUALITY_DECLARATION.md).
+`rmf_building_sim_common` is [**Quality Level 4**](../rmf_building_sim_common/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
@@ -155,7 +122,42 @@ It is assumed tobe at **Quality Level 4** based on its widespread use and use of
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 
-`rmf_building_sim_ignition_plugins` does not have any runtime non-ROS dependencies.
+This package has the following runtime non-ROS dependencies.
+
+#### ignition-gazebo
+
+`ignition-gazebo` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-plugin
+
+`ignition-plugin` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-common
+
+`ignition-common` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-math
+
+`ignition-math` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-gui
+
+`ignition-gui` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-msgs
+
+`ignition-msgs` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-transport
+
+`ignition-transport` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
 
 ## Platform Support [6]
 

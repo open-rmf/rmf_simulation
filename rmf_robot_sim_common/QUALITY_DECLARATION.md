@@ -1,4 +1,4 @@
-This document is a declaration of software quality for the `rmf_gazebo_plugins` package, based on the guidelines in [REP-2004](https://www.ros.org/reps/rep-2004.html).
+This document is a declaration of software quality for the `rmf_robot_sim_common` package, based on the guidelines in [REP-2004](https://www.ros.org/reps/rep-2004.html).
 
 # `rmf_gazebo_plugins` Quality Declaration
 
@@ -116,34 +116,30 @@ This package has the following direct runtime ROS dependencies.
 
 `rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
-#### gazebo\_ros\_pkgs
-
-`gazebo_ros_pkgs` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use.
-
 #### std\_msgs
 
-`std_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
+`std_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
+
+#### tf2\_ros
+
+`tf2_ros` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** due to its wide-spread use, history, use of CI, and use of testing.
 
 #### rmf\_fleet\_msgs
 
-`rmf_fleet_msgs` is [**Quality Level 1**](https://github.com/open-rmf/rmf_core_msgs/blob/master/rmf_fleet_msgs/QUALITY_DECLARATION.md).
+`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
 
 #### rmf\_dispenser\_msgs
 
-`rmf_dispenser_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_core_msgs/blob/master/rmf_dispenser_msgs/QUALITY_DECLARATION.md).
+`rmf_dispenser_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_dispenser_msgs/QUALITY_DECLARATION.md).
 
 #### rmf\_ingestor\_msgs
 
-`rmf_ingestor_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_core_msgs/blob/master/rmf_ingestor_msgs/QUALITY_DECLARATION.md).
+`rmf_ingestor_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_ingestor_msgs/QUALITY_DECLARATION.md).
 
 #### rmf\_building\_map\_msgs
 
-`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_building_map_msgs/blob/master/rmf_building_map_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_robot\_sim\_common
-
-`rmf_robot_sim_common` is [**Quality Level 4**](https://github.com/open-rmf/rmf_simulation/blob/master/rmf_robot_sim_common/QUALITY_DECLARATION.md).
+`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_building_map_msgs/blob/main/rmf_building_map_msgs/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 

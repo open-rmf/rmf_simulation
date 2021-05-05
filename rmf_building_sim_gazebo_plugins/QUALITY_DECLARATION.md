@@ -114,55 +114,26 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 #### rclcpp
 
-`rclcpp` is [**Quality Level 3**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
+`rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
 #### gazebo\_ros
 
 `gazebo_ros` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use.
+It is assumed to be at least **Quality Level 4** based on its widespread use.
 
 #### gazebo\_msgs
 
 `gazebo_ros_msgs` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use.
+It is assumed to be at least **Quality Level 4** based on its widespread use.
 
 #### gazebo\_dev
 
 `gazebo_dev` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use.
+It is assumed to be at least **Quality Level 4** based on its widespread use.
 
-#### rmf\_fleet\_msgs
+#### rmf\_building\_sim\_common
 
-`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_fleet_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_door\_msgs
-
-`rmf_door_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_door_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_lift\_msgs
-
-`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_lift_msgs/QUALITY_DECLARATION.md).
-
-#### tf2\_ros
-
-`gazebo_dev` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use and use of CI.
-
-#### geometry\_msgs
-
-`geometry_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/QUALITY_DECLARATION.md).
-
-#### std\_msgs
-
-`std_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
-
-#### std\_srvs
-
-`std_srvs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_srvs/QUALITY_DECLARATION.md).
-
-#### building\_sim\_common
-
-`rmf_building_sim_common` is [**Quality Level 4**](https://github.com/open-rmf/rmf_simulation/blob/master/rmf_building_sim_common/QUALITY_DECLARATION.md).
+`rmf_building_sim_common` is [**Quality Level 4**](../rmf_building_sim_common/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
@@ -170,7 +141,10 @@ It is assumed tobe at **Quality Level 4** based on its widespread use and use of
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 
-`rmf_building_sim_gazebo_plugins` does not have any runtime non-ROS dependencies.
+#### OpenCV
+
+`OpenCV` does not declare a quality level.
+It is assumed to be **Quality Level 1** based on wide-spread use.
 
 ## Platform Support [6]
 
