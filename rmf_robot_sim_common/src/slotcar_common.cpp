@@ -358,7 +358,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
       }
     }
     // Discharge battery
-    if (_enable_drain)
+    if (_enable_drain && !in_charger_vicinity)
     {
       const Eigen::Vector3d lin_acc = (lin_vel - _old_lin_vel) / dt;
       const double ang_acc = (ang_vel - _old_ang_vel) / dt;
@@ -667,7 +667,7 @@ void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
 {
   rmf_fleet_msgs::msg::RobotState robot_state_msg;
   robot_state_msg.name = _model_name;
-  robot_state_msg.battery_percent = 100 * _soc;
+  robot_state_msg.battery_percent = std::ceil(100.0 * _soc);
 
   robot_state_msg.location.x = _pose.translation()[0];
   robot_state_msg.location.y = _pose.translation()[1];
