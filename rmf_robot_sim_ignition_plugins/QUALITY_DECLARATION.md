@@ -1,6 +1,6 @@
-This document is a declaration of software quality for the `rmf_gazebo_plugins` package, based on the guidelines in [REP-2004](https://www.ros.org/reps/rep-2004.html).
+This document is a declaration of software quality for the `rmf_robot_sim_ignition_plugins` package, based on the guidelines in [REP-2004](https://www.ros.org/reps/rep-2004.html).
 
-# `rmf_gazebo_plugins` Quality Declaration
+# `rmf_robot_sim_ignition_plugins` Quality Declaration
 
 This package claims to be in the **Quality Level 4** category.
 

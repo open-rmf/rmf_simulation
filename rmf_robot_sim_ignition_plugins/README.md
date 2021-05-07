@@ -1,6 +1,6 @@
-# rmf\_gazebo\_plugins
+# rmf\_robot\_sim\_ignition\_plugins
 
-This package provides Gazebo simulator plugins for the building infrastructure used by the RMF demos.
+This package provides Ignition simulator plugins for the robots used in the RMF demos.
 
 ## Quality Declaration
 

@@ -1,6 +1,6 @@
-# rmf\_robot\_sim\_gazebo\_plugins
+# rmf\_robot\_sim\_common\
 
-This package provides Gazebo simulator plugins for robots used by the RMF demos.
+This package provides a common library for the Ignition and Gazebo simulator plugins for robots used in the RMF demos.
 
 ## Quality Declaration
 
