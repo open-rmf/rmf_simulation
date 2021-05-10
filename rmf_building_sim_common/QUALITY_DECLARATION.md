@@ -46,7 +46,8 @@ Headers in any other folders are not installed and are considered private.
 
 ### Contributor Origin [2.ii]
 
-`rmf_building_sim_common` does not require a confirmation of contributor origin.
+`rmf_building_sim_common` uses DCO as its confirmation of contributor origin policy.
+More information can be found in [CONTRIBUTING](../CONTRIBUTING.md).
 
 ### Peer Review Policy [2.iii]
 
@@ -116,40 +117,31 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 #### rclcpp
 
-`rclcpp` is [**Quality Level 3**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
-
-#### rmf\_fleet\_msgs
-
-`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_fleet_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_door\_msgs
-
-`rmf_door_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_door_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_lift\_msgs
-
-`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/osrf/rmf_core/blob/master/rmf_lift_msgs/QUALITY_DECLARATION.md).
-
-#### tf2\_ros
-
-`gazebo_dev` does not declare a Quality Level.
-It is assumed tobe at **Quality Level 4** based on its widespread use and use of CI.
-
-#### geometry\_msgs
-
-`geometry_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/QUALITY_DECLARATION.md).
+`rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
 #### std\_msgs
 
-`std_msgs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
+`std_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
 
 #### std\_srvs
 
-`std_srvs` is [**Quality Level 3**](https://github.com/ros2/common_interfaces/blob/master/std_srvs/QUALITY_DECLARATION.md).
+`std_srvs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_srvs/QUALITY_DECLARATION.md).
 
-#### rmf_building_map_msgs
+#### rmf\_fleet\_msgs
 
-`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/osrf/traffic_editor/blob/master/rmf_building_map_msgs/QUALITY_DECLARATION.md).
+`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
+
+#### rmf\_door\_msgs
+
+`rmf_door_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_door_msgs/QUALITY_DECLARATION.md).
+
+#### rmf\_lift\_msgs
+
+`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_lift_msgs/QUALITY_DECLARATION.md).
+
+#### rmf\_building\_map\_msgs
+
+`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_building_map_msgs/blob/main/rmf_building_map_msgs/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
@@ -157,8 +149,20 @@ It is assumed tobe at **Quality Level 4** based on its widespread use and use of
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 
-`rmf_building_sim_common` depends on `menge`.
-`menge` is assumed to be **Quality Level 4**.
+#### eigen
+
+`eigen` does not declare a quality level.
+It is assumed to be **Quality Level 1** based on wide-spread use.
+
+#### menge
+
+`menge` does not declare a quality level.
+It is assumed to be **Quality Level 4**.
+
+#### Qt5
+
+`Qt5` does not declare a quality level.
+It is assumed to be **Quality Level 1** based on wide-spread use.
 
 ## Platform Support [6]
 
