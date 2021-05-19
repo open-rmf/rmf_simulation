@@ -256,40 +256,40 @@ bool CrowdSimInterface::read_sdf(
     "Crowd Sim is enabled! <env MENGE_RESOURCE_PATH> is : %s",
     _resource_path.c_str());
 
-  if (!sdf->template HasElement("behavior_file"))
+  if (!sdf->HasElement("behavior_file"))
   {
     RCLCPP_ERROR(logger(),
       "No behavior file found! <behavior_file> Required!");
     return false;
   }
   _behavior_file =
-    sdf->template GetElementImpl("behavior_file")->template Get<std::string>();
+    sdf->GetElementImpl("behavior_file")->template Get<std::string>();
 
-  if (!sdf->template HasElement("scene_file"))
+  if (!sdf->HasElement("scene_file"))
   {
     RCLCPP_ERROR(logger(),
       "No scene file found! <scene_file> Required!");
     return false;
   }
   _scene_file =
-    sdf->template GetElementImpl("scene_file")->template Get<std::string>();
+    sdf->GetElementImpl("scene_file")->template Get<std::string>();
 
-  if (!sdf->template HasElement("update_time_step"))
+  if (!sdf->HasElement("update_time_step"))
   {
     RCLCPP_ERROR(logger(),
       "No update_time_step found! <update_time_step> Required!");
     return false;
   }
   _sim_time_step =
-    sdf->template GetElementImpl("update_time_step")->template Get<float>();
+    sdf->GetElementImpl("update_time_step")->template Get<float>();
 
-  if (!sdf->template HasElement("model_type"))
+  if (!sdf->HasElement("model_type"))
   {
     RCLCPP_ERROR(logger(),
       "No model type for agents found! <model_type> element Required!");
     return false;
   }
-  auto model_type_element = sdf->template GetElementImpl("model_type");
+  auto model_type_element = sdf->GetElementImpl("model_type");
   while (model_type_element)
   {
     std::string s;
@@ -329,7 +329,7 @@ bool CrowdSimInterface::read_sdf(
       return false;
     }
 
-    if (!model_type_element->template HasElement("initial_pose"))
+    if (!model_type_element->HasElement("initial_pose"))
     {
       RCLCPP_ERROR(
         logger(),
@@ -346,24 +346,24 @@ bool CrowdSimInterface::read_sdf(
       return false;
     }
 
-    model_type_element = model_type_element->template GetNextElement(
+    model_type_element = model_type_element->GetNextElement(
       "model_type");
   }
 
-  if (!sdf->template HasElement("external_agent"))
+  if (!sdf->HasElement("external_agent"))
   {
     RCLCPP_ERROR(
       logger(),
       "No external agent provided. <external_agent> is needed with a unique name defined above.");
   }
-  auto external_agent_element = sdf->template GetElementImpl("external_agent");
+  auto external_agent_element = sdf->GetElementImpl("external_agent");
   while (external_agent_element)
   {
     auto ex_agent_name = external_agent_element->template Get<std::string>();
     RCLCPP_INFO(logger(),
       "Added external agent: [ " + ex_agent_name + " ].");
     _external_agents.emplace_back(ex_agent_name); //just store the name
-    external_agent_element = external_agent_element->template GetNextElement(
+    external_agent_element = external_agent_element->GetNextElement(
       "external_agent");
   }
 
