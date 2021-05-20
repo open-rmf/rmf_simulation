@@ -1,5 +1,10 @@
-name: build_and_test
-on: [push, pull_request]
+name: build 
+on: 
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+
 jobs:
   build_and_test:
     name: build_and_test
