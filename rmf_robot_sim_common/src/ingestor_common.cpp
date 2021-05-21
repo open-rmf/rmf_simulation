@@ -141,7 +141,7 @@ void TeleportIngestorCommon::on_update(
     else
     {
       RCLCPP_WARN(ros_node->get_logger(),
-        "No item to ingest: [%s]", latest.request_guid);
+        "No item to ingest: [%s]", latest.request_guid.c_str());
       send_ingestor_response(IngestorResult::FAILED);
     }
 

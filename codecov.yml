@@ -1,0 +1,20 @@
+coverage:
+  precision: 2
+  round: down
+  range: "35...100"
+  status:
+    project:
+      default:
+        informational: true
+    patch: off
+fixes:
+  - "ros_ws/src/*/rmf_building_sim_common/::"
+  - "ros_ws/src/*/rmf_building_sim_gazebo_plugins/::"
+  - "ros_ws/src/*/rmf_building_sim_ignition_plugins/::"
+  - "ros_ws/src/*/rmf_robot_sim_common/::"
+  - "ros_ws/src/*/rmf_robot_sim_gazebo_plugins/::"
+  - "ros_ws/src/*/rmf_robot_sim_ignition_plugins/::"
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+
