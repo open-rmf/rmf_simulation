@@ -23,11 +23,7 @@
   <depend>rmf_door_msgs</depend>
   <depend>rmf_lift_msgs</depend>
   <depend>rmf_building_map_msgs</depend>
-
-  <build_depend>eigen</build_depend>
-  <depend>menge</depend>
-  <depend>libqt5-widgets</depend>
-  <depend>qtbase5-dev</depend>
+  <depend>menge_vendor</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
