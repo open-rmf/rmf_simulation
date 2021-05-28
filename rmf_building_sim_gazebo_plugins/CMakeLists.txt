@@ -24,20 +24,12 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(gazebo REQUIRED)
 find_package(gazebo_ros REQUIRED)
-find_package(gazebo_dev REQUIRED)
 find_package(OpenCV REQUIRED )
-find_package(gazebo_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_door_msgs REQUIRED)
 find_package(rmf_lift_msgs REQUIRED)
-find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_building_sim_common REQUIRED)
 find_package(menge_vendor REQUIRED)
-
-# TODO this is a dependency of rmf_building_sim_common, it shouldn't be needed
-#find_package(Eigen3 REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -49,7 +41,6 @@ add_library(door SHARED src/door.cpp)
 
 ament_target_dependencies(door
   rmf_building_sim_common
-  rmf_fleet_msgs
   rclcpp
   gazebo_ros
   rmf_door_msgs
@@ -70,7 +61,6 @@ add_library(lift SHARED src/lift.cpp)
 
 ament_target_dependencies(lift
     rmf_building_sim_common
-    rmf_fleet_msgs
     rclcpp
     gazebo_ros
     rmf_door_msgs
@@ -163,19 +153,12 @@ target_include_directories(crowd_simulator
     ${rmf_building_sim_common_INCLUDE_DIRS}
 )
 
-#install
-install(
-  TARGETS crowd_simulator
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
 ###############################
 # install stuff
 ###############################
 
 install(
-  TARGETS door lift toggle_floors toggle_charging thumbnail_generator
+  TARGETS door lift toggle_floors toggle_charging thumbnail_generator crowd_simulator
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

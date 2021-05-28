@@ -121,16 +121,6 @@ This quality declaration has not been externally peer-reviewed and is not regist
 `gazebo_ros` does not declare a Quality Level.
 It is assumed to be at least **Quality Level 4** based on its widespread use.
 
-#### gazebo\_msgs
-
-`gazebo_ros_msgs` does not declare a Quality Level.
-It is assumed to be at least **Quality Level 4** based on its widespread use.
-
-#### gazebo\_dev
-
-`gazebo_dev` does not declare a Quality Level.
-It is assumed to be at least **Quality Level 4** based on its widespread use.
-
 #### rmf\_building\_sim\_common
 
 `rmf_building_sim_common` is [**Quality Level 4**](../rmf_building_sim_common/QUALITY_DECLARATION.md).

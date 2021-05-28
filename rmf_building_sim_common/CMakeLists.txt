@@ -22,9 +22,6 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_door_msgs REQUIRED)
 find_package(rmf_lift_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
@@ -51,7 +48,6 @@ target_include_directories(rmf_building_sim_utils
 add_library(door_common SHARED src/door_common.cpp)
 
 ament_target_dependencies(door_common
-    rmf_fleet_msgs
     rclcpp
     rmf_door_msgs
 )
@@ -73,7 +69,6 @@ target_link_libraries(door_common
 add_library(lift_common SHARED src/lift_common.cpp)
 
 ament_target_dependencies(lift_common
-   rmf_fleet_msgs
    rclcpp
    rmf_door_msgs
    rmf_lift_msgs

@@ -48,12 +48,8 @@ ign_find_package(ignition-transport10 REQUIRED)
 set(IGN_TRANSPORT_VER 10)
 ign_find_package(sdformat11 REQUIRED)
 
-find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_door_msgs REQUIRED)
 find_package(rmf_lift_msgs REQUIRED)
-find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_building_sim_common REQUIRED)
 find_package (Qt5
   COMPONENTS
@@ -86,7 +82,6 @@ ament_target_dependencies(door
     ignition-plugin${IGN_PLUGIN_VER}
     rmf_building_sim_common
     rmf_door_msgs
-    rmf_fleet_msgs
 )
 
 ###############################
@@ -111,7 +106,6 @@ ament_target_dependencies(lift
     rmf_building_sim_common
     rmf_door_msgs
     rmf_lift_msgs
-    rmf_fleet_msgs
 )
 
 ###############################
@@ -137,13 +131,6 @@ ament_target_dependencies(crowd_simulator
   rclcpp
   rmf_building_sim_common
   menge_vendor
-)
-
-#install
-install(
-  TARGETS crowd_simulator
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 ###############################
@@ -179,7 +166,7 @@ target_include_directories(toggle_charging
 ###############################
 
 install(
-  TARGETS door lift toggle_charging
+  TARGETS door lift crowd_simulator toggle_charging
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

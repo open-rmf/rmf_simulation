@@ -119,18 +119,6 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 `rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
-#### std\_msgs
-
-`std_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
-
-#### std\_srvs
-
-`std_srvs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_srvs/QUALITY_DECLARATION.md).
-
-#### rmf\_fleet\_msgs
-
-`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
-
 #### rmf\_door\_msgs
 
 `rmf_door_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_door_msgs/QUALITY_DECLARATION.md).
@@ -149,20 +137,10 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 
-#### eigen
+#### menge\_vendor
 
-`eigen` does not declare a quality level.
-It is assumed to be **Quality Level 1** based on wide-spread use.
-
-#### menge
-
-`menge` does not declare a quality level.
+`menge_vendor` does not declare a quality level.
 It is assumed to be **Quality Level 4**.
-
-#### Qt5
-
-`Qt5` does not declare a quality level.
-It is assumed to be **Quality Level 1** based on wide-spread use.
 
 ## Platform Support [6]
 
