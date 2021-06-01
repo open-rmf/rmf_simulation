@@ -18,7 +18,7 @@
   <depend>rmf_building_sim_common</depend>
   <depend>libqt5-core</depend>
   <depend>libqt5-qml</depend>
-  <depend>libqt5-quick;w</depend>
+  <depend>libqt5-quick</depend>
   <depend>menge_vendor</depend>
 
   <export>

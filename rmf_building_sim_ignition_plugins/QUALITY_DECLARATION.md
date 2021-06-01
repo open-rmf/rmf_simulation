@@ -112,13 +112,45 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 `rmf_building_sim_ignition_plugins` has the following direct runtime ROS dependencies.
 
+#### rclcpp
+
+`rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
+
+#### rmf\_door\_msgs
+
+`rmf_door_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_door_msgs/QUALITY_DECLARATION.md).
+
+#### rmf\_lift\_msgs
+
+`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_lift_msgs/QUALITY_DECLARATION.md).
+
 #### rmf\_building\_sim\_common
 
 `rmf_building_sim_common` is [**Quality Level 4**](../rmf_building_sim_common/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
-`rmf_building_sim_ignition_plugins` does not have any optional direct runtime ROS dependencies.
+This package has the following runtime non-ROS dependencies.
+
+#### libqt5-core
+
+`libqt5-core` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
+
+#### libqt5-qml
+
+`libqt5-qml` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
+
+#### libqt5-quick
+
+`libqt5-quick` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
+
+#### menge\_vendor
+
+`menge_vendor` does not declare a quality level.
+It is assumed to be **Quality Level 4**.
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 

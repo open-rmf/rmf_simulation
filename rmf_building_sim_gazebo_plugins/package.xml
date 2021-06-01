@@ -21,14 +21,13 @@
   <depend>gazebo</depend>
   <depend>gazebo_ros</depend>
   <depend>libopencv-dev</depend>
-  <depend>std_msgs</depend>
-  <depend>std_srvs</depend>
   <depend>rmf_fleet_msgs</depend>
   <depend>rmf_door_msgs</depend>
   <depend>rmf_lift_msgs</depend>
   <depend>rmf_building_sim_common</depend>
   <depend>menge_vendor</depend>
-
+  <depend>libqt5-widgets</depend>
+  <depend>qtbase5-dev</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
