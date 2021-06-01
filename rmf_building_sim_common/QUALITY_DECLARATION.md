@@ -142,16 +142,6 @@ This quality declaration has not been externally peer-reviewed and is not regist
 `menge_vendor` does not declare a quality level.
 It is assumed to be **Quality Level 4**.
 
-#### qtbase5-dev
-
-`qt5base-dev` is widely-used third-party software for building graphical applications.
-Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
-
-#### libqt5-widgets
-
-`libqt5-widgets` is widely-used third-party software for building graphical applications.
-Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
-
 ## Platform Support [6]
 
 `rmf_building_sim_common` does not support all of the tier 1 platforms as described in [REP-2000](https://www.ros.org/reps/rep-2000.html#support-tiers).
