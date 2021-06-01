@@ -12,7 +12,14 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>rclcpp</depend>
+  <depend>rmf_door_msgs</depend>
+  <depend>rmf_lift_msgs</depend>
   <depend>rmf_building_sim_common</depend>
+  <depend>libqt5-core</depend>
+  <depend>libqt5-qml</depend>
+  <depend>libqt5-quick</depend>
+  <depend>menge_vendor</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

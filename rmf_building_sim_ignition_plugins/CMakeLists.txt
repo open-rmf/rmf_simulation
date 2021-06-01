@@ -48,12 +48,8 @@ ign_find_package(ignition-transport10 REQUIRED)
 set(IGN_TRANSPORT_VER 10)
 ign_find_package(sdformat11 REQUIRED)
 
-find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_door_msgs REQUIRED)
 find_package(rmf_lift_msgs REQUIRED)
-find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_building_sim_common REQUIRED)
 find_package (Qt5
   COMPONENTS
@@ -62,7 +58,7 @@ find_package (Qt5
     Quick
   REQUIRED
 )
-find_package(menge QUIET)
+find_package(menge_vendor REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -86,7 +82,6 @@ ament_target_dependencies(door
     ignition-plugin${IGN_PLUGIN_VER}
     rmf_building_sim_common
     rmf_door_msgs
-    rmf_fleet_msgs
 )
 
 ###############################
@@ -111,44 +106,32 @@ ament_target_dependencies(lift
     rmf_building_sim_common
     rmf_door_msgs
     rmf_lift_msgs
-    rmf_fleet_msgs
 )
 
 ###############################
 # crowd simulator stuff
 ###############################
-if (menge_FOUND)
-  add_library(crowd_simulator
-    SHARED
-    src/crowd_simulator.cpp
-  )
+add_library(crowd_simulator
+  SHARED
+  src/crowd_simulator.cpp
+)
 
-  target_include_directories(crowd_simulator
-    PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    ${rmf_building_sim_common_INCLUDE_DIRS}
-    ${rclcpp_INCLUDE_DIRS}
-    ${menge_INCLUDE_DIRS}
-    ${IGNITION-COMMON_INCLUDE_DIRS}
-  )
+target_include_directories(crowd_simulator
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  ${rmf_building_sim_common_INCLUDE_DIRS}
+  ${rclcpp_INCLUDE_DIRS}
+  ${menge_vendor_INCLUDE_DIRS}
+  ${IGNITION-COMMON_INCLUDE_DIRS}
+)
 
-  ament_target_dependencies(crowd_simulator
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
-    rclcpp
-    rmf_building_sim_common
-    menge
-  )
-
-  #install
-  install(
-    TARGETS crowd_simulator
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
-else (NOT menge_FOUND)
-  message("menge-cmake not found, skipping crowd_simulation ignition plugins")
-endif()
+ament_target_dependencies(crowd_simulator
+  ignition-gazebo${IGN_GAZEBO_VER}
+  ignition-plugin${IGN_PLUGIN_VER}
+  rclcpp
+  rmf_building_sim_common
+  menge_vendor
+)
 
 ###############################
 # toggle charging
@@ -183,7 +166,7 @@ target_include_directories(toggle_charging
 ###############################
 
 install(
-  TARGETS door lift toggle_charging
+  TARGETS door lift crowd_simulator toggle_charging
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
