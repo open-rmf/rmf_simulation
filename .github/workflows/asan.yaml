@@ -1,7 +1,5 @@
 name: asan
-on: 
-  push:
-  pull_request:
+on:
   schedule:
     - cron: '7 0 * * *'
 
