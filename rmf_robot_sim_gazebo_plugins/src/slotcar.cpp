@@ -81,22 +81,29 @@ void SlotcarPlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
   gazebo_ros::Node::SharedPtr _ros_node = gazebo_ros::Node::Get(sdf);
   dataPtr->init_ros_node(_ros_node);
 
-  RCLCPP_INFO(dataPtr->logger(),
-    "Initialising slotcar for " + model->GetName());
+  RCLCPP_INFO(
+    dataPtr->logger(),
+    "Initialising slotcar for %s",
+    model->GetName().c_str());
 
   _update_connection = gazebo::event::Events::ConnectWorldUpdateBegin(
     std::bind(&SlotcarPlugin::OnUpdate, this));
 
   joints[0] = _model->GetJoint("joint_tire_left");
   if (!joints[0])
-    RCLCPP_ERROR(dataPtr->logger(),
+  {
+    RCLCPP_ERROR(
+      dataPtr->logger(),
       "Could not find tire for [joint_tire_left]");
+  }
 
   joints[1] = _model->GetJoint("joint_tire_right");
   if (!joints[1])
-    RCLCPP_ERROR(dataPtr->logger(),
+  {
+    RCLCPP_ERROR(
+      dataPtr->logger(),
       "Could not find tire for [joint_tire_right]");
-
+  }
 }
 
 void SlotcarPlugin::charge_state_cb(ConstSelectionPtr& msg)

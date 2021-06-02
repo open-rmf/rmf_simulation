@@ -52,7 +52,7 @@ void ReadonlyCommon::init(rclcpp::Node::SharedPtr node)
     qos_profile,
     std::bind(&ReadonlyCommon::map_cb, this, std::placeholders::_1));
 
-  RCLCPP_INFO(logger(), "hello i am " + _name);
+  RCLCPP_INFO(logger(), "hello i am %s", _name.c_str());
 }
 
 void ReadonlyCommon::on_update(Eigen::Isometry3d& pose, double sim_time)
@@ -86,7 +86,7 @@ void ReadonlyCommon::on_update(Eigen::Isometry3d& pose, double sim_time)
       if (compute_ds(_pose, _next_wp[0]) <= _waypoint_threshold)
       {
         _start_wp = _next_wp[0];
-        RCLCPP_DEBUG(logger(), "Reached waypoint [%d,%s]",
+        RCLCPP_DEBUG(logger(), "Reached waypoint [%ld, %s]",
           _next_wp[0], _graph.vertices[_next_wp[0]].name.c_str());
       }
       _robot_state_msg.path = compute_path(_pose);
@@ -104,7 +104,7 @@ void ReadonlyCommon::map_cb(const BuildingMap::SharedPtr msg)
     return;
   }
 
-  RCLCPP_DEBUG(logger(), "Received building map with %d levels",
+  RCLCPP_DEBUG(logger(), "Received building map with %ld levels",
     msg->levels.size());
   _found_level = false;
   _found_graph = false;
@@ -115,13 +115,13 @@ void ReadonlyCommon::map_cb(const BuildingMap::SharedPtr msg)
     {
       _level = level;
       _found_level = true;
-      RCLCPP_DEBUG(logger(), "Found level [%s] with %d nav_graphs",
+      RCLCPP_DEBUG(logger(), "Found level [%s] with %ld nav_graphs",
         level.name.c_str(), level.nav_graphs.size());
 
       if (_nav_graph_index < level.nav_graphs.size())
       {
         _found_graph = true;
-        RCLCPP_DEBUG(logger(), "Graph index [%d] containts [%d] waypoints",
+        RCLCPP_DEBUG(logger(), "Graph index [%ld] containts [%ld] waypoints",
           _nav_graph_index,
           level.nav_graphs[_nav_graph_index].vertices.size());
         initialize_graph();
@@ -129,7 +129,7 @@ void ReadonlyCommon::map_cb(const BuildingMap::SharedPtr msg)
       else
       {
         RCLCPP_ERROR(logger(),
-          "Specified nav_graph index [%d] does not exist in level [%s]",
+          "Specified nav_graph index [%ld] does not exist in level [%s]",
           _nav_graph_index, _level_name.c_str());
       }
       break;
@@ -152,7 +152,7 @@ void ReadonlyCommon::initialize_graph()
   _initialized_graph = false;
 
   _graph = _level.nav_graphs[_nav_graph_index];
-  RCLCPP_DEBUG(logger(), "Nav graph contains [%d] lanes", _graph.edges.size());
+  RCLCPP_DEBUG(logger(), "Nav graph contains [%ld] lanes", _graph.edges.size());
   for (const auto& edge : _graph.edges)
   {
     // Inserting entry for v1_idx
@@ -244,9 +244,9 @@ void ReadonlyCommon::initialize_start(const Eigen::Isometry3d& pose)
     RCLCPP_ERROR(
       logger(),
       "Spawn coordinates [%f,%f,%f] differs from that of waypoint [%s] in nav_graph [%f, %f, %f]",
-      pose.translation()[0], pose.translation()[1], 0,
+      pose.translation()[0], pose.translation()[1], 0.0,
       _start_wp_name.c_str(),
-      _graph.vertices[_start_wp].x, _graph.vertices[_start_wp].y, 0);
+      _graph.vertices[_start_wp].x, _graph.vertices[_start_wp].y, 0.0);
   }
 
   else
