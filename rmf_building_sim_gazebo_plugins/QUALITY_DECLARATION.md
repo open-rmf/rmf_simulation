@@ -121,15 +121,17 @@ This quality declaration has not been externally peer-reviewed and is not regist
 `gazebo_ros` does not declare a Quality Level.
 It is assumed to be at least **Quality Level 4** based on its widespread use.
 
-#### gazebo\_msgs
+#### rmf\_fleet\_msgs
 
-`gazebo_ros_msgs` does not declare a Quality Level.
-It is assumed to be at least **Quality Level 4** based on its widespread use.
+`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
 
-#### gazebo\_dev
+#### rmf\_door\_msgs
 
-`gazebo_dev` does not declare a Quality Level.
-It is assumed to be at least **Quality Level 4** based on its widespread use.
+`rmf_door_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_door_msgs/QUALITY_DECLARATION.md)
+
+#### rmf\_lift\_msgs
+
+`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_lift_msgs/QUALITY_DECLARATION.md)
 
 #### rmf\_building\_sim\_common
 
@@ -145,6 +147,26 @@ It is assumed to be at least **Quality Level 4** based on its widespread use.
 
 `OpenCV` does not declare a quality level.
 It is assumed to be **Quality Level 1** based on wide-spread use.
+
+#### gazebo
+
+`gazebos` does not declare a Quality Level.
+It is assumed to be at least **Quality Level 4** based on its widespread use.
+
+#### menge\_vendor
+
+`menge_vendor` does not declare a quality level.
+It is assumed to be **Quality Level 4**.
+
+#### qtbase5-dev
+
+`qt5base-dev` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
+
+#### libqt5-widgets
+
+`libqt5-widgets` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
 
 ## Platform Support [6]
 
