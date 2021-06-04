@@ -119,41 +119,41 @@ void ReadonlyCommon::read_sdf(SdfPtrT& sdf)
   // Getting sdf elements
   if (sdf->HasElement("level_name"))
     _level_name = sdf->template Get<std::string>("level_name");
-  RCLCPP_INFO(logger(), "Setting level name to: " + _level_name);
+  RCLCPP_INFO(logger(), "Setting level name to: %s", _level_name.c_str());
 
   if (sdf->HasElement("graph_index"))
     _nav_graph_index = sdf->template Get<std::size_t>("graph_index");
-  RCLCPP_INFO(logger(), "Setting nav graph index: " + _nav_graph_index);
+  RCLCPP_INFO(logger(), "Setting nav graph index: %d", _nav_graph_index);
 
   if (sdf->HasElement("spawn_waypoint"))
     _start_wp_name = sdf->template Get<std::string>("spawn_waypoint");
-  RCLCPP_INFO(logger(), "Setting start wp name: " + _start_wp_name);
+  RCLCPP_INFO(logger(), "Setting start wp name: %s", _start_wp_name.c_str());
 
   if (sdf->HasElement("look_ahead"))
     _lookahead = sdf->template Get<std::size_t>("look_ahead");
   _lookahead = _lookahead < 1 ? 1 : _lookahead;
   _next_wp.resize(_lookahead);
   _path.resize(_lookahead);
-  RCLCPP_INFO(logger(), "Setting lookahead: " + std::to_string(_lookahead));
+  RCLCPP_INFO(logger(), "Setting lookahead: %d", _lookahead);
 
   if (sdf->HasElement("update_rate"))
     _update_threshold = 1.0 / sdf->template Get<double>("update_rate");
-  RCLCPP_INFO(logger(),
-    "Setting update threshold: " + std::to_string(_update_threshold));
+  RCLCPP_INFO(logger(), "Setting update threshold: %f", _update_threshold);
 
   if (sdf->HasElement("waypoint_threshold"))
     _waypoint_threshold = sdf->template Get<double>("waypoint_threshold");
-  RCLCPP_INFO(logger(),
-    "Setting waypoint threshold: " + std::to_string(_waypoint_threshold));
+  RCLCPP_INFO(logger(), "Setting waypoint threshold: %f", _waypoint_threshold);
 
   if (sdf->HasElement("merge_lane"))
     _merge_lane = sdf->template Get<bool>("merge_lane");
-  RCLCPP_INFO(logger(), "Setting merge lane: " + std::to_string(_merge_lane));
+  RCLCPP_INFO(
+    logger(),
+    "Setting merge lane: %s",
+    std::to_string(_merge_lane).c_str());
 
   if (sdf->HasElement("lane_threshold"))
     _lane_threshold = sdf->template Get<double>("lane_threshold");
-  RCLCPP_INFO(logger(),
-    "Setting lane threshold: " + std::to_string(_lane_threshold));
+  RCLCPP_INFO(logger(), "Setting lane threshold: %f", _lane_threshold);
 }
 
 } // namespace rmf_readonly_common
