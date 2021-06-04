@@ -462,7 +462,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
 
       _remaining_path.erase(_remaining_path.begin());
       RCLCPP_INFO(logger(),
-        "%s reached waypoint %d/%d",
+        "%s reached waypoint %ld/%d",
         _model_name.c_str(),
         _traj_wp_idx,
         (int)trajectory.size());
