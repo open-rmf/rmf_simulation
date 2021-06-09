@@ -333,16 +333,16 @@ bool CrowdSimInterface::read_sdf(
     {
       RCLCPP_ERROR(
         logger(),
-        "No model initial pose configured in <model_type>! <initial_pose> Required [" + s +
-        "]");
+        "No model initial pose configured in <model_type>! <initial_pose> Required [%s]",
+        s.c_str());
       return false;
     }
     if (!_load_model_init_pose(model_type_element, model_type_ptr->pose))
     {
       RCLCPP_ERROR(
         logger(),
-        "Error loading model initial pose in <model_type>! Check <initial_pose> in [" + s +
-        "]");
+        "Error loading model initial pose in <model_type>! Check <initial_pose> in [%s]",
+        s.c_str());
       return false;
     }
 
@@ -361,7 +361,7 @@ bool CrowdSimInterface::read_sdf(
   {
     auto ex_agent_name = external_agent_element->template Get<std::string>();
     RCLCPP_INFO(logger(),
-      "Added external agent: [ " + ex_agent_name + " ].");
+      "Added external agent: [%s].", ex_agent_name.c_str());
     _external_agents.emplace_back(ex_agent_name); //just store the name
     external_agent_element = external_agent_element->GetNextElement(
       "external_agent");
