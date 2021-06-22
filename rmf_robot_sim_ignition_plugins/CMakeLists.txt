@@ -52,12 +52,7 @@ set(IGN_RENDERING_VER 5)
 ign_find_package(sdformat11 REQUIRED)
 
 find_package(Eigen3 REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
-find_package(rmf_dispenser_msgs REQUIRED)
-find_package(rmf_ingestor_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
 find_package (Qt5
@@ -82,7 +77,6 @@ ament_target_dependencies(teleport_ingestor
     ignition-msgs${IGN_MSGS_VER}
     ignition-transport${IGN_TRANSPORT_VER}
     rmf_fleet_msgs
-    rmf_ingestor_msgs
     rclcpp
     rmf_robot_sim_common
     Eigen3
@@ -107,7 +101,6 @@ ament_target_dependencies(teleport_dispenser
     ignition-msgs${IGN_MSGS_VER}
     ignition-transport${IGN_TRANSPORT_VER}
     rmf_fleet_msgs
-    rmf_dispenser_msgs
     rclcpp
     rmf_robot_sim_common
     Eigen3
@@ -156,8 +149,6 @@ ament_target_dependencies(slotcar
     rmf_robot_sim_common
     rmf_fleet_msgs
     rclcpp
-    geometry_msgs
-    tf2_ros
 )
 
 target_include_directories(slotcar
@@ -165,11 +156,8 @@ target_include_directories(slotcar
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     ${rmf_robot_sim_common_INCLUDE_DIRS}
-    ${geometry_msgs_INCLUDE_DIRS}
-    ${std_msgs_INCLUDE_DIRS}
     ${rmf_fleet_msgs_INCLUDE_DIRS}
     ${rmf_building_map_msgs_INCLUDE_DIRS}
-    ${tf2_ros_INCLUDE_DIRS}
 )
 
 ###############################

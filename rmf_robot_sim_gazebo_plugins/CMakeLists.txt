@@ -19,17 +19,11 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(gazebo REQUIRED)
 find_package(gazebo_ros REQUIRED)
 find_package(gazebo_dev REQUIRED)
-find_package(gazebo_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
-find_package(rmf_dispenser_msgs REQUIRED)
-find_package(rmf_ingestor_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
 
@@ -45,7 +39,6 @@ ament_target_dependencies(teleport_dispenser
   rclcpp
   gazebo_ros
   rmf_fleet_msgs
-  rmf_dispenser_msgs
   rmf_robot_sim_common
   Eigen3
 )
@@ -68,7 +61,6 @@ ament_target_dependencies(teleport_ingestor
   rclcpp
   gazebo_ros
   rmf_fleet_msgs
-  rmf_ingestor_msgs
   rmf_robot_sim_common
   Eigen3
 )
@@ -116,9 +108,7 @@ ament_target_dependencies(slotcar
   rmf_fleet_msgs
   rclcpp
   gazebo_ros
-  std_msgs
   geometry_msgs
-  tf2_ros
   rmf_building_map_msgs
 )
 

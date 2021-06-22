@@ -112,6 +112,18 @@ This package does not use the standard linters and static analysis tools for its
 
 This package has the following direct runtime ROS dependencies.
 
+#### rclcpp
+
+`rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
+
+#### rmf\_fleet\_msgs
+
+`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
+
+#### rmf\_building\_map\_msgs
+
+`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_building_map_msgs/blob/main/rmf_building_map_msgs/QUALITY_DECLARATION.md).
+
 #### rmf\_robot\_sim\_common
 
 `rmf_robot_sim_common` is [**Quality Level 4**](https://github.com/open-rmf/rmf_simulation/blob/master/rmf_robot_sim_common/QUALITY_DECLARATION.md).
@@ -123,6 +135,11 @@ This package does not have any optional direct runtime ROS dependencies.
 ### Direct Runtime non-ROS Dependency [5.iii]
 
 This package has the following runtime non-ROS dependencies.
+
+#### eigen
+
+`eigen` does not declare a quality level.
+It is assumed to be QL1 based on wide-spread use.
 
 #### ignition-gazebo
 
@@ -163,6 +180,26 @@ It is assumed to be at least **Quality Level 3** based on its history, use of CI
 
 `ignition-rendering` does not declare a quality level.
 It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### sdformat11
+
+`sdformat11` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### libqt5-core
+
+`libqt5-core` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
+
+#### libqt5-qml
+
+`libqt5-qml` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
+
+#### libqt5-quick
+
+`libqt5-quick` is widely-used third-party software for building graphical applications.
+Due to its wide use, documentation, and testing, it is assumed to be **Quality Level 3**.
 
 ## Platform Support [6]
 

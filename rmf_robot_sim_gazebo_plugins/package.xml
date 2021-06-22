@@ -13,8 +13,15 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>gazebo_ros_pkgs</depend>
+  <depend>rclcpp</depend>
+  <depend>gazebo-dev</depend>
+  <depend>gazebo_ros</depend>
+  <depend>eigen</depend>
+  <depend>geometry_msgs</depend>
+  <depend>rmf_fleet_msgs</depend>
+  <depend>rmf_building_map_msgs</depend>
   <depend>rmf_robot_sim_common</depend>
+
 
   <export>
     <build_type>ament_cmake</build_type>

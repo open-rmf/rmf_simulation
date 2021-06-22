@@ -112,14 +112,36 @@ This package does not use the standard linters and static analysis tools for its
 
 This package has the following direct runtime ROS dependencies.
 
-#### gazebo\_ros\_pkgs
+#### rclcpp
 
-`gazebo_ros_pkgs` does not declare a Quality Level.
+`rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
+
+#### gazebo\_dev
+
+`gazebo_dev` does not declare a Quality Level.
+It is assumed to be at least **Quality Level 4** based on its widespread use.
+
+
+#### gazebo\_ros
+
+`gazebo_ros` does not declare a Quality Level.
 It is assumed to be at least **Quality Level 4** based on its widespread use.
 
 #### rmf\_robot\_sim\_common
 
 `rmf_robot_sim_common` is [**Quality Level 4**](https://github.com/open-rmf/rmf_simulation/blob/main/rmf_robot_sim_common/QUALITY_DECLARATION.md).
+
+#### rmf\_fleet\_msgs
+
+`rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
+
+#### rmf\_building\_map\_msgs
+
+`rmf_building_map_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_building_map_msgs/blob/main/rmf_building_map_msgs/QUALITY_DECLARATION.md).
+
+#### geometry\_msgs
+
+`gemoetry_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/QUALITY_DECLARATION.md).
 
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
@@ -127,7 +149,12 @@ This package does not have any optional direct runtime ROS dependencies.
 
 ### Direct Runtime non-ROS Dependency [5.iii]
 
-This package has no direct runtime non-ROS dependencies.
+This package has the following runtime non-ROS dependencies.
+
+#### eigen
+
+`eigen` does not declare a quality level.
+It is assumed to be QL1 based on wide-spread use.
 
 ## Platform Support [6]
 

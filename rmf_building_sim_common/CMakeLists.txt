@@ -113,6 +113,13 @@ install(
 ###############################
 # install stuff
 ###############################
+ament_export_dependencies(
+  rclcpp
+  rmf_door_msgs
+  rmf_lift_msgs
+  rmf_building_map_msgs
+  menge_vendor
+)
 
 ament_export_include_directories(include)
 ament_export_targets(rmf_building_sim_utils HAS_LIBRARY_TARGET)

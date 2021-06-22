@@ -116,6 +116,10 @@ This package has the following direct runtime ROS dependencies.
 
 `rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
+#### geometry\_msgs
+
+`geometry_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/QUALITY_DECLARATION.md).
+
 #### std\_msgs
 
 `std_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
