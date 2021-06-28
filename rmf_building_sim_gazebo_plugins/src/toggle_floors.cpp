@@ -1,10 +1,13 @@
 #include <functional>
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gui/GuiPlugin.hh>
+
+#ifndef Q_MOC_RUN
 #include <gazebo/transport/transport.hh>
+#include <gazebo/rendering/rendering.hh>
+#endif
 
 #include <gazebo/msgs/msgs.hh>
-#include <gazebo/rendering/rendering.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <gazebo_ros/node.hpp>

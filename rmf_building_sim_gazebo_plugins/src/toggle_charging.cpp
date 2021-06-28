@@ -20,7 +20,10 @@
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gui/GuiPlugin.hh>
 
+#ifndef Q_MOC_RUN
 #include <gazebo/transport/transport.hh>
+#endif
+
 #include <gazebo/msgs/msgs.hh>
 
 #include <rclcpp/rclcpp.hpp>
