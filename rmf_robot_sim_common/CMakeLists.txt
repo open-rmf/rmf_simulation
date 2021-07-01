@@ -133,7 +133,6 @@ target_include_directories(slotcar_common
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     ${EIGEN3_INCLUDE_DIRS}
-    ${GAZEBO_INCLUDE_DIRS}
 )
 
 target_link_libraries(slotcar_common
@@ -143,7 +142,18 @@ target_link_libraries(slotcar_common
 ###############################
 # Install Targets             #
 ###############################
-ament_export_dependencies(Eigen3)
+ament_export_dependencies(
+  Eigen3
+  rclcpp
+  geometry_msgs
+  std_msgs
+  tf2_ros
+  rmf_fleet_msgs
+  rmf_dispenser_msgs
+  rmf_ingestor_msgs
+  rmf_building_map_msgs
+)
+
 ament_export_include_directories(include)
 ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)

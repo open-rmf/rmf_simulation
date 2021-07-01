@@ -48,8 +48,6 @@ ign_find_package(ignition-transport10 REQUIRED)
 set(IGN_TRANSPORT_VER 10)
 ign_find_package(sdformat11 REQUIRED)
 
-find_package(rmf_door_msgs REQUIRED)
-find_package(rmf_lift_msgs REQUIRED)
 find_package(rmf_building_sim_common REQUIRED)
 find_package (Qt5
   COMPONENTS
@@ -81,7 +79,6 @@ ament_target_dependencies(door
     ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}
     rmf_building_sim_common
-    rmf_door_msgs
 )
 
 ###############################
@@ -94,8 +91,6 @@ target_include_directories(lift
   PUBLIC
     ${rmf_building_sim_common_INCLUDE_DIRS}
     ${geometry_msgs_INCLUDE_DIRS}
-    ${rmf_door_msgs_INCLUDE_DIRS}
-    ${rmf_lift_msgs_INCLUDE_DIRS}
 )
 
 ament_target_dependencies(lift
@@ -104,8 +99,6 @@ ament_target_dependencies(lift
     ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}
     rmf_building_sim_common
-    rmf_door_msgs
-    rmf_lift_msgs
 )
 
 ###############################

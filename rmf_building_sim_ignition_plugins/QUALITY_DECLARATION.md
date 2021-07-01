@@ -116,14 +116,6 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 `rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
-#### rmf\_door\_msgs
-
-`rmf_door_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_door_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_lift\_msgs
-
-`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_lift_msgs/QUALITY_DECLARATION.md).
-
 #### rmf\_building\_sim\_common
 
 `rmf_building_sim_common` is [**Quality Level 4**](../rmf_building_sim_common/QUALITY_DECLARATION.md).
@@ -131,6 +123,46 @@ This quality declaration has not been externally peer-reviewed and is not regist
 ### Optional Direct Runtime ROS Dependencies [5.ii]
 
 This package has the following runtime non-ROS dependencies.
+
+#### ignition-gazebo
+
+`ignition-gazebo` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-plugin
+
+`ignition-plugin` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-common
+
+`ignition-common` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-math
+
+`ignition-math` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-gui
+
+`ignition-gui` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-msgs
+
+`ignition-msgs` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### ignition-transport
+
+`ignition-transport` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
+
+#### sdformat11
+
+`sdformat11` does not declare a quality level.
+It is assumed to be at least **Quality Level 3** based on its history, use of CI, and use of testing.
 
 #### libqt5-core
 

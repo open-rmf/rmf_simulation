@@ -22,12 +22,10 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(gazebo REQUIRED)
+find_package(gazebo_dev REQUIRED)
 find_package(gazebo_ros REQUIRED)
 find_package(OpenCV REQUIRED )
 find_package(rmf_fleet_msgs REQUIRED)
-find_package(rmf_door_msgs REQUIRED)
-find_package(rmf_lift_msgs REQUIRED)
 find_package(rmf_building_sim_common REQUIRED)
 find_package(menge_vendor REQUIRED)
 
@@ -43,7 +41,6 @@ ament_target_dependencies(door
   rmf_building_sim_common
   rclcpp
   gazebo_ros
-  rmf_door_msgs
 )
 
 target_include_directories(door
@@ -63,8 +60,6 @@ ament_target_dependencies(lift
     rmf_building_sim_common
     rclcpp
     gazebo_ros
-    rmf_door_msgs
-    rmf_lift_msgs
 )
 
 target_include_directories(lift

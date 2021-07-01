@@ -116,6 +116,11 @@ This quality declaration has not been externally peer-reviewed and is not regist
 
 `rclcpp` is [**Quality Level 1**](https://github.com/ros2/rclcpp/blob/master/rclcpp/QUALITY_DECLARATION.md).
 
+#### gazebo\_dev
+
+`gazebo_dev` does not declare a Quality Level.
+It is assumed to be at least **Quality Level 4** based on its widespread use.
+
 #### gazebo\_ros
 
 `gazebo_ros` does not declare a Quality Level.
@@ -124,14 +129,6 @@ It is assumed to be at least **Quality Level 4** based on its widespread use.
 #### rmf\_fleet\_msgs
 
 `rmf_fleet_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_fleet_msgs/QUALITY_DECLARATION.md).
-
-#### rmf\_door\_msgs
-
-`rmf_door_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_door_msgs/QUALITY_DECLARATION.md)
-
-#### rmf\_lift\_msgs
-
-`rmf_lift_msgs` is [**Quality Level 3**](https://github.com/open-rmf/rmf_internal_msgs/blob/main/rmf_lift_msgs/QUALITY_DECLARATION.md)
 
 #### rmf\_building\_sim\_common
 
@@ -147,11 +144,6 @@ It is assumed to be at least **Quality Level 4** based on its widespread use.
 
 `OpenCV` does not declare a quality level.
 It is assumed to be **Quality Level 1** based on wide-spread use.
-
-#### gazebo
-
-`gazebos` does not declare a Quality Level.
-It is assumed to be at least **Quality Level 4** based on its widespread use.
 
 #### menge\_vendor
 
