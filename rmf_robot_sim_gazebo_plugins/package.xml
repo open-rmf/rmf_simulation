@@ -15,7 +15,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>gazebo-dev</depend>
+  <depend>gazebo_dev</depend>
   <depend>gazebo_ros</depend>
   <depend>eigen</depend>
   <depend>geometry_msgs</depend>
