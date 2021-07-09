@@ -68,7 +68,7 @@ public:
     std::string name;
     auto door_ele = sdf->GetElementImpl("door");
     get_sdf_attribute_required<std::string>(door_ele, "name", name);
-    if (!rclcpp::is_initialized())
+    if (!rclcpp::ok())
       rclcpp::init(0, argv);
     std::string plugin_name("plugin_" + name);
     ignwarn << "Initializing plugin with name " << plugin_name << std::endl;
