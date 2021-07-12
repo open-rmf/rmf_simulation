@@ -41,7 +41,8 @@ void CrowdSimulatorPlugin::Configure(
 {
   _world = std::make_shared<ignition::gazebo::Model>(entity);
   RCLCPP_INFO(_crowd_sim_interface->logger(),
-    "Initializing world plugin with name: " + _world->Name(ecm));
+    "Initializing world plugin with name: %s",
+    _world->Name(ecm).c_str());
   _world_name = _world->Name(ecm);
 
   if (!_crowd_sim_interface->read_sdf(sdf))
@@ -120,7 +121,8 @@ bool CrowdSimulatorPlugin::_spawn_agents_in_world()
       if (!this->_create_entity(object_ptr->model_name, type_ptr) )
       {
         RCLCPP_ERROR(_crowd_sim_interface->logger(),
-          "Failed to insert model [ " + object_ptr->model_name + " ] in world");
+          "Failed to insert model [ %s ] in world",
+          object_ptr->model_name.c_str());
         return false;
       }
     }
@@ -164,7 +166,7 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
         }
         objects_name.erase(name->Data());
         RCLCPP_INFO(_crowd_sim_interface->logger(),
-        "Crowd Simulator found agent: " + name->Data() );
+        "Crowd Simulator found agent: %s", name->Data().c_str());
       }
       return true;
     }
@@ -190,7 +192,8 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
         }
         objects_name.erase(name->Data());
         RCLCPP_INFO(_crowd_sim_interface->logger(),
-        "Crowd Simulator found agent: " + name->Data() );
+        "Crowd Simulator found agent: %s",
+        name->Data().c_str());
       }
       return true;
     }
@@ -214,7 +217,8 @@ bool CrowdSimulatorPlugin::_create_entity(
   const crowd_simulator::ModelTypeDatabase::RecordPtr model_type_ptr) const
 {
   // Use ignition create service to spawn actors
-  // calling ignition gazebo create service, you can use "ign service -l" to check the service available
+  // calling ignition gazebo create service, you can use "ign service -l" to
+  // check the service available
   assert(model_type_ptr);
   std::string service = "/world/" + this->_world_name + "/create";
   ignition::msgs::EntityFactory request;
@@ -232,21 +236,23 @@ bool CrowdSimulatorPlugin::_create_entity(
     if (result && response.data())
     {
       RCLCPP_INFO(_crowd_sim_interface->logger(),
-        "Requested creation of entity: " + model_name);
+        "Requested creation of entity: %s",
+        model_name.c_str());
       return true;
     }
     else
     {
       RCLCPP_ERROR(_crowd_sim_interface->logger(),
-        "Failed request to create entity.\n" + request.DebugString());
+        "Failed request to create entity.\n %s",
+        request.DebugString().c_str());
     }
   }
   else
   {
     RCLCPP_ERROR(
       _crowd_sim_interface->logger(),
-      "Request to create entity from service " + service + "timer out ...\n" +
-      request.DebugString());
+      "Request to create entity from service %s timer out ...\n",
+      request.DebugString().c_str());
   }
   return false;
 }
@@ -349,7 +355,8 @@ void CrowdSimulatorPlugin::_update_all_objects(
     if (it_entity == _entity_dic.end())   //safe check
     {
       RCLCPP_ERROR(_crowd_sim_interface->logger(),
-        "Didn't initialize external agent [" + obj_ptr->model_name + "]");
+        "Didn't initialize external agent [ %s ]",
+        obj_ptr->model_name.c_str());
       exit(EXIT_FAILURE);
     }
     auto entity = it_entity->second;
@@ -391,7 +398,8 @@ void CrowdSimulatorPlugin::_update_internal_object(
   if (nullptr == traj_pose_comp)
   {
     RCLCPP_ERROR(_crowd_sim_interface->logger(),
-      "Model [" + obj_ptr->model_name + "] has no TrajectoryPose component.");
+      "Model [ %s ] has no TrajectoryPose component.",
+      obj_ptr->model_name.c_str());
     exit(EXIT_FAILURE);
   }
   auto anim_name_comp =
@@ -399,7 +407,8 @@ void CrowdSimulatorPlugin::_update_internal_object(
   if (nullptr == anim_name_comp)
   {
     RCLCPP_ERROR(_crowd_sim_interface->logger(),
-      "Model [" + obj_ptr->model_name + "] has no AnimationName component.");
+      "Model [ %s ] has no AnimationName component.",
+      obj_ptr->model_name.c_str());
     exit(EXIT_FAILURE);
   }
   auto anim_time_comp =
@@ -407,7 +416,8 @@ void CrowdSimulatorPlugin::_update_internal_object(
   if (nullptr == anim_name_comp)
   {
     RCLCPP_ERROR(_crowd_sim_interface->logger(),
-      "Model [" + obj_ptr->model_name + "] has no AnimationTime component.");
+      "Model [ %s ] has no AnimationTime component.",
+      obj_ptr->model_name.c_str());
     exit(EXIT_FAILURE);
   }
   ignition::math::Pose3d current_pose = traj_pose_comp->Data();
