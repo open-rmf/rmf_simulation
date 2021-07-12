@@ -8,7 +8,7 @@ endif()
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 
@@ -19,6 +19,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rmf_charger_msgs REQUIRED)
 find_package(rmf_door_msgs REQUIRED)
 find_package(rmf_lift_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
@@ -79,6 +80,23 @@ target_include_directories(lift_common
 
 target_link_libraries(lift_common
     rmf_building_sim_utils
+)
+
+###############################
+# charger stuff
+###############################
+
+add_library(charger_common SHARED src/charger_common.cpp)
+
+ament_target_dependencies(charger_common
+   rclcpp
+   rmf_charger_msgs
+)
+
+target_include_directories(charger_common
+ PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 ###############################
@@ -143,6 +161,13 @@ install(
 install(
   TARGETS lift_common
   EXPORT lift_common 
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+install(
+  TARGETS charger_common
+  EXPORT charger_common
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
