@@ -88,6 +88,6 @@ namespace charger_simulator
     gazebo::transport::SubscriberPtr _update_sub;
     gazebo::transport::SubscriberPtr _complete_sub;
   };
-};
+}
 
 GZ_REGISTER_WORLD_PLUGIN(charger_simulator::ChargerSimulator)

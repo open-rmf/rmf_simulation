@@ -26,6 +26,7 @@ find_package(gazebo_dev REQUIRED)
 find_package(gazebo_ros REQUIRED)
 find_package(OpenCV REQUIRED )
 find_package(rmf_fleet_msgs REQUIRED)
+find_package(rmf_charger_msgs REQUIRED)
 find_package(rmf_building_sim_common REQUIRED)
 find_package(menge_vendor REQUIRED)
 
@@ -80,6 +81,25 @@ ament_target_dependencies(toggle_floors
     gazebo_ros
     rmf_fleet_msgs
     rclcpp
+)
+
+###############################
+# Charger adapter simulation
+###############################
+add_library(charger SHARED src/charger_simulator.cpp)
+
+ament_target_dependencies(charger
+  gazebo_ros
+  rmf_building_sim_common
+  rmf_charger_msgs
+  rclcpp
+)
+
+target_include_directories(charger
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  ${GAZEBO_INCLUDE_DIRS}
 )
 
 target_include_directories(toggle_floors
