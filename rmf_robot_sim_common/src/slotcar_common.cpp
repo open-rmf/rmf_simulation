@@ -115,6 +115,18 @@ std::string SlotcarCommon::model_name() const
   return _model_name;
 }
 
+void SlotcarCommon::set_charger_complete_cb(
+  const std::function<void(const std::string&)>& cb)
+{
+  _complete_charging_cb = cb;
+}
+
+void SlotcarCommon::set_charger_update_charge_cb(
+  const std::function<void(const std::string&, rclcpp::Duration)>& cb)
+{
+  _charger_update_charge_cb = cb;
+}
+
 void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 {
   _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
@@ -344,7 +356,8 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
     // Try charging battery
     double eps = 0.01;
     bool stationary = lin_vel.norm() < eps && std::abs(ang_vel) < eps;
-    bool in_charger_vicinity = near_charger(_pose);
+    auto charger = get_nearest_charger(_pose);
+    bool in_charger_vicinity = charger.has_value();
     if (stationary && in_charger_vicinity)
     {
       if (_enable_instant_charge)
@@ -355,6 +368,23 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
       {
         _soc += compute_charge(dt);
         _soc = std::min(_soc_max, _soc);
+      }
+
+      if(_soc_max == _soc)
+      {
+        _complete_charging_cb(charger->name);
+      }
+      else
+      {
+        auto time_to_charge =
+          (_soc_max - _soc)/compute_charge(1);
+        auto secs  = static_cast<uint32_t>(floor(time_to_charge));
+        rclcpp::Duration duration_to_charge
+        {
+          secs,
+          static_cast<uint32_t>((time_to_charge - secs) * 1e9)
+        };
+        _charger_update_charge_cb(charger->name, duration_to_charge);
       }
     }
     // Discharge battery
@@ -755,7 +785,8 @@ void SlotcarCommon::charge_state_cb(
   }
 }
 
-bool SlotcarCommon::near_charger(const Eigen::Isometry3d& pose) const
+std::optional<SlotcarCommon::ChargerWaypoint>
+  SlotcarCommon::get_nearest_charger(const Eigen::Isometry3d& pose) const
 {
   std::string lvl_name = get_level_name(pose.translation()[2]);
   auto waypoints_it = _charger_waypoints.find(lvl_name);
@@ -770,11 +801,11 @@ bool SlotcarCommon::near_charger(const Eigen::Isometry3d& pose) const
           + pow(waypoint.y - pose.translation()[1], 2));
       if (dist < _charger_dist_thres)
       {
-        return true;
+        return {waypoint};
       }
     }
   }
-  return false;
+  return std::nullopt;
 }
 
 double SlotcarCommon::compute_charge(const double run_time) const

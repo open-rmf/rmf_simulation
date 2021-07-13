@@ -142,6 +142,11 @@ public:
 
   void publish_robot_state(const double time);
 
+  void set_charger_update_charge_cb(
+    const std::function<void(const std::string&, rclcpp::Duration)>& cb);
+
+  void set_charger_complete_cb(
+    const std::function<void(const std::string&)>& cb);
 private:
   // Paramters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
@@ -160,8 +165,9 @@ private:
   {
     double x;
     double y;
-    ChargerWaypoint(double x, double y)
-    : x(x), y(y)
+    std::string name;
+    ChargerWaypoint(double x, double y, std::string name)
+    : x(x), y(y), name(name)
     {
     }
   };
@@ -248,11 +254,16 @@ private:
   const double _soc_max = 1.0;
   double _soc = _soc_max;
   std::unordered_map<std::string, std::vector<ChargerWaypoint>>
-  _charger_waypoints;
+    _charger_waypoints;
   // Straight line distance to charging waypoint within which charging can occur
   static constexpr double _charger_dist_thres = 0.3;
 
   bool _docking = false;
+
+  // Callbacks for communication with the charger
+  std::function<void(const std::string&, rclcpp::Duration)>
+    _charger_update_charge_cb;
+  std::function<void(const std::string&)> _complete_charging_cb;
 
   std::string get_level_name(const double z) const;
 
@@ -277,7 +288,8 @@ private:
 
   void map_cb(const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg);
 
-  bool near_charger(const Eigen::Isometry3d& pose) const;
+  std::optional<SlotcarCommon::ChargerWaypoint>
+    get_nearest_charger(const Eigen::Isometry3d& pose) const;
 
   double compute_charge(const double run_time) const;
 
@@ -421,14 +433,16 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
         while (waypoint)
         {
           if (waypoint->HasAttribute("x") && waypoint->HasAttribute("y") &&
-            waypoint->HasAttribute("level"))
+            waypoint->HasAttribute("level") && waypoint->HasAttribute("name"))
           {
-            std::string lvl_name;
+            std::string lvl_name, waypoint_name;
             double x, y;
             waypoint->GetAttribute("x")->Get(x);
             waypoint->GetAttribute("y")->Get(y);
             waypoint->GetAttribute("level")->Get(lvl_name);
-            _charger_waypoints[lvl_name].push_back(ChargerWaypoint(x, y));
+            waypoint->GetAttribute("name")->Get(waypoint_name);
+            _charger_waypoints[lvl_name].push_back(
+              ChargerWaypoint(x, y, waypoint_name));
           }
           waypoint = waypoint->GetNextElement("rmf_vertex");
         }

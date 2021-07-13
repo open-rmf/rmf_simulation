@@ -28,8 +28,9 @@ namespace rmf_building_sim_common {
 class ChargerCommon
 {
 public:
-  ChargerCommon(std::shared_ptr<rclcpp::Node> node, 
-    rclcpp::QoS qos);
+  ChargerCommon();
+
+  void init_ros_node(std::shared_ptr<rclcpp::Node> node);
 
   void add_charger(std::string name, double x, double y, std::string level);
 

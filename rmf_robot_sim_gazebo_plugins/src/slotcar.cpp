@@ -24,6 +24,12 @@ private:
 
   gazebo::transport::NodePtr _gazebo_node;
   gazebo::transport::SubscriberPtr _charge_state_sub;
+  gazebo::transport::PublisherPtr _update_charger_pub;
+  gazebo::transport::PublisherPtr _complete_charger_pub;
+
+  std::function<void(const std::string&, rclcpp::Duration)>
+    _charger_update_charge_cb;
+  std::function<void(const std::string&)> _complete_charging_cb;
 
   gazebo::event::ConnectionPtr _update_connection;
   gazebo::physics::ModelPtr _model;
@@ -66,6 +72,32 @@ SlotcarPlugin::SlotcarPlugin()
   _gazebo_node->Init();
   _charge_state_sub = _gazebo_node->Subscribe("/charge_state",
       &SlotcarPlugin::charge_state_cb, this);
+  _update_charger_pub  = _gazebo_node->
+    Advertise<gazebo::msgs::Header>("/charger_update/");
+  _complete_charger_pub = _gazebo_node->
+    Advertise<gazebo::msgs::GzString>("/charger_complete/");
+
+  _charger_update_charge_cb =
+    [this](const std::string& name, rclcpp::Duration time)
+    {
+      gazebo::msgs::Time time_msg;
+      time_msg.set_sec(time.seconds());
+      time_msg.set_nsec(time.nanoseconds() - time.seconds() * 1e9);
+      gazebo::msgs::Header header;
+      header.set_allocated_stamp(&time_msg);
+      header.set_str_id(name);
+      this->_update_charger_pub->Publish(header);
+    };
+  dataPtr->set_charger_update_charge_cb(_charger_update_charge_cb);
+
+  _complete_charging_cb =
+    [this](const std::string& name)
+    {
+      gazebo::msgs::GzString msg;
+      msg.set_data(name);
+      this->_complete_charger_pub->Publish(msg);
+    };
+  dataPtr->set_charger_complete_cb(_complete_charging_cb);
   // We do rest of initialization during ::Load
 }
 

@@ -19,11 +19,15 @@
 
 namespace rmf_building_sim_common {
 
-ChargerCommon::ChargerCommon(
-  std::shared_ptr<rclcpp::Node> node,
-  rclcpp::QoS qos):
-  node_(node)
+ChargerCommon::ChargerCommon()
 {
+  // Do nothing
+}
+
+void ChargerCommon::init_ros_node(std::shared_ptr<rclcpp::Node> node)
+{
+  node_ = node;
+  rclcpp::SystemDefaultsQoS qos;
   state_publisher_ =
     node_->create_publisher<rmf_charger_msgs::msg::ChargerState>(
       "rmf_charger/state", 1);
