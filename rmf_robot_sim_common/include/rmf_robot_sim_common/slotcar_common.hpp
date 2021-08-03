@@ -36,6 +36,31 @@ namespace rmf_robot_sim_common {
 
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
 
+//3rd coordinate is yaw
+struct NonHolonomicTrajectory
+{
+  NonHolonomicTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
+    const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
+    bool _turning = false)
+    :x0(_x0), x1(_x1),
+     v0((x1 - x0).normalized()), v1(_v1),
+     turning(_turning)
+  { }
+  // positions
+  Eigen::Vector2d x0;
+  Eigen::Vector2d x1;
+  // headings
+  Eigen::Vector2d v0;
+  Eigen::Vector2d v1;
+
+  bool turning = false;
+  float turning_radius = 0.0f;
+  float turn_arc_radians = 0.0f;
+  float turn_arclength = 0.0f;
+  Eigen::Vector2d turn_circle_center;
+  Eigen::Vector2d turn_target_heading;
+};
+
 // Edit reference of parameter for template type deduction
 template<typename IgnQuatT>
 inline void convert(const Eigen::Quaterniond& _q, IgnQuatT& quat)
@@ -120,6 +145,9 @@ public:
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
 
+  std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose,
+    const double time, bool& snap_world_pose);
+
   bool emergency_stop(const std::vector<Eigen::Vector3d>& obstacle_positions,
     const Eigen::Vector3d& current_heading);
 
@@ -142,7 +170,7 @@ public:
 
   void publish_robot_state(const double time);
 
-private:
+public:
   // Paramters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
   struct PowerParams
@@ -181,7 +209,9 @@ private:
   std::size_t _sequence = 0;
 
   std::vector<Eigen::Isometry3d> trajectory;
-  std::size_t _traj_wp_idx;
+  std::size_t _traj_wp_idx = 0;
+  std::vector<NonHolonomicTrajectory> nonholonomic_trajectory;
+  std::size_t _nonholonomic_traj_idx = 0;
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
