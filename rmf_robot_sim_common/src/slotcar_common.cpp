@@ -126,13 +126,6 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     _ros_node->create_publisher<rmf_fleet_msgs::msg::RobotState>(
     "/robot_state", 10);
 
-  auto qos_profile = rclcpp::QoS(10);
-  qos_profile.transient_local();
-  _building_map_sub =
-    _ros_node->create_subscription<rmf_building_map_msgs::msg::BuildingMap>(
-    "/map",
-    qos_profile,
-    std::bind(&SlotcarCommon::map_cb, this, std::placeholders::_1));
 
   _traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
     "/robot_path_requests",
@@ -574,21 +567,7 @@ bool SlotcarCommon::emergency_stop(
 
 std::string SlotcarCommon::get_level_name(const double z) const
 {
-  std::string level_name = "";
-  if (!_initialized_levels)
-    return level_name;
-  auto min_distance = std::numeric_limits<double>::max();
-  for (auto it = _level_to_elevation.begin(); it != _level_to_elevation.end();
-    ++it)
-  {
-    const double disp = std::abs(it->second - z);
-    if (disp < min_distance)
-    {
-      min_distance = disp;
-      level_name = it->first;
-    }
-  }
-  return level_name;
+  return _building.get_level_of(z).value_or("");
 }
 
 double SlotcarCommon::compute_change_in_rotation(
@@ -714,23 +693,6 @@ void SlotcarCommon::mode_request_cb(
     _docking = true;
   else
     _docking = false;
-}
-
-void SlotcarCommon::map_cb(
-  const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg)
-{
-  if (msg->levels.empty())
-  {
-    RCLCPP_ERROR(logger(), "Received empty building map");
-    return;
-  }
-
-  for (const auto& level : msg->levels)
-  {
-    _level_to_elevation.insert({level.name, level.elevation});
-  }
-  _initialized_levels = true;
-
 }
 
 // Enables/disables charge when called from Ignition/Gazebo plugin

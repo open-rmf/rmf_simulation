@@ -9,16 +9,6 @@ using Graph = rmf_building_map_msgs::msg::Graph;
 using Location = rmf_fleet_msgs::msg::Location;
 using Path = std::vector<Location>;
 
-static double compute_yaw(const Eigen::Isometry3d& pose)
-{
-  auto quat = Eigen::Quaterniond(pose.linear());
-  // Taken from ignition math quaternion Euler()
-  double yaw = std::atan2(2 * (quat.x()*quat.y() + quat.w()*quat.z()),
-      (quat.w() * quat.w()) + (quat.x() * quat.x()) - (quat.y() * quat.y()) -
-      (quat.z() * quat.z()));
-  return yaw;
-}
-
 void ReadonlyCommon::set_name(const std::string& name)
 {
   _name = name;
@@ -34,7 +24,7 @@ rclcpp::Logger ReadonlyCommon::logger()
   return rclcpp::get_logger("read_only_" + _name);
 }
 
-void ReadonlyCommon::init(rclcpp::Node::SharedPtr node)
+void ReadonlyCommon::init(const rclcpp::Node::SharedPtr& node)
 {
   _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
   _current_task_id = "demo";
@@ -55,7 +45,7 @@ void ReadonlyCommon::init(rclcpp::Node::SharedPtr node)
   RCLCPP_INFO(logger(), "hello i am %s", _name.c_str());
 }
 
-void ReadonlyCommon::on_update(Eigen::Isometry3d& pose, double sim_time)
+void ReadonlyCommon::on_update(const Eigen::Isometry3d& pose, double sim_time)
 {
   _sim_time = sim_time;
   _pose = pose;
@@ -77,7 +67,7 @@ void ReadonlyCommon::on_update(Eigen::Isometry3d& pose, double sim_time)
 
     _robot_state_msg.location.x = _pose.translation()[0];
     _robot_state_msg.location.y = _pose.translation()[1];
-    _robot_state_msg.location.yaw = compute_yaw(_pose);
+    _robot_state_msg.location.yaw = rmf_plugins_utils::compute_yaw(_pose);
     _robot_state_msg.location.t = now;
     _robot_state_msg.location.level_name = _level_name;
 
@@ -294,7 +284,7 @@ ReadonlyCommon::Path ReadonlyCommon::compute_path(
   path.resize(_lookahead);
 
   auto start_wp = _start_wp;
-  const double current_yaw = compute_yaw(pose);
+  const double current_yaw = rmf_plugins_utils::compute_yaw(pose);
   Eigen::Vector3d heading(
     std::cos(current_yaw), std::sin(current_yaw), 0.0);
 

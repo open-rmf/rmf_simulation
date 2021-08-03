@@ -52,9 +52,9 @@ public:
   std::string get_name() const;
   rclcpp::Logger logger();
   template<typename SdfPtrT>
-  void read_sdf(SdfPtrT& sdf);
-  void init(rclcpp::Node::SharedPtr node);
-  void on_update(Eigen::Isometry3d& pose, double sim_time);
+  void read_sdf(const SdfPtrT& sdf);
+  void init(const rclcpp::Node::SharedPtr& node);
+  void on_update(const Eigen::Isometry3d& pose, double sim_time);
 
 private:
   std::string _name = "caddy"; // Placeholder
@@ -114,7 +114,7 @@ private:
 };
 
 template<typename SdfPtrT>
-void ReadonlyCommon::read_sdf(SdfPtrT& sdf)
+void ReadonlyCommon::read_sdf(const SdfPtrT& sdf)
 {
   // Getting sdf elements
   if (sdf->HasElement("level_name"))

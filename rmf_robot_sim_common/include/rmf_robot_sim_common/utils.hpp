@@ -79,6 +79,8 @@ double compute_desired_rate_of_change(
 
 rclcpp::Time simulation_now(double t);
 
+double compute_yaw(const Eigen::Isometry3d& pose);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename SdfPtrT, typename SdfElementPtrT>
 bool get_element_required(

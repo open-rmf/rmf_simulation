@@ -32,6 +32,8 @@
 #include <rmf_fleet_msgs/msg/mode_request.hpp>
 #include <rmf_building_map_msgs/msg/building_map.hpp>
 
+#include <rmf_robot_sim_common/BuildingClient.hpp>
+
 namespace rmf_robot_sim_common {
 
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
@@ -201,8 +203,7 @@ private:
   Eigen::Isometry3d _pose; // Pose at current time step
   int _rot_dir = 1; // Current direction of rotation
 
-  std::unordered_map<std::string, double> _level_to_elevation;
-  bool _initialized_levels = false;
+  rmf_robot_sim_common::BuildingClient _building;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> _tf2_broadcaster;
   rclcpp::Publisher<rmf_fleet_msgs::msg::RobotState>::SharedPtr _robot_state_pub;
@@ -210,8 +211,6 @@ private:
   rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr _traj_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::PauseRequest>::SharedPtr _pause_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::ModeRequest>::SharedPtr _mode_sub;
-  rclcpp::Subscription<rmf_building_map_msgs::msg::BuildingMap>::SharedPtr
-    _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
 
@@ -274,8 +273,6 @@ private:
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
 
   void mode_request_cb(const rmf_fleet_msgs::msg::ModeRequest::SharedPtr msg);
-
-  void map_cb(const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg);
 
   bool near_charger(const Eigen::Isometry3d& pose) const;
 
