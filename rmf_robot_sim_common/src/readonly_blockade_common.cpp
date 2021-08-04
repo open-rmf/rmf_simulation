@@ -23,17 +23,24 @@
 namespace rmf_robot_sim_common {
 
 //==============================================================================
+ReadOnlyBlockadeCommon::ReadOnlyBlockadeCommon()
+: _destination(std::make_shared<std::string>())
+{
+  // Do nothing
+}
+
+//==============================================================================
 const std::string& ReadOnlyBlockadeCommon::get_name() const
 {
   return _name;
 }
 
 //==============================================================================
-void ReadOnlyBlockadeCommon::init(
+void ReadOnlyBlockadeCommon::_init(
   const std::string& name,
   const rclcpp::Node::SharedPtr& node)
 {
-  _destination = std::make_shared<std::string>();
+  _logger = std::make_shared<rclcpp::Logger>(node->get_logger());
 
   _building.start(node);
   _robot_state_pub =
@@ -47,6 +54,12 @@ void ReadOnlyBlockadeCommon::init(
       {
         *dest = msg->data;
       });
+}
+
+//==============================================================================
+std::string ReadOnlyBlockadeCommon::_get_level_name(double z) const
+{
+  return _building.get_level_of(z).value_or("");
 }
 
 //==============================================================================
@@ -72,7 +85,7 @@ void ReadOnlyBlockadeCommon::on_update(
       .x(pose.translation().x())
       .y(pose.translation().y())
       .yaw(rmf_plugins_utils::compute_yaw(pose))
-      .level_name(get_level_name(pose.translation().z()))
+      .level_name(_get_level_name(pose.translation().z()))
       .index(0);
 
   auto msg =

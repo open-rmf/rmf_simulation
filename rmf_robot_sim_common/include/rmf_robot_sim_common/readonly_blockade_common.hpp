@@ -35,19 +35,26 @@ class ReadOnlyBlockadeCommon
 {
 public:
 
+  ReadOnlyBlockadeCommon();
+
   const std::string& get_name() const;
 
   template<typename SdfPtrT>
-  void read_sdf(const SdfPtrT& sdf);
+  void init(
+    const std::string& name,
+    const rclcpp::Node::SharedPtr& node,
+    const SdfPtrT& sdf);
 
-  void init(const std::string& name, const rclcpp::Node::SharedPtr& node);
   void on_update(const Eigen::Isometry3d& pose, double sim_time);
 
 private:
 
-  std::string get_level_name(double z) const;
+  void _init(const std::string& name, const rclcpp::Node::SharedPtr& node);
+
+  std::string _get_level_name(double z) const;
 
   std::string _name;
+  std::shared_ptr<rclcpp::Logger> _logger;
 
   using RobotState = rmf_fleet_msgs::msg::RobotState;
   rclcpp::Publisher<RobotState>::SharedPtr _robot_state_pub;
@@ -60,6 +67,31 @@ private:
   double _update_threshold = 0.5; // update every 0.5s
   uint64_t _seq = 0;
 };
+
+//==============================================================================
+template<typename SdfPtrT>
+void ReadOnlyBlockadeCommon::init(
+  const std::string& name,
+  const rclcpp::Node::SharedPtr& node,
+  const SdfPtrT& sdf)
+{
+  _init(name, node);
+  const auto& logger = *_logger;
+
+  if (sdf->HasElement("destination"))
+    *_destination = sdf->template Get<std::string>("destination");
+  RCLCPP_INFO(
+    logger,
+    "[ReadOnlyBlockadeCommon::init] Setting initial destination to [%s]",
+    _destination->c_str());
+
+  if (sdf->HasElement("update_rate"))
+    _update_threshold = 1.0 / sdf->template Get<double>("update_rate");
+  RCLCPP_INFO(
+    logger,
+    "[ReadOnlyBlockadeCommon::init] Setting update threshold to [%f]",
+    _update_threshold);
+}
 
 } // namespace rmf_robot_sim_common
 

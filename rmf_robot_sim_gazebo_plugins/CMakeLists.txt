@@ -96,6 +96,28 @@ target_include_directories(readonly
     ${EIGEN3_INCLUDE_DIRS}
 )
 
+
+###############################
+# Read Only Blockade Plugin
+###############################
+
+add_library(readonly_blockade SHARED
+  ${PROJECT_SOURCE_DIR}/src/readonly_blockade.cpp
+)
+
+ament_target_dependencies(readonly_blockade
+  gazebo_ros
+  rmf_robot_sim_common
+)
+
+target_include_directories(readonly_blockade
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${GAZEBO_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIRS}
+)
+
 ###############################
 # Slotcar Plugin
 ###############################
@@ -129,6 +151,7 @@ install(
     teleport_dispenser
     teleport_ingestor
     readonly
+    readonly_blockade
     slotcar
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

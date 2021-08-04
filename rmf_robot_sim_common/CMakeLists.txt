@@ -92,6 +92,23 @@ target_include_directories(dispenser_common
 )
 
 ###################################
+# Building client #
+###################################
+
+add_library(rmf_sim_building_client SHARED ${PROJECT_SOURCE_DIR}/src/BuildingClient.cpp)
+
+ament_target_dependencies(rmf_sim_building_client
+  rclcpp
+  rmf_building_map_msgs
+)
+
+target_include_directories(rmf_sim_building_client
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+###################################
 # Readonly Plugin Common #
 ###################################
 
@@ -113,10 +130,35 @@ target_include_directories(readonly_common
 )
 
 ###################################
+# Read Only Blockade Plugin Common #
+###################################
+
+add_library(readonly_blockade_common SHARED
+  ${PROJECT_SOURCE_DIR}/src/readonly_blockade_common.cpp
+)
+target_link_libraries(readonly_blockade_common rmf_sim_building_client)
+
+ament_target_dependencies(readonly_blockade_common
+  rmf_fleet_msgs
+  rmf_building_map_msgs
+  rclcpp
+  std_msgs
+  Eigen3
+)
+
+target_include_directories(readonly_blockade_common
+  PUBLIC
+    ${EIGEN3_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+###################################
 # Slotcar Plugin Common           #
 ###################################
 
 add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
+target_link_libraries(slotcar_common rmf_sim_building_client)
 
 ament_target_dependencies(slotcar_common
     Eigen3
@@ -157,6 +199,7 @@ ament_export_dependencies(
 ament_export_include_directories(include)
 ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)
+ament_export_targets(rmf_sim_building_client HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
 ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
@@ -176,8 +219,22 @@ install(
 )
 
 install(
+  TARGETS rmf_sim_building_client
+  EXPORT rmf_sim_building_client
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+install(
   TARGETS readonly_common
   EXPORT readonly_common
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+install(
+  TARGETS readonly_blockade_common
+  EXPORT readonly_blockade_common
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )

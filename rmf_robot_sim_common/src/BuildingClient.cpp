@@ -80,7 +80,9 @@ void BuildingClient::Shared::map_cb(
 {
   if (msg->levels.empty())
   {
-    RCLCPP_ERROR(logger, "Received empty building map");
+    RCLCPP_ERROR(
+      logger, "[BuildingClient::Shared::map_cb] Received empty building map");
+
     return;
   }
 
