@@ -9,6 +9,11 @@ jobs:
   build_and_test:
     name: build_and_test
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ros_distribution:
+          - foxy
+          - galactic
     steps:
       - name: deps
         uses: ros-tooling/setup-ros@v0.2
