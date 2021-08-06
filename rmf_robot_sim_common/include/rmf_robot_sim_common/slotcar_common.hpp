@@ -218,6 +218,7 @@ public:
   std::vector<rclcpp::Time> _hold_times;
 
   std::mutex _mutex;
+  std::mutex _ackmann_path_req_mutex;
 
   std::string _model_name;
   bool _emergency_stop = false;
@@ -300,6 +301,8 @@ public:
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+
+  void ackmann_path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
 

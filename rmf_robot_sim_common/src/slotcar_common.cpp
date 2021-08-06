@@ -150,10 +150,10 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     10,
     std::bind(&SlotcarCommon::mode_request_cb, this, std::placeholders::_1));
 
-  /*_traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
-    "/robot_path_requests",
+  _traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
+    "/ackmann_path_requests",
     10,
-    std::bind(&SlotcarCommon::path_request_cb, this, std::placeholders::_1));*/
+    std::bind(&SlotcarCommon::ackmann_path_request_cb, this, std::placeholders::_1));
 }
 
 bool SlotcarCommon::path_request_valid(
@@ -248,6 +248,139 @@ void SlotcarCommon::path_request_cb(
   }
 }
 
+void SlotcarCommon::ackmann_path_request_cb(
+  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
+{
+  if (path_request_valid(msg) == false)
+    return;
+  if (model_name() != "ambulance") // ambulance only
+    return;
+
+  // yaw is ignored
+  std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
+
+  nonholonomic_trajectory.clear();
+  auto& locations = msg->path;
+  // add 1st trajectory
+  if (locations.size() >= 2)
+  {
+    NonHolonomicTrajectory traj(
+      Eigen::Vector2d(locations[0].x, locations[0].y),
+      Eigen::Vector2d(locations[1].x, locations[1].y));
+
+    this->nonholonomic_trajectory.push_back(traj);
+  }
+  
+  for (uint i=2; i<locations.size(); ++i)
+  {
+    // every 3 waypoints that make a bend
+    std::array<Eigen::Vector2d, 3> wp;
+    wp[0] = Eigen::Vector2d(locations[i - 2].x, locations[i - 2].y);
+    wp[1] = Eigen::Vector2d(locations[i - 1].x, locations[i - 1].y);
+    wp[2] = Eigen::Vector2d(locations[i].x, locations[i].y);
+
+    Eigen::Vector2d wp1_to_wp0 = (wp[0] - wp[1]);
+    Eigen::Vector2d wp1_to_wp2 = (wp[2] - wp[1]);
+    double wp1_to_wp0_len = wp1_to_wp0.norm();
+    double wp1_to_wp2_len = wp1_to_wp2.norm();
+    Eigen::Vector2d wp1_to_wp0_norm = wp1_to_wp0 / wp1_to_wp0_len;
+    Eigen::Vector2d wp1_to_wp2_norm = wp1_to_wp2 / wp1_to_wp2_len;
+
+    double cp = wp1_to_wp0.x() * wp1_to_wp2.y() - wp1_to_wp2.x() * wp1_to_wp0.y();
+    cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
+    // std::cout << "1to0: " << wp1_to_wp0 << std::endl;
+    // std::cout << "1to2: " << wp1_to_wp2 << std::endl;
+    // printf("cp: %g\n", cp);
+
+    double bend_delta = asin(cp);
+    double half_bend_delta = bend_delta * 0.5;
+    
+    double half_turn_arc = M_PI / 2.0 - half_bend_delta; // right angle tri, 90 - half_turn_delta
+    //use sin rule to obtain length of tangent
+
+    // the computation of min_turning_radius goes deeper than i thought.
+    // reference:
+    // https://www.vboxautomotive.co.uk/downloads/Calculating%20Radius%20of%20Turn%20from%20Yaw.pdf
+    //double min_turning_radius = 0.5;
+    double min_turning_radius = 
+      (this->_nominal_drive_speed * 0.2777 / this->_nominal_turn_speed * 0.0174);
+    printf("min_turning_radius: %g\n", min_turning_radius);
+    
+    double target_radius = min_turning_radius;
+    double tangent_length = std::abs(target_radius / sin(half_bend_delta) * sin(half_turn_arc));
+    // printf("wp1_to_wp0_len: %g wp1_to_wp2_len: %g tangent_length: %g\n",
+    //   wp1_to_wp0_len, wp1_to_wp2_len, tangent_length);
+
+    bool has_runway = tangent_length < wp1_to_wp0_len && tangent_length < wp1_to_wp2_len;
+
+    if (std::abs(cp) < 0.05 || !has_runway)
+    {
+      NonHolonomicTrajectory sp2(
+        Eigen::Vector2d(wp[1].x(), wp[1].y()),
+        Eigen::Vector2d(wp[2].x(), wp[2].y()));
+
+      NonHolonomicTrajectory& last_traj = this->nonholonomic_trajectory.back();
+      last_traj.v1 = sp2.v0;
+
+      this->nonholonomic_trajectory.push_back(sp2);
+    }
+    else
+    {
+      NonHolonomicTrajectory& last_traj = this->nonholonomic_trajectory.back();
+      
+      // bend, build an intermediate spline using turn rate. 
+      Eigen::Vector2d tangent0 = wp[1] + tangent_length * wp1_to_wp0_norm;
+      Eigen::Vector2d tangent1 = wp[1] + tangent_length * wp1_to_wp2_norm;
+
+      // shorten the last trajectory and set it's heading
+      last_traj.x1 = Eigen::Vector2d(tangent0.x(), tangent0.y());
+      last_traj.v1 = last_traj.v0;
+      
+      NonHolonomicTrajectory turn_traj(
+        Eigen::Vector2d(tangent0.x(), tangent0.y()), 
+        Eigen::Vector2d(tangent1.x(), tangent1.y()),
+        Eigen::Vector2d(0,0),
+        true);
+      turn_traj.v0 = -wp1_to_wp0_norm;
+      turn_traj.v1 = wp1_to_wp2_norm;
+
+      turn_traj.turning_radius = target_radius;
+      turn_traj.turn_arc_radians = half_turn_arc * 2.0;
+      turn_traj.turn_arclength = 
+        (turn_traj.turn_arc_radians / (2.0 * M_PI)) * 2.0 * target_radius * M_PI;
+
+      Eigen::Vector2d wp0_to_wp1_norm = -wp1_to_wp0_norm;
+      Eigen::Vector2d perp_wp1_wp2(wp0_to_wp1_norm.y(), -wp0_to_wp1_norm.x());
+      if (cp < 0)
+        perp_wp1_wp2 = -perp_wp1_wp2;
+      turn_traj.turn_circle_center = tangent0 + target_radius * perp_wp1_wp2;
+
+      // std::cout << "tangent0: " << tangent0 << std::endl;
+      // std::cout << "tangent1: " << tangent1 << std::endl;
+
+      // printf("turn_arc_radians: %g\n", sp2.turn_arc_radians);
+      // printf("sp2.turn_arclength: %g\n", sp2.turn_arclength);
+      // fflush(stdout);
+      
+      // std::cout << "turn_circle_center: " << sp2.turn_circle_center << std::endl;
+      // std::cout << "r0:" << (sp2.turn_circle_center - tangent0).norm() << std::endl;
+      // std::cout << "r1:" << (sp2.turn_circle_center - tangent1).norm() << std::endl;
+
+      NonHolonomicTrajectory end_traj(
+          Eigen::Vector2d(tangent1.x(), tangent1.y()),
+          Eigen::Vector2d(wp[2].x(), wp[2].y()));
+      end_traj.v0 = wp1_to_wp2_norm;
+      end_traj.v1 = wp1_to_wp2_norm;
+
+      this->nonholonomic_trajectory.push_back(turn_traj);
+      this->nonholonomic_trajectory.push_back(end_traj);
+    }
+  }
+
+  NonHolonomicTrajectory& last_traj = this->nonholonomic_trajectory.back();
+  last_traj.v1 = last_traj.v0;
+}
+
 void SlotcarCommon::pause_request_cb(
   const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg)
 {
@@ -279,12 +412,12 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   if (model_name() == "ambulance")
   {
     // printf("linear next_s: %g\n", velocities.first / dt);
-    printf("angular next_s: %g\n", velocities.second / dt);
+    // printf("angular next_s: %g\n", velocities.second / dt);
     //printf("velocities.first : %g\n", velocities.first);
     // printf("velocities.first : %g v_robot: %g\n", velocities.first, v_robot);
-    printf("velocities.second : %g w_robot: %g\n", velocities.second, w_robot);
+    // printf("velocities.second : %g w_robot: %g\n", velocities.second, w_robot);
     //printf("v_target : %g\n", v_target);
-    printf("w_target : %g\n", w_target);
+    // printf("w_target : %g\n", w_target);
     w_target = velocities.second;
     
     /*printf("_nominal_drive_speed : %g\n", _nominal_drive_speed);
@@ -569,6 +702,8 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
 std::pair<double, double> SlotcarCommon::update_nonholonomic(Eigen::Isometry3d& pose,
   const double time, bool& snap_world_pose)
 {
+  std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
+  
   snap_world_pose = false;
   std::pair<double, double> velocities;
   if (_nonholonomic_traj_idx >= nonholonomic_trajectory.size())
