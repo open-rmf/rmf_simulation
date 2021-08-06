@@ -59,6 +59,7 @@ private:
   using RobotState = rmf_fleet_msgs::msg::RobotState;
   rclcpp::Publisher<RobotState>::SharedPtr _robot_state_pub;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _destination_sub;
+  rclcpp::Node::SharedPtr _node;
 
   std::shared_ptr<std::string> _destination;
   BuildingClient _building;

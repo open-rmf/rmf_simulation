@@ -31,7 +31,7 @@ void BuildingClient::start(const rclcpp::Node::SharedPtr& node)
   _shared = std::make_shared<Shared>(node->get_logger());
 
   auto qos_profile = rclcpp::QoS(10);
-  qos_profile.transient_local();
+  qos_profile.transient_local().reliable();
   _building_map_sub =
     node->create_subscription<BuildingMap>(
     "/map",
@@ -49,7 +49,12 @@ std::optional<std::string> BuildingClient::get_level_of(double elevation) const
     return std::nullopt;
 
   if (!_shared->initialized_levels)
+  {
+    RCLCPP_WARN(
+      _shared->logger,
+      "[BuildingClient::get_level_of] Have not yet received building map");
     return std::nullopt;
+  }
 
   auto min_distance = std::numeric_limits<double>::max();
   const auto& level_map = _shared->level_to_elevation;
@@ -85,6 +90,8 @@ void BuildingClient::Shared::map_cb(
 
     return;
   }
+
+  RCLCPP_INFO(logger, "[BuildingClient] Received new map");
 
   for (const auto& level : msg->levels)
   {

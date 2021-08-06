@@ -40,6 +40,8 @@ void ReadOnlyBlockadeCommon::_init(
   const std::string& name,
   const rclcpp::Node::SharedPtr& node)
 {
+  _name = name;
+  _node = node;
   _logger = std::make_shared<rclcpp::Logger>(node->get_logger());
 
   _building.start(node);
@@ -49,7 +51,7 @@ void ReadOnlyBlockadeCommon::_init(
 
   _destination_sub =
     node->create_subscription<std_msgs::msg::String>(
-    "/" + name + "/destination", rclcpp::QoS(10),
+    "/" + name + "/destination", rclcpp::SystemDefaultsQoS(),
     [dest = _destination](const std_msgs::msg::String::SharedPtr msg)
       {
         *dest = msg->data;
@@ -70,7 +72,9 @@ void ReadOnlyBlockadeCommon::on_update(
   if (_last_update_time.has_value())
   {
     if (sim_time - *_last_update_time < _update_threshold)
+    {
       return;
+    }
   }
 
   _last_update_time = sim_time;
@@ -80,12 +84,13 @@ void ReadOnlyBlockadeCommon::on_update(
       .mode(rmf_fleet_msgs::msg::RobotMode::MODE_MOVING)
       .mode_request_id(0);
 
+  const auto& level_name = _get_level_name(pose.translation().z());
   auto location = rmf_fleet_msgs::build<rmf_fleet_msgs::msg::Location>()
       .t(now)
       .x(pose.translation().x())
       .y(pose.translation().y())
       .yaw(rmf_plugins_utils::compute_yaw(pose))
-      .level_name(_get_level_name(pose.translation().z()))
+      .level_name(level_name)
       .index(0);
 
   auto msg =

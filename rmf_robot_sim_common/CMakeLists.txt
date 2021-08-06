@@ -201,6 +201,7 @@ ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)
 ament_export_targets(rmf_sim_building_client HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
+ament_export_targets(readonly_blockade_common HAS_LIBRARY_TARGET)
 ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
 

@@ -117,6 +117,8 @@ std::string SlotcarCommon::model_name() const
 
 void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 {
+  _building.start(node);
+
   _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
   _ros_node = std::move(node);
 
