@@ -363,7 +363,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count())
     * 1e-9;
 
-  if (!dataPtr->_is_holonomic)
+  if (!dataPtr->is_holonomic())
   {
     if (_remove_world_pose_cmd)
     {
