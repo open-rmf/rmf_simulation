@@ -47,6 +47,7 @@ private:
 
     std::unordered_map<std::string, double> level_to_elevation;
     bool initialized_levels = false;
+    bool warned_about_missing_map = false;
   };
 
   std::shared_ptr<Shared> _shared;

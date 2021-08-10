@@ -50,9 +50,15 @@ std::optional<std::string> BuildingClient::get_level_of(double elevation) const
 
   if (!_shared->initialized_levels)
   {
-    RCLCPP_WARN(
-      _shared->logger,
-      "[BuildingClient::get_level_of] Have not yet received building map");
+    if (!_shared->warned_about_missing_map)
+    {
+      RCLCPP_WARN(
+        _shared->logger,
+        "[BuildingClient::get_level_of] Have not yet received building map");
+
+      _shared->warned_about_missing_map = true;
+    }
+
     return std::nullopt;
   }
 
