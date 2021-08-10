@@ -42,10 +42,10 @@ struct NonHolonomicTrajectory
   NonHolonomicTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
     const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
     bool _turning = false)
-    :x0(_x0), x1(_x1),
-     v0((x1 - x0).normalized()), v1(_v1),
-     turning(_turning)
-  { }
+  : x0(_x0), x1(_x1),
+    v0((x1 - x0).normalized()), v1(_v1),
+    turning(_turning)
+  {}
   // positions
   Eigen::Vector2d x0;
   Eigen::Vector2d x1;
@@ -303,7 +303,8 @@ public:
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
-  void ackmann_path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+  void ackmann_path_request_cb(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
 
