@@ -908,6 +908,11 @@ void SlotcarCommon::publish_robot_state(const double time)
   }
 }
 
+bool SlotcarCommon::is_holonomic()
+{
+  return _is_holonomic;
+}
+
 void SlotcarCommon::publish_tf2(const rclcpp::Time& t)
 {
   geometry_msgs::msg::TransformStamped tf_stamped;

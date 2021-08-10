@@ -170,7 +170,9 @@ public:
 
   void publish_robot_state(const double time);
 
-public:
+  bool is_holonomic();
+
+private:
   // Paramters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
   struct PowerParams
