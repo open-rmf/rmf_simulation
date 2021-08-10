@@ -362,8 +362,8 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   double time =
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count())
     * 1e-9;
-#if 1
-  if (dataPtr->model_name() == "ambulance")
+
+  if (!dataPtr->_is_holonomic)
   {
     if (_remove_world_pose_cmd)
     {
@@ -398,28 +398,24 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     else
     {
       send_control_signals(ecm, velocities, _payloads, dt);
-      // auto lin_vel_cmd =
-      //   ecm.Component<components::LinearVelocityCmd>(_entity);
-      // auto ang_vel_cmd =
-      //   ecm.Component<components::AngularVelocityCmd>(_entity);
-      // lin_vel_cmd->Data()[0] = velocities.first;
-      // ang_vel_cmd->Data()[2] = velocities.second;
     }
     return;
   }
-#endif
-  auto pose = ecm.Component<components::Pose>(_entity)->Data();
-  auto obstacle_positions = get_obstacle_positions(ecm);
-  
-  auto p = pose.Pos();
-  
-  //printf("%s: %g %g!\n", dataPtr->model_name().c_str(), p.X(), p.Y());
+  else
+  {
+    auto pose = ecm.Component<components::Pose>(_entity)->Data();
+    auto obstacle_positions = get_obstacle_positions(ecm);
+    
+    auto p = pose.Pos();
+    
+    //printf("%s: %g %g!\n", dataPtr->model_name().c_str(), p.X(), p.Y());
 
-  auto velocities =
-    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
-      obstacle_positions, time);
+    auto velocities =
+      dataPtr->update(rmf_plugins_utils::convert_pose(pose),
+        obstacle_positions, time);
 
-  send_control_signals(ecm, velocities, _payloads, dt);
+    send_control_signals(ecm, velocities, _payloads, dt);
+  }
 }
 
 IGNITION_ADD_PLUGIN(

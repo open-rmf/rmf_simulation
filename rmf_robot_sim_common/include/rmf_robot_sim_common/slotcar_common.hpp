@@ -245,6 +245,7 @@ public:
     _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
+  bool _is_holonomic = true;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
@@ -337,6 +338,12 @@ bool get_element_val_if_present(
 template<typename SdfPtrT>
 void SlotcarCommon::read_sdf(SdfPtrT& sdf)
 {
+  get_element_val_if_present<SdfPtrT, bool>(sdf, "holonomic",
+    this->_is_holonomic);
+  RCLCPP_INFO(
+    logger(),
+    "Vehicle is %s", _is_holonomic ? "holonomic" : "non-holonomic");
+
   get_element_val_if_present<SdfPtrT, double>(sdf, "nominal_drive_speed",
     this->_nominal_drive_speed);
   RCLCPP_INFO(
