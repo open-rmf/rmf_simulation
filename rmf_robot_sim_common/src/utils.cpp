@@ -25,7 +25,7 @@ double compute_ds(
   }
 
   // We should try not to shoot past the targstd::vector<event::ConnectionPtr> connections;et
-  double next_s = s_target;
+  double next_s = s_target / dt;
 
   // Test velocity limit
   next_s = std::min(next_s, v_max);

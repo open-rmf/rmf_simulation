@@ -675,11 +675,10 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
 
 std::pair<double, double> SlotcarCommon::update_nonholonomic(
   Eigen::Isometry3d& pose,
-  const double time, bool& snap_world_pose)
+  const double time)
 {
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
 
-  snap_world_pose = false;
   std::pair<double, double> velocities;
   if (_nonholonomic_traj_idx >= nonholonomic_trajectory.size())
     return velocities;
@@ -776,26 +775,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
   }
 
   if (close_enough)
-  {
-    //printf("moving to next traj\n");
     ++_nonholonomic_traj_idx;
-
-    if (_nonholonomic_traj_idx < nonholonomic_trajectory.size())
-    {
-      // snap heading to next wp
-      const NonHolonomicTrajectory& next_traj =
-        nonholonomic_trajectory[_nonholonomic_traj_idx];
-      //float yaw = next_traj.x1.z();
-      //Eigen::AngleAxisd yaw_angle(yaw, Eigen::Vector3d::UnitZ());
-      //pose.linear() = yaw_angle.toRotationMatrix();
-
-      Eigen::Vector2d heading = next_traj.v1;
-      //pose.linear().block<2,1>(0,0) = heading;
-
-      velocities.first = 0.0;
-      //snap_world_pose = true;
-    }
-  }
 
   return velocities;
 }

@@ -374,33 +374,14 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     auto& pose = ecm.Component<components::Pose>(_entity)->Data();
     std::vector<Eigen::Vector3d> obstacle_positions;
 
-    bool snap_world_pose = false;
     auto isometry_pose = rmf_plugins_utils::convert_pose(pose);
-    auto velocities = dataPtr->update_nonholonomic(isometry_pose, dt,
-        snap_world_pose);
+    auto velocities = dataPtr->update_nonholonomic(isometry_pose, dt);
 
     //convert back to account for flips
     pose = rmf_plugins_utils::convert_to_pose<ignition::math::Pose3d>(
       isometry_pose);
 
-    if (snap_world_pose)
-    {
-      if (!ecm.EntityHasComponentType(_entity,
-        components::WorldPoseCmd().TypeId()))
-      {
-        ecm.CreateComponent(_entity, components::WorldPoseCmd());
-      }
-      auto world_pose_cmd =
-        ecm.Component<components::WorldPoseCmd>(_entity);
-      world_pose_cmd->Data() = pose;
-
-      // remove world pose command next frame
-      _remove_world_pose_cmd = true;
-    }
-    else
-    {
-      send_control_signals(ecm, velocities, _payloads, dt);
-    }
+    send_control_signals(ecm, velocities, _payloads, dt);
     return;
   }
   else
