@@ -255,6 +255,10 @@ public:
     if (!_initialized)
       return;
 
+  // Don't update the pose if the simulation is paused
+  if (info.paused)
+    return;
+
     // Send update request
     const double t =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).

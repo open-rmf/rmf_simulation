@@ -82,6 +82,9 @@ void ReadonlyPlugin::Configure(const Entity& entity,
 void ReadonlyPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
+  // Don't update the pose if the simulation is paused
+  if (info.paused)
+    return;
   auto pose = rmf_plugins_utils::convert_pose(
     ecm.Component<components::Pose>(_en)->Data());
   auto sim_time =
