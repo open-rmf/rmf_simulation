@@ -296,7 +296,7 @@ void SlotcarCommon::ackmann_path_request_cb(
     double half_bend_delta = bend_delta * 0.5;
 
     double half_turn_arc = M_PI / 2.0 - half_bend_delta; // right angle tri, 90 - half_turn_delta
-    
+
     // the computation for min_turning_radius using drive speed and turn speed
     // reference:
     // https://www.vboxautomotive.co.uk/downloads/Calculating%20Radius%20of%20Turn%20from%20Yaw.pdf
