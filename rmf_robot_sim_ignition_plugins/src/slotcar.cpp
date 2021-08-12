@@ -356,6 +356,10 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   if (_infrastructure.empty())
     init_infrastructure(ecm);
 
+  // Don't update the pose if the simulation is paused
+  if (info.paused)
+    return;
+
   double dt =
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).count()) *
     1e-9;

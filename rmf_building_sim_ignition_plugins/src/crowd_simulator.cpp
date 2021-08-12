@@ -92,6 +92,10 @@ void CrowdSimulatorPlugin::PreUpdate(
     return;
   }
 
+  // Don't update the plugin if the simulation is paused
+  if (info.paused)
+    return;
+
   // Note, the update_time_step parameter is ignored in ignition
   // through GPU animated actors the performance is good enough that
   // we can afford to update at every iteration and have smooth animations
