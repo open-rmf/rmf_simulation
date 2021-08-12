@@ -291,6 +291,10 @@ void TeleportDispenserPlugin::PreUpdate(const UpdateInfo& info,
   // TODO parallel thread executor?
   rclcpp::spin_some(_dispenser_common->ros_node);
 
+  // Don't update the pose if the simulation is paused
+  if (info.paused)
+    return;
+
   // Set item that the Dispenser will be configured to dispense. Do this only on first PreUpdate() call.
   // Happens here and not in Configure() to allow for all models to load
   if (!tried_fill_dispenser)

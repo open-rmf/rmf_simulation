@@ -309,6 +309,10 @@ void TeleportIngestorPlugin::PreUpdate(const UpdateInfo& info,
   // TODO parallel thread executor?
   rclcpp::spin_some(_ingestor_common->ros_node);
 
+  // Don't update the pose if the simulation is paused
+  if (info.paused)
+    return;
+
   std::function<void(void)> send_ingested_item_home_cb =
     std::bind(&TeleportIngestorPlugin::send_ingested_item_home,
       this, std::ref(ecm));
