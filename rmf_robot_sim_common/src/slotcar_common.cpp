@@ -152,7 +152,8 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   if (!is_holonomic())
   {
-    _traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
+    _traj_sub =
+      _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
       "/ackmann_path_requests",
       10,
       std::bind(&SlotcarCommon::ackmann_path_request_cb, this,
@@ -277,7 +278,7 @@ void SlotcarCommon::ackmann_path_request_cb(
 
   for (uint i = 2; i < locations.size(); ++i)
   {
-    // for every 3 waypoints, make a bend 
+    // for every 3 waypoints, make a bend
     // instead of 2 straight lines, shorten them and use the
     // shortened endpoints for a turn
     std::array<Eigen::Vector2d, 3> wp;
