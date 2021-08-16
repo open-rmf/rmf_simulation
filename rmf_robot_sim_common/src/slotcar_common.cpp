@@ -254,9 +254,8 @@ void SlotcarCommon::ackmann_path_request_cb(
 {
   if (path_request_valid(msg) == false)
     return;
-  if (model_name() != "ambulance") // ambulance only
+  if (model_name() != msg->robot_name)
     return;
-
   // yaw is ignored
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
 
@@ -297,14 +296,15 @@ void SlotcarCommon::ackmann_path_request_cb(
 
     double half_turn_arc = M_PI / 2.0 - half_bend_delta; // right angle tri, 90 - half_turn_delta
 
-    // the computation for min_turning_radius using drive speed and turn speed
+    double min_turning_radius = _min_turning_radius;
+
+    // if negative, use the computation for min_turning_radius using
+    // drive speed and turn speed.
     // reference:
     // https://www.vboxautomotive.co.uk/downloads/Calculating%20Radius%20of%20Turn%20from%20Yaw.pdf
-    //double min_turning_radius = 0.5;
-    double min_turning_radius =
-      (this->_nominal_drive_speed * 0.2777 / this->_nominal_turn_speed *
-      0.0174);
-    //printf("min_turning_radius: %g\n", min_turning_radius);
+    if (min_turning_radius < 0.0)
+      min_turning_radius = _nominal_drive_speed * 0.2777 / _nominal_turn_speed *
+        0.0174;
 
     double target_radius = min_turning_radius;
     // use sin rule to obtain length of tangent
@@ -686,7 +686,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
   const NonHolonomicTrajectory& traj =
     nonholonomic_trajectory[_nonholonomic_traj_idx];
   double dpos_mag = std::numeric_limits<double>::max();
-  double wp_range = 0.5;
+  double wp_range = 0.75;
   bool close_enough = false;
 
   if (traj.turning == false)
@@ -726,7 +726,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     // printf("_nonholonomic_traj_idx %d dpos_mag: %g velocities %g, %g\n",
     //   _nonholonomic_traj_idx, dpos_mag, velocities.first, velocities.second);
 
-    close_enough = (dpos_mag < wp_range);
+    close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
   }
   else
   {
@@ -747,7 +747,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     velocities.first = (1.0 - percent) * traj.turn_arclength;
 
     //always be moving so the car doesn't look like it's rotating on the spot
-    const double min_vel = 1.25;
+    const double min_vel = 1.5;
     if (velocities.first < min_vel)
       velocities.first = min_vel;
 

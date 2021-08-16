@@ -369,15 +369,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 
   if (!dataPtr->is_holonomic())
   {
-    if (_remove_world_pose_cmd)
-    {
-      ecm.RemoveComponent<components::WorldPoseCmd>(_entity);
-      _remove_world_pose_cmd = false;
-    }
-
     auto& pose = ecm.Component<components::Pose>(_entity)->Data();
-    std::vector<Eigen::Vector3d> obstacle_positions;
-
     auto isometry_pose = rmf_plugins_utils::convert_pose(pose);
     auto velocities = dataPtr->update_nonholonomic(isometry_pose, dt);
 

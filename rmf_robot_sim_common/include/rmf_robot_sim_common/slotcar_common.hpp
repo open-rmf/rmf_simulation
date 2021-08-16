@@ -271,6 +271,8 @@ private:
   double _stop_distance = 1.0;
   double _stop_radius = 1.0;
 
+  double _min_turning_radius = -1.0; // minimum turning radius, will use a formula if negative
+
   PowerParams _params;
   bool _enable_charge = true;
   bool _enable_instant_charge = false;
@@ -388,6 +390,13 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     logger(),
     "Setting max turn acceleration to: %f",
     _max_turn_acceleration);
+
+  get_element_val_if_present<SdfPtrT, double>(sdf,
+    "min_turning_radius", this->_min_turning_radius);
+  RCLCPP_INFO(
+    logger(),
+    "Setting minimum turning radius to: %f",
+    _min_turning_radius);
 
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "stop_distance", this->_stop_distance);
