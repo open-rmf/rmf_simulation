@@ -277,7 +277,9 @@ void SlotcarCommon::ackmann_path_request_cb(
 
   for (uint i = 2; i < locations.size(); ++i)
   {
-    // every 3 waypoints that make a bend
+    // for every 3 waypoints, make a bend 
+    // instead of 2 straight lines, shorten them and use the
+    // shortened endpoints for a turn
     std::array<Eigen::Vector2d, 3> wp;
     wp[0] = Eigen::Vector2d(locations[i - 2].x, locations[i - 2].y);
     wp[1] = Eigen::Vector2d(locations[i - 1].x, locations[i - 1].y);
@@ -290,6 +292,12 @@ void SlotcarCommon::ackmann_path_request_cb(
     Eigen::Vector2d wp1_to_wp0_norm = wp1_to_wp0 / wp1_to_wp0_len;
     Eigen::Vector2d wp1_to_wp2_norm = wp1_to_wp2 / wp1_to_wp2_len;
 
+    // We are solving for points on each line of the bend for turning
+    // to do that:
+    // 1) compute the angular difference
+    // 2) halve the angular difference
+    // 3) we now have a right angled triangle, use the sin rule to obtain lengths
+    // 4) use the lengths along to find start/ending points for the turning trajectory
     double cp = wp1_to_wp0.x() * wp1_to_wp2.y() - wp1_to_wp2.x() *
       wp1_to_wp0.y();
     cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
@@ -317,6 +325,7 @@ void SlotcarCommon::ackmann_path_request_cb(
     bool has_runway = tangent_length < wp1_to_wp0_len &&
       tangent_length < wp1_to_wp2_len;
 
+    // special cases for straight line or no runway
     if (std::abs(cp) < 0.05 || !has_runway)
     {
       NonHolonomicTrajectory sp2(
@@ -733,6 +742,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
   else
   {
     // determine which part of the journey the car is in the turn
+    // then submit displacements based off where we are
     Eigen::Vector2d position(pose.translation().x(), pose.translation().y());
     Eigen::Vector2d circle_center = traj.turn_circle_center;
     Eigen::Vector2d circle_center_to_x0 =
@@ -753,6 +763,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     if (velocities.first < min_vel)
       velocities.first = min_vel;
 
+    // figure out angular displacement
     Eigen::Vector2d heading = pose.linear().block<2, 1>(0, 0);
     heading = heading.normalized();
 
@@ -766,6 +777,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     // printf("TURNING _traj_idx %d (turning) percent: %g deg: %g velocities %g,%g\n",
     //   _nonholonomic_traj_idx, percent, rad / M_PI * 180.0, velocities.first, velocities.second);
 
+    // figure out if we're close enough
     Eigen::Vector2d dest_pt = traj.x1;
     Eigen::Vector2d forward = traj.v1;
     Eigen::Vector2d dest_pt_to_current_position = position - dest_pt;
