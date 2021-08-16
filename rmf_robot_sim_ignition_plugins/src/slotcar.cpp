@@ -11,7 +11,6 @@
 #include <ignition/gazebo/components/Pose.hh>
 #include <ignition/gazebo/components/Static.hh>
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
-#include <ignition/gazebo/components/PoseCmd.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
@@ -169,23 +168,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
       velocities, dt);
 
   lin_vel_cmd->Data()[0] = target_vels[0];
-  // lin_vel_cmd->Data()[0] = 0.25;
   ang_vel_cmd->Data()[2] = target_vels[1];
-  // ang_vel_cmd->Data()[2] = 0.0;
-  //ang_vel_cmd->Data()[2] = M_PI / 2.0;
-  // ang_vel_cmd->Data()[2] = M_PI / 180.0 * 900.0;
-
-  // lin_vel_cmd->Data()[0] = velocities.first;
-  // lin_vel_cmd->Data()[2] = velocities.second;
-
-  if (dataPtr->model_name() == "ambulance")
-  {
-    //lin_vel_cmd->Data()[0] = 1;
-    // ang_vel_cmd->Data()[2] = -M_PI;
-    // printf("v_robot %g velocities.first %g target_vels[0]: %g\n", v_robot, velocities.first, target_vels[0]);
-    // printf("w_robot %g velocities.second %g target_vels[1]: %g\n", w_robot, velocities.second, target_vels[1]);
-  }
-  // printf("lin_vel_cmd->Data()[0]: %g\n", lin_vel_cmd->Data()[0]);
 
   if (phys_plugin == PhysEnginePlugin::TPE) // Need to manually move any payloads
   {
@@ -378,7 +361,6 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
       isometry_pose);
 
     send_control_signals(ecm, velocities, _payloads, dt);
-    return;
   }
   else
   {

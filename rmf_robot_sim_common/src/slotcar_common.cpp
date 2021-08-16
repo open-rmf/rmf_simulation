@@ -150,11 +150,14 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     10,
     std::bind(&SlotcarCommon::mode_request_cb, this, std::placeholders::_1));
 
-  _traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
-    "/ackmann_path_requests",
-    10,
-    std::bind(&SlotcarCommon::ackmann_path_request_cb, this,
-    std::placeholders::_1));
+  if (!is_holonomic())
+  {
+    _traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
+      "/ackmann_path_requests",
+      10,
+      std::bind(&SlotcarCommon::ackmann_path_request_cb, this,
+      std::placeholders::_1));
+  }
 }
 
 bool SlotcarCommon::path_request_valid(
@@ -674,8 +677,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
 }
 
 std::pair<double, double> SlotcarCommon::update_nonholonomic(
-  Eigen::Isometry3d& pose,
-  const double time)
+  Eigen::Isometry3d& pose)
 {
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
 
