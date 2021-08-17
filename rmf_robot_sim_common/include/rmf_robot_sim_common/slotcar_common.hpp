@@ -36,6 +36,31 @@ namespace rmf_robot_sim_common {
 
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
 
+//3rd coordinate is yaw
+struct NonHolonomicTrajectory
+{
+  NonHolonomicTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
+    const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
+    bool _turning = false)
+  : x0(_x0), x1(_x1),
+    v0((x1 - x0).normalized()), v1(_v1),
+    turning(_turning)
+  {}
+  // positions
+  Eigen::Vector2d x0;
+  Eigen::Vector2d x1;
+  // headings
+  Eigen::Vector2d v0;
+  Eigen::Vector2d v1;
+
+  bool turning = false;
+  float turning_radius = 0.0f;
+  float turn_arc_radians = 0.0f;
+  float turn_arclength = 0.0f;
+  Eigen::Vector2d turn_circle_center;
+  Eigen::Vector2d turn_target_heading;
+};
+
 // Edit reference of parameter for template type deduction
 template<typename IgnQuatT>
 inline void convert(const Eigen::Quaterniond& _q, IgnQuatT& quat)
@@ -120,6 +145,8 @@ public:
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
 
+  std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose);
+
   bool emergency_stop(const std::vector<Eigen::Vector3d>& obstacle_positions,
     const Eigen::Vector3d& current_heading);
 
@@ -141,6 +168,8 @@ public:
   void charge_state_cb(const std::string& name, bool selected);
 
   void publish_robot_state(const double time);
+
+  bool is_holonomic();
 
 private:
   // Paramters needed for power dissipation and charging calculations
@@ -181,13 +210,16 @@ private:
   std::size_t _sequence = 0;
 
   std::vector<Eigen::Isometry3d> trajectory;
-  std::size_t _traj_wp_idx;
+  std::size_t _traj_wp_idx = 0;
+  std::vector<NonHolonomicTrajectory> nonholonomic_trajectory;
+  std::size_t _nonholonomic_traj_idx = 0;
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
   std::vector<rclcpp::Time> _hold_times;
 
   std::mutex _mutex;
+  std::mutex _ackmann_path_req_mutex;
 
   std::string _model_name;
   bool _emergency_stop = false;
@@ -214,6 +246,7 @@ private:
     _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
+  bool _is_holonomic = true;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
@@ -236,6 +269,8 @@ private:
 
   double _stop_distance = 1.0;
   double _stop_radius = 1.0;
+
+  double _min_turning_radius = -1.0; // minimum turning radius, will use a formula if negative
 
   PowerParams _params;
   bool _enable_charge = true;
@@ -271,6 +306,9 @@ private:
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
+  void ackmann_path_request_cb(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
 
   void mode_request_cb(const rmf_fleet_msgs::msg::ModeRequest::SharedPtr msg);
@@ -304,6 +342,12 @@ bool get_element_val_if_present(
 template<typename SdfPtrT>
 void SlotcarCommon::read_sdf(SdfPtrT& sdf)
 {
+  get_element_val_if_present<SdfPtrT, bool>(sdf, "holonomic",
+    this->_is_holonomic);
+  RCLCPP_INFO(
+    logger(),
+    "Vehicle is %s", _is_holonomic ? "holonomic" : "non-holonomic");
+
   get_element_val_if_present<SdfPtrT, double>(sdf, "nominal_drive_speed",
     this->_nominal_drive_speed);
   RCLCPP_INFO(
@@ -345,6 +389,13 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     logger(),
     "Setting max turn acceleration to: %f",
     _max_turn_acceleration);
+
+  get_element_val_if_present<SdfPtrT, double>(sdf,
+    "min_turning_radius", this->_min_turning_radius);
+  RCLCPP_INFO(
+    logger(),
+    "Setting minimum turning radius to: %f",
+    _min_turning_radius);
 
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "stop_distance", this->_stop_distance);
