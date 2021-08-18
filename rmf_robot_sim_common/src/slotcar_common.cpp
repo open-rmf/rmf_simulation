@@ -149,6 +149,16 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     "/robot_mode_requests",
     10,
     std::bind(&SlotcarCommon::mode_request_cb, this, std::placeholders::_1));
+
+  if (!is_holonomic())
+  {
+    _traj_sub =
+      _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
+      "/ackmann_path_requests",
+      10,
+      std::bind(&SlotcarCommon::ackmann_path_request_cb, this,
+      std::placeholders::_1));
+  }
 }
 
 bool SlotcarCommon::path_request_valid(
@@ -243,6 +253,138 @@ void SlotcarCommon::path_request_cb(
   }
 }
 
+void SlotcarCommon::ackmann_path_request_cb(
+  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
+{
+  if (path_request_valid(msg) == false)
+    return;
+  if (model_name() != msg->robot_name)
+    return;
+  // yaw is ignored
+  std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
+
+  nonholonomic_trajectory.clear();
+  _nonholonomic_traj_idx = 0;
+  auto& locations = msg->path;
+  if (locations.size() < 2)
+    return;
+
+  // add 1st trajectory
+  NonHolonomicTrajectory traj(
+    Eigen::Vector2d(locations[0].x, locations[0].y),
+    Eigen::Vector2d(locations[1].x, locations[1].y));
+
+  this->nonholonomic_trajectory.push_back(traj);
+
+  for (uint i = 2; i < locations.size(); ++i)
+  {
+    // for every 3 waypoints, make a bend
+    // instead of 2 straight lines, shorten them and use the
+    // shortened endpoints for a turn
+    std::array<Eigen::Vector2d, 3> wp;
+    wp[0] = Eigen::Vector2d(locations[i - 2].x, locations[i - 2].y);
+    wp[1] = Eigen::Vector2d(locations[i - 1].x, locations[i - 1].y);
+    wp[2] = Eigen::Vector2d(locations[i].x, locations[i].y);
+
+    Eigen::Vector2d wp1_to_wp0 = (wp[0] - wp[1]);
+    Eigen::Vector2d wp1_to_wp2 = (wp[2] - wp[1]);
+    double wp1_to_wp0_len = wp1_to_wp0.norm();
+    double wp1_to_wp2_len = wp1_to_wp2.norm();
+    Eigen::Vector2d wp1_to_wp0_norm = wp1_to_wp0 / wp1_to_wp0_len;
+    Eigen::Vector2d wp1_to_wp2_norm = wp1_to_wp2 / wp1_to_wp2_len;
+
+    // We are solving for points on each line of the bend for turning
+    // to do that:
+    // 1) compute the angular difference
+    // 2) halve the angular difference
+    // 3) we now have a right angled triangle, use the sin rule to obtain lengths
+    // 4) use the lengths along to find start/ending points for the turning trajectory
+    double cp = wp1_to_wp0.x() * wp1_to_wp2.y() - wp1_to_wp2.x() *
+      wp1_to_wp0.y();
+    cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
+
+    double bend_delta = asin(cp);
+    double half_bend_delta = bend_delta * 0.5;
+
+    double half_turn_arc = M_PI / 2.0 - half_bend_delta; // right angle tri, 90 - half_turn_delta
+
+    double min_turning_radius = _min_turning_radius;
+
+    // if negative, use the computation for min_turning_radius using
+    // drive speed and turn speed.
+    // reference:
+    // https://www.vboxautomotive.co.uk/downloads/Calculating%20Radius%20of%20Turn%20from%20Yaw.pdf
+    if (min_turning_radius < 0.0)
+      min_turning_radius = _nominal_drive_speed * 0.2777 / _nominal_turn_speed *
+        0.0174;
+
+    double target_radius = min_turning_radius;
+    // use sin rule to obtain length of tangent
+    double tangent_length =
+      std::abs(target_radius / sin(half_bend_delta) * sin(half_turn_arc));
+
+    bool has_runway = tangent_length < wp1_to_wp0_len &&
+      tangent_length < wp1_to_wp2_len;
+
+    // special cases for straight line or no runway
+    if (std::abs(cp) < 0.05 || !has_runway)
+    {
+      NonHolonomicTrajectory sp2(
+        Eigen::Vector2d(wp[1].x(), wp[1].y()),
+        Eigen::Vector2d(wp[2].x(), wp[2].y()));
+
+      NonHolonomicTrajectory& last_traj = this->nonholonomic_trajectory.back();
+      last_traj.v1 = sp2.v0;
+
+      this->nonholonomic_trajectory.push_back(sp2);
+    }
+    else
+    {
+      NonHolonomicTrajectory& last_traj = this->nonholonomic_trajectory.back();
+
+      // bend, build an intermediate spline using turn rate.
+      Eigen::Vector2d tangent0 = wp[1] + tangent_length * wp1_to_wp0_norm;
+      Eigen::Vector2d tangent1 = wp[1] + tangent_length * wp1_to_wp2_norm;
+
+      // shorten the last trajectory and set it's heading
+      last_traj.x1 = Eigen::Vector2d(tangent0.x(), tangent0.y());
+      last_traj.v1 = last_traj.v0;
+
+      NonHolonomicTrajectory turn_traj(
+        Eigen::Vector2d(tangent0.x(), tangent0.y()),
+        Eigen::Vector2d(tangent1.x(), tangent1.y()),
+        Eigen::Vector2d(0, 0),
+        true);
+      turn_traj.v0 = -wp1_to_wp0_norm;
+      turn_traj.v1 = wp1_to_wp2_norm;
+
+      turn_traj.turning_radius = target_radius;
+      turn_traj.turn_arc_radians = half_turn_arc * 2.0;
+      turn_traj.turn_arclength =
+        (turn_traj.turn_arc_radians / (2.0 * M_PI)) * 2.0 * target_radius *
+        M_PI;
+
+      Eigen::Vector2d wp0_to_wp1_norm = -wp1_to_wp0_norm;
+      Eigen::Vector2d perp_wp1_wp2(wp0_to_wp1_norm.y(), -wp0_to_wp1_norm.x());
+      if (cp < 0)
+        perp_wp1_wp2 = -perp_wp1_wp2;
+      turn_traj.turn_circle_center = tangent0 + target_radius * perp_wp1_wp2;
+
+      NonHolonomicTrajectory end_traj(
+        Eigen::Vector2d(tangent1.x(), tangent1.y()),
+        Eigen::Vector2d(wp[2].x(), wp[2].y()));
+      end_traj.v0 = wp1_to_wp2_norm;
+      end_traj.v1 = wp1_to_wp2_norm;
+
+      this->nonholonomic_trajectory.push_back(turn_traj);
+      this->nonholonomic_trajectory.push_back(end_traj);
+    }
+  }
+
+  NonHolonomicTrajectory& last_traj = this->nonholonomic_trajectory.back();
+  last_traj.v1 = last_traj.v0;
+}
+
 void SlotcarCommon::pause_request_cb(
   const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg)
 {
@@ -266,10 +408,16 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
       _nominal_drive_speed,
       _nominal_drive_acceleration, _max_drive_acceleration, dt);
 
-  const double w_target = rmf_plugins_utils::compute_ds(velocities.second,
+  double w_target = rmf_plugins_utils::compute_ds(velocities.second,
       w_robot,
       _nominal_turn_speed,
       _nominal_turn_acceleration, _max_turn_acceleration, dt);
+
+  if (!this->_is_holonomic)
+  {
+    // @note: temporary hack to resolve weird turns
+    w_target = velocities.second;
+  }
 
   return std::array<double, 2>{v_target, w_target};
 }
@@ -538,6 +686,115 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
   return velocities;
 }
 
+std::pair<double, double> SlotcarCommon::update_nonholonomic(
+  Eigen::Isometry3d& pose)
+{
+  std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
+
+  std::pair<double, double> velocities;
+  if (_nonholonomic_traj_idx >= nonholonomic_trajectory.size())
+    return velocities;
+
+  const NonHolonomicTrajectory& traj =
+    nonholonomic_trajectory[_nonholonomic_traj_idx];
+  double dpos_mag = std::numeric_limits<double>::max();
+  double wp_range = 0.75;
+  bool close_enough = false;
+
+  if (traj.turning == false)
+  {
+    Eigen::Vector3d to_waypoint = Eigen::Vector3d(traj.x1.x(), traj.x1.y(), 0) -
+      pose.translation();
+    to_waypoint(2) = 0.0;
+
+    const Eigen::Vector3d dpos = to_waypoint;
+
+    dpos_mag = dpos.norm();
+
+    velocities.first = dpos_mag >= wp_range ? dpos_mag : 0.0;
+
+    // figure out where we are relative to the goal point
+    Eigen::Vector2d position(pose.translation().x(), pose.translation().y());
+    Eigen::Vector2d dest_pt = traj.x1;
+    Eigen::Vector2d forward = traj.v1;
+    Eigen::Vector2d dest_pt_to_current_position = position - dest_pt;
+    double dotp_location = forward.dot(dest_pt_to_current_position);
+
+    // we behind the goal point, turn to suit our needs
+    if (dotp_location < 0.0)
+    {
+      Eigen::Vector2d heading = pose.linear().block<2, 1>(0, 0);
+      heading = heading.normalized();
+      Eigen::Vector2d dpos_norm(dpos.x(), dpos.y());
+      dpos_norm = dpos_norm.normalized();
+
+      double dotp = heading.dot(dpos_norm);
+      double cross = heading.x() * dpos_norm.y() - heading.y() * dpos_norm.x();
+      velocities.second = cross < 0.0 ? -acos(dotp) : acos(dotp);
+    }
+    else
+      velocities.second = 0.0;
+
+    // printf("_nonholonomic_traj_idx %d dpos_mag: %g velocities %g, %g\n",
+    //   _nonholonomic_traj_idx, dpos_mag, velocities.first, velocities.second);
+
+    close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
+  }
+  else
+  {
+    // determine which part of the journey the car is in the turn
+    // then submit displacements based off where we are
+    Eigen::Vector2d position(pose.translation().x(), pose.translation().y());
+    Eigen::Vector2d circle_center = traj.turn_circle_center;
+    Eigen::Vector2d circle_center_to_x0 =
+      (Eigen::Vector2d(traj.x0.x(), traj.x0.y()) - circle_center).normalized();
+    Eigen::Vector2d circle_center_to_position =
+      (position - circle_center).normalized();
+
+    double d = circle_center_to_x0.dot(circle_center_to_position);
+    double rad = acos(d);
+    double percent = rad / traj.turn_arc_radians;
+    percent = percent > 1.0 ? 1.0 : percent;
+    percent = percent < 0.0 ? 0.0 : percent;
+
+    velocities.first = (1.0 - percent) * traj.turn_arclength;
+
+    //always be moving so the car doesn't look like it's rotating on the spot
+    const double min_vel = 1.5;
+    if (velocities.first < min_vel)
+      velocities.first = min_vel;
+
+    // figure out angular displacement
+    Eigen::Vector2d heading = pose.linear().block<2, 1>(0, 0);
+    heading = heading.normalized();
+
+    Eigen::Vector2d target_heading = traj.x1 - position;
+    target_heading = target_heading.normalized();
+    double heading_dotp = heading.dot(target_heading);
+    double cross = heading.x() * target_heading.y() - heading.y() *
+      target_heading.x();
+    velocities.second = cross < 0.0 ? -acos(heading_dotp) : acos(heading_dotp);
+
+    // printf("TURNING _traj_idx %d (turning) percent: %g deg: %g velocities %g,%g\n",
+    //   _nonholonomic_traj_idx, percent, rad / M_PI * 180.0, velocities.first, velocities.second);
+
+    // figure out if we're close enough
+    Eigen::Vector2d dest_pt = traj.x1;
+    Eigen::Vector2d forward = traj.v1;
+    Eigen::Vector2d dest_pt_to_current_position = position - dest_pt;
+    double dotp = forward.dot(dest_pt_to_current_position);
+
+    dpos_mag = (Eigen::Vector2d(traj.x1.x(), traj.x1.y()) - position).norm();
+
+    close_enough = dotp > 0.0 || dpos_mag < 0.125;
+  }
+
+  if (close_enough)
+    ++_nonholonomic_traj_idx;
+
+  return velocities;
+}
+
 bool SlotcarCommon::emergency_stop(
   const std::vector<Eigen::Vector3d>& obstacle_positions,
   const Eigen::Vector3d& current_heading)
@@ -644,6 +901,11 @@ void SlotcarCommon::publish_robot_state(const double time)
     publish_state_topic(ros_time);
     last_topic_pub = time;
   }
+}
+
+bool SlotcarCommon::is_holonomic()
+{
+  return _is_holonomic;
 }
 
 void SlotcarCommon::publish_tf2(const rclcpp::Time& t)

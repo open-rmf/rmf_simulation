@@ -22,6 +22,8 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/slotcar_common.hpp>
 
+#include <rmf_fleet_msgs/msg/location.hpp>
+
 using namespace ignition::gazebo;
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
@@ -56,6 +58,7 @@ private:
 
   bool first_iteration = true; // Flag for checking if it is first PreUpdate() call
   bool _read_aabb_dimensions = true;
+  bool _remove_world_pose_cmd = false;
 
   void charge_state_cb(const ignition::msgs::Selection& msg);
 
@@ -145,6 +148,7 @@ void SlotcarPlugin::Configure(const Entity& entity,
   {
     std::cerr << "Error subscribing to topic [/slotcar_height]" << std::endl;
   }
+
 }
 
 void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
@@ -182,6 +186,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
         ecm.CreateComponent(payload,
           components::AngularVelocityCmd({0, 0, 0}));
       }
+
       ecm.Component<components::LinearVelocityCmd>(payload)->Data() =
         lin_vel_cmd->Data();
       ecm.Component<components::AngularVelocityCmd>(payload)->Data() =
@@ -334,6 +339,10 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   if (_infrastructure.empty())
     init_infrastructure(ecm);
 
+  // Don't update the pose if the simulation is paused
+  if (info.paused)
+    return;
+
   double dt =
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).count()) *
     1e-9;
@@ -341,14 +350,33 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count())
     * 1e-9;
 
-  auto pose = ecm.Component<components::Pose>(_entity)->Data();
-  auto obstacle_positions = get_obstacle_positions(ecm);
+  if (!dataPtr->is_holonomic())
+  {
+    auto& pose = ecm.Component<components::Pose>(_entity)->Data();
+    auto isometry_pose = rmf_plugins_utils::convert_pose(pose);
+    auto velocities = dataPtr->update_nonholonomic(isometry_pose);
 
-  auto velocities =
-    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
-      obstacle_positions, time);
+    //convert back to account for flips
+    pose = rmf_plugins_utils::convert_to_pose<ignition::math::Pose3d>(
+      isometry_pose);
 
-  send_control_signals(ecm, velocities, _payloads, dt);
+    send_control_signals(ecm, velocities, _payloads, dt);
+  }
+  else
+  {
+    auto pose = ecm.Component<components::Pose>(_entity)->Data();
+    auto obstacle_positions = get_obstacle_positions(ecm);
+
+    auto p = pose.Pos();
+
+    //printf("%s: %g %g!\n", dataPtr->model_name().c_str(), p.X(), p.Y());
+
+    auto velocities =
+      dataPtr->update(rmf_plugins_utils::convert_pose(pose),
+        obstacle_positions, time);
+
+    send_control_signals(ecm, velocities, _payloads, dt);
+  }
 }
 
 IGNITION_ADD_PLUGIN(
