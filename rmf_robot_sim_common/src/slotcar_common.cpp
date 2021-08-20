@@ -862,9 +862,9 @@ double SlotcarCommon::compute_change_in_rotation(
   }
 
   Eigen::Vector3d target = dpos;
-  // If a traj_vec is provided, of the two possible headings (dpos/-dpos),
-  // choose the one closest to traj_vec
-  if (traj_vec)
+  // If a traj_vec is provided and slotcar is reversible, of the two possible
+  // headings (dpos/-dpos), choose the one closest to traj_vec
+  if (traj_vec && _reversible)
   {
     const double dot = traj_vec->dot(dpos);
     target = dot < 0 ? -dpos : dpos;
