@@ -397,18 +397,18 @@ void SlotcarCommon::pause_request_cb(
 
 std::array<double, 2> SlotcarCommon::calculate_control_signals(
   const std::array<double, 2>& curr_velocities,
-  const std::pair<double, double>& velocities,
+  const std::pair<double, double>& displacements,
   const double dt) const
 {
   const double v_robot = curr_velocities[0];
   const double w_robot = curr_velocities[1];
 
-  const double v_target = rmf_plugins_utils::compute_ds(velocities.first,
+  const double v_target = rmf_plugins_utils::compute_ds(displacements.first,
       v_robot,
       _nominal_drive_speed,
       _nominal_drive_acceleration, _max_drive_acceleration, dt);
 
-  double w_target = rmf_plugins_utils::compute_ds(velocities.second,
+  double w_target = rmf_plugins_utils::compute_ds(displacements.second,
       w_robot,
       _nominal_turn_speed,
       _nominal_turn_acceleration, _max_turn_acceleration, dt);
@@ -416,7 +416,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   if (!this->_is_holonomic)
   {
     // @note: temporary hack to resolve weird turns
-    w_target = velocities.second;
+    w_target = displacements.second;
   }
 
   return std::array<double, 2>{v_target, w_target};
@@ -424,15 +424,15 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
 
 std::array<double, 2> SlotcarCommon::calculate_model_control_signals(
   const std::array<double, 2>& curr_velocities,
-  const std::pair<double, double>& velocities,
+  const std::pair<double, double>& displacements,
   const double dt) const
 {
-  return calculate_control_signals(curr_velocities, velocities, dt);
+  return calculate_control_signals(curr_velocities, displacements, dt);
 }
 
 std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
   const std::array<double, 2>& w_tire,
-  const std::pair<double, double>& velocities,
+  const std::pair<double, double>& displacements,
   const double dt) const
 {
   std::array<double, 2> curr_velocities;
@@ -440,7 +440,7 @@ std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
   curr_velocities[1] = (w_tire[1] - w_tire[0]) * _tire_radius / _base_width;
 
   std::array<double, 2> new_velocities = calculate_control_signals(
-    curr_velocities, velocities, dt);
+    curr_velocities, displacements, dt);
 
   std::array<double, 2> joint_signals;
   for (std::size_t i = 0; i < 2; ++i)
@@ -470,7 +470,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
   const double time)
 {
   std::lock_guard<std::mutex> lock(_mutex);
-  std::pair<double, double> velocities;
+  std::pair<double, double> displacements;
   const int32_t t_sec = static_cast<int32_t>(time);
   const uint32_t t_nsec =
     static_cast<uint32_t>((time-static_cast<double>(t_sec)) *1e9);
@@ -538,7 +538,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
   _initialized_pose = true;
 
   if (trajectory.empty())
-    return velocities;
+    return displacements;
 
   Eigen::Vector3d current_heading = compute_heading(_pose);
 
@@ -587,7 +587,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
           compute_heading(trajectory.at(_traj_wp_idx+1));
 
         double dir = 1.0;
-        velocities.second = compute_change_in_rotation(
+        displacements.second = compute_change_in_rotation(
           current_heading, dpos_next, &goal_heading, &dir);
 
         if (dir < 0.0)
@@ -596,7 +596,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
       else
       {
         const auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx));
-        velocities.second = compute_change_in_rotation(
+        displacements.second = compute_change_in_rotation(
           current_heading, goal_heading);
       }
 
@@ -606,7 +606,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
     {
       _traj_wp_idx++;
       if (_remaining_path.empty())
-        return velocities;
+        return displacements;
 
       _remaining_path.erase(_remaining_path.begin());
       RCLCPP_INFO(logger(),
@@ -628,7 +628,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
       const double d_yaw_tolerance = 5.0 * M_PI / 180.0;
       auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx));
       double dir = 1.0;
-      velocities.second =
+      displacements.second =
         compute_change_in_rotation(current_heading, dpos, &goal_heading, &dir);
       if (dir < 0.0)
         current_heading *= -1.0;
@@ -636,25 +636,25 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
       // If d_yaw is less than a certain tolerance (i.e. we don't need to spin
       // too much), then we'll include the forward velocity. Otherwise, we will
       // only spin in place until we are oriented in the desired direction.
-      velocities.first = std::abs(velocities.second) <
+      displacements.first = std::abs(displacements.second) <
         d_yaw_tolerance ? dir * dpos_mag : 0.0;
     }
   }
   else
   {
     const auto goal_heading = compute_heading(trajectory.back());
-    velocities.second = compute_change_in_rotation(
+    displacements.second = compute_change_in_rotation(
       current_heading,
       goal_heading);
 
     // Put in a deadzone if yaw is small enough. This essentially locks the
     // tires. COMMENTED OUT as it breaks rotations for some reason...
-    // if(std::abs(velocities.second) < std::max(0.1*M_PI/180.00, goal_yaw_tolerance))
+    // if(std::abs(displacements.second) < std::max(0.1*M_PI/180.00, goal_yaw_tolerance))
     // {
-    //   velocities.second = 0.0;
+    //   displacements.second = 0.0;
     // }
 
-    velocities.first = 0.0;
+    displacements.first = 0.0;
   }
 
   const bool immediate_pause =
@@ -679,11 +679,11 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
   if (stop)
   {
     // Allow spinning but not translating
-    velocities.first = 0.0;
+    displacements.first = 0.0;
   }
 
-  _rot_dir = velocities.second >= 0 ? 1 : -1;
-  return velocities;
+  _rot_dir = displacements.second >= 0 ? 1 : -1;
+  return displacements;
 }
 
 std::pair<double, double> SlotcarCommon::update_nonholonomic(
@@ -691,9 +691,9 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
 {
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
 
-  std::pair<double, double> velocities;
+  std::pair<double, double> displacements;
   if (_nonholonomic_traj_idx >= nonholonomic_trajectory.size())
-    return velocities;
+    return displacements;
 
   const NonHolonomicTrajectory& traj =
     nonholonomic_trajectory[_nonholonomic_traj_idx];
@@ -711,7 +711,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
 
     dpos_mag = dpos.norm();
 
-    velocities.first = dpos_mag >= wp_range ? dpos_mag : 0.0;
+    displacements.first = dpos_mag >= wp_range ? dpos_mag : 0.0;
 
     // figure out where we are relative to the goal point
     Eigen::Vector2d position(pose.translation().x(), pose.translation().y());
@@ -730,13 +730,13 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
 
       double dotp = heading.dot(dpos_norm);
       double cross = heading.x() * dpos_norm.y() - heading.y() * dpos_norm.x();
-      velocities.second = cross < 0.0 ? -acos(dotp) : acos(dotp);
+      displacements.second = cross < 0.0 ? -acos(dotp) : acos(dotp);
     }
     else
-      velocities.second = 0.0;
+      displacements.second = 0.0;
 
-    // printf("_nonholonomic_traj_idx %d dpos_mag: %g velocities %g, %g\n",
-    //   _nonholonomic_traj_idx, dpos_mag, velocities.first, velocities.second);
+    // printf("_nonholonomic_traj_idx %d dpos_mag: %g displacements %g, %g\n",
+    //   _nonholonomic_traj_idx, dpos_mag, displacements.first, displacements.second);
 
     close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
   }
@@ -757,12 +757,12 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     percent = percent > 1.0 ? 1.0 : percent;
     percent = percent < 0.0 ? 0.0 : percent;
 
-    velocities.first = (1.0 - percent) * traj.turn_arclength;
+    displacements.first = (1.0 - percent) * traj.turn_arclength;
 
     //always be moving so the car doesn't look like it's rotating on the spot
     const double min_vel = 1.5;
-    if (velocities.first < min_vel)
-      velocities.first = min_vel;
+    if (displacements.first < min_vel)
+      displacements.first = min_vel;
 
     // figure out angular displacement
     Eigen::Vector2d heading = pose.linear().block<2, 1>(0, 0);
@@ -773,10 +773,10 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     double heading_dotp = heading.dot(target_heading);
     double cross = heading.x() * target_heading.y() - heading.y() *
       target_heading.x();
-    velocities.second = cross < 0.0 ? -acos(heading_dotp) : acos(heading_dotp);
+    displacements.second = cross < 0.0 ? -acos(heading_dotp) : acos(heading_dotp);
 
-    // printf("TURNING _traj_idx %d (turning) percent: %g deg: %g velocities %g,%g\n",
-    //   _nonholonomic_traj_idx, percent, rad / M_PI * 180.0, velocities.first, velocities.second);
+    // printf("TURNING _traj_idx %d (turning) percent: %g deg: %g displacements %g,%g\n",
+    //   _nonholonomic_traj_idx, percent, rad / M_PI * 180.0, displacements.first, displacements.second);
 
     // figure out if we're close enough
     Eigen::Vector2d dest_pt = traj.x1;
@@ -792,7 +792,7 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
   if (close_enough)
     ++_nonholonomic_traj_idx;
 
-  return velocities;
+  return displacements;
 }
 
 bool SlotcarCommon::emergency_stop(

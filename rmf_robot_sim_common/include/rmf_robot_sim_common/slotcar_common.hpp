@@ -152,17 +152,17 @@ public:
 
   std::array<double, 2> calculate_control_signals(const std::array<double,
     2>& curr_velocities,
-    const std::pair<double, double>& velocities,
+    const std::pair<double, double>& displacements,
     const double dt) const;
 
   std::array<double, 2> calculate_joint_control_signals(
     const std::array<double, 2>& w_tire,
-    const std::pair<double, double>& velocities,
+    const std::pair<double, double>& displacements,
     const double dt) const;
 
   std::array<double, 2> calculate_model_control_signals(
     const std::array<double, 2>& curr_velocities,
-    const std::pair<double, double>& velocities,
+    const std::pair<double, double>& displacements,
     const double dt) const;
 
   void charge_state_cb(const std::string& name, bool selected);
