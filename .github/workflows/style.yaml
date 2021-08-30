@@ -1,7 +1,7 @@
 name: style
 on: [push, pull_request]
 jobs:
-  build:
+  style:
     runs-on: ubuntu-20.04
     container:
       image: docker://ros:foxy-ros-base-focal
