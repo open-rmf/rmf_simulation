@@ -60,7 +60,8 @@ double compute_ds(
   const double v_max,
   const double accel_nom,
   const double accel_max,
-  const double dt);
+  const double dt,
+  const double v_target = 0.0);
 
 struct MotionParams
 {

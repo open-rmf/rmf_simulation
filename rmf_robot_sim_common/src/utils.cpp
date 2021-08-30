@@ -12,7 +12,8 @@ double compute_ds(
   const double v_max,
   const double accel_nom,
   const double accel_max,
-  const double dt)
+  const double dt,
+  const double v_target)
 {
   double sign = 1.0;
   if (s_target < 0.0)
@@ -25,31 +26,36 @@ double compute_ds(
   }
 
   // We should try not to shoot past the targstd::vector<event::ConnectionPtr> connections;et
-  double next_s = s_target / dt;
+  double next_v = s_target / dt;
 
   // Test velocity limit
-  next_s = std::min(next_s, v_max);
+  next_v = std::min(next_v, v_max);
 
   // Test acceleration limit
-  next_s = std::min(next_s, accel_nom * dt + v_actual);
+  next_v = std::min(next_v, accel_nom * dt + v_actual);
 
   if (v_actual > 0.0 && s_target > 0.0)
   {
     // This is what our deceleration should be if we want to begin a constant
     // deceleration from now until we reach the goal
-    double deceleration = pow(v_actual, 2) / s_target;
+    double deceleration = pow(v_actual - v_target, 2) / s_target;
     deceleration = std::min(deceleration, accel_max);
 
     if (accel_nom <= deceleration)
     {
       // If the smallest constant deceleration for reaching the goal is
       // greater than
-      next_s = -deceleration * dt + v_actual;
+      next_v = -deceleration * dt + v_actual;
     }
   }
 
+  // if you have a target velocity and a distance shorter than that, set to 
+  // the target velocity otherwise it'll hard-stop
+  if (s_target < v_target)
+    next_v = v_target;
+  
   // Flip the sign the to correct direction before returning the value
-  return sign * next_s;
+  return sign * next_v;
 }
 
 //==============================================================================

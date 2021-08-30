@@ -65,7 +65,8 @@ private:
   void send_control_signals(EntityComponentManager& ecm,
     const std::pair<double, double>& displacements,
     const std::unordered_set<Entity> payloads,
-    const double dt);
+    const double dt,
+    const double target_linear_velocity = 0.0);
   void init_infrastructure(EntityComponentManager& ecm);
   void item_dispensed_cb(const ignition::msgs::UInt64_V& msg);
   void item_ingested_cb(const ignition::msgs::Entity& msg);
@@ -154,7 +155,8 @@ void SlotcarPlugin::Configure(const Entity& entity,
 void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   const std::pair<double, double>& displacements,
   const std::unordered_set<Entity> payloads,
-  const double dt)
+  const double dt,
+  const double target_linear_velocity)
 {
   auto lin_vel_cmd =
     ecm.Component<components::LinearVelocityCmd>(_entity);
@@ -165,7 +167,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   double w_robot = ang_vel_cmd->Data()[2];
   std::array<double, 2> target_vels;
   target_vels = dataPtr->calculate_model_control_signals({v_robot, w_robot},
-      displacements, dt);
+      displacements, dt, target_linear_velocity);
 
   lin_vel_cmd->Data()[0] = target_vels[0];
   ang_vel_cmd->Data()[2] = target_vels[1];
@@ -352,15 +354,16 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 
   if (!dataPtr->is_holonomic())
   {
+    double target_linear_velocity = 0.0;
     auto& pose = ecm.Component<components::Pose>(_entity)->Data();
     auto isometry_pose = rmf_plugins_utils::convert_pose(pose);
-    auto displacements = dataPtr->update_nonholonomic(isometry_pose);
+    auto displacements = dataPtr->update_nonholonomic(isometry_pose, dt, target_linear_velocity);
 
     //convert back to account for flips
     pose = rmf_plugins_utils::convert_to_pose<ignition::math::Pose3d>(
       isometry_pose);
 
-    send_control_signals(ecm, displacements, _payloads, dt);
+    send_control_signals(ecm, displacements, _payloads, dt, target_linear_velocity);
   }
   else
   {
