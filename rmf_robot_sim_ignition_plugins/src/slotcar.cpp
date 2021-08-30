@@ -4,14 +4,15 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/components/CanonicalLink.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
 #include <ignition/gazebo/components/Static.hh>
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
+#include <ignition/gazebo/components/LinearVelocity.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
+#include <ignition/gazebo/components/AngularVelocity.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
 
@@ -21,8 +22,6 @@
 
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/slotcar_common.hpp>
-
-#include <rmf_fleet_msgs/msg/location.hpp>
 
 using namespace ignition::gazebo;
 
@@ -50,6 +49,7 @@ private:
   rclcpp::Node::SharedPtr _ros_node;
 
   Entity _entity;
+  Entity _canonical_link_entity;
   std::unordered_set<Entity> _payloads;
   std::unordered_set<Entity> _infrastructure;
   double _height = 0;
@@ -112,6 +112,7 @@ void SlotcarPlugin::Configure(const Entity& entity,
   //executor->add_node(_ros_node);
   //executor->spin();
   dataPtr->init_ros_node(_ros_node);
+  _canonical_link_entity = ecm.Component<components::ModelCanonicalLink>(_entity)->Data();
 
   // Initialize Pose3d component
   if (!ecm.EntityHasComponentType(entity, components::Pose().TypeId()))
@@ -127,6 +128,12 @@ void SlotcarPlugin::Configure(const Entity& entity,
   if (!ecm.EntityHasComponentType(_entity,
     components::AngularVelocityCmd().TypeId()))
     ecm.CreateComponent(_entity, components::AngularVelocityCmd());
+  if (!ecm.EntityHasComponentType(_canonical_link_entity,
+    components::LinearVelocity().TypeId()))
+    ecm.CreateComponent(_canonical_link_entity, components::LinearVelocity());
+  if (!ecm.EntityHasComponentType(_canonical_link_entity,
+    components::AngularVelocity().TypeId()))
+    ecm.CreateComponent(_canonical_link_entity, components::AngularVelocity());
 
   // Keep track of when a payload is dispensed onto/ingested from slotcar
   // Needed for TPE Plugin to know when to manually move payload via this plugin
@@ -160,9 +167,13 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
     ecm.Component<components::LinearVelocityCmd>(_entity);
   auto ang_vel_cmd =
     ecm.Component<components::AngularVelocityCmd>(_entity);
+  auto lin_vel =
+    ecm.Component<components::LinearVelocity>(_canonical_link_entity);
+  auto ang_vel =
+    ecm.Component<components::AngularVelocity>(_canonical_link_entity);
 
-  double v_robot = lin_vel_cmd->Data()[0];
-  double w_robot = ang_vel_cmd->Data()[2];
+  double v_robot = lin_vel->Data()[0];
+  double w_robot = ang_vel->Data()[2];
   std::array<double, 2> target_vels;
   target_vels = dataPtr->calculate_model_control_signals({v_robot, w_robot},
       velocities, dt);
