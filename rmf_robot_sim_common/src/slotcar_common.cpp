@@ -419,7 +419,8 @@ std::array<double, 2> SlotcarCommon::calculate_model_control_signals(
   const double dt,
   const double target_linear_velocity) const
 {
-  return calculate_control_signals(curr_velocities, displacements, dt, target_linear_velocity);
+  return calculate_control_signals(curr_velocities, displacements, dt,
+      target_linear_velocity);
 }
 
 std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
@@ -745,8 +746,10 @@ std::pair<double, double> SlotcarCommon::update_nonholonomic(
     Eigen::Vector2d target_heading = traj.v1;
 
     double heading_dotp = heading.dot(target_heading);
-    double cross = heading.x() * target_heading.y() - heading.y() * target_heading.x();
-    displacements.second = cross < 0.0 ? -acos(heading_dotp) : acos(heading_dotp);
+    double cross = heading.x() * target_heading.y() - heading.y() *
+      target_heading.x();
+    displacements.second = cross <
+      0.0 ? -acos(heading_dotp) : acos(heading_dotp);
 
     // figure out if we're close enough
     Eigen::Vector2d dest_pt = traj.x1;

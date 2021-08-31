@@ -402,7 +402,7 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     logger(),
     "Setting turning right angle multiplier offset to: %f",
     _turning_right_angle_mul_offset);
-  
+
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "stop_distance", this->_stop_distance);
   RCLCPP_INFO(logger(), "Setting stop distance to: %f", _stop_distance);

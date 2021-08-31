@@ -49,11 +49,11 @@ double compute_ds(
     }
   }
 
-  // if you have a target velocity and a distance shorter than that, set to 
+  // if you have a target velocity and a distance shorter than that, set to
   // the target velocity otherwise it'll hard-stop
   if (s_target < v_target)
     next_v = v_target;
-  
+
   // Flip the sign the to correct direction before returning the value
   return sign * next_v;
 }
