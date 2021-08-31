@@ -357,7 +357,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     double target_linear_velocity = 0.0;
     auto& pose = ecm.Component<components::Pose>(_entity)->Data();
     auto isometry_pose = rmf_plugins_utils::convert_pose(pose);
-    auto displacements = dataPtr->update_nonholonomic(isometry_pose, dt, target_linear_velocity);
+    auto displacements = dataPtr->update_nonholonomic(isometry_pose, target_linear_velocity);
 
     //convert back to account for flips
     pose = rmf_plugins_utils::convert_to_pose<ignition::math::Pose3d>(

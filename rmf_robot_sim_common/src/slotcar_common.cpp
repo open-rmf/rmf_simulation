@@ -262,11 +262,9 @@ void SlotcarCommon::ackmann_path_request_cb(
     return;
   // yaw is ignored
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
-
   double min_turning_radius = _min_turning_radius;
   if (min_turning_radius < 0.0)
-    min_turning_radius = _nominal_drive_speed / _nominal_turn_speed * 
-      _computed_turning_multiplier;
+    min_turning_radius = _nominal_drive_speed / _nominal_turn_speed;
 
   nonholonomic_trajectory.clear();
   _nonholonomic_traj_idx = 0;
@@ -304,15 +302,27 @@ void SlotcarCommon::ackmann_path_request_cb(
     // 2) halve the angular difference
     // 3) we now have a right angled triangle, use the sin rule to obtain lengths
     // 4) use the lengths along to find start/ending points for the turning trajectory
-    double cp = wp1_to_wp0.x() * wp1_to_wp2.y() - wp1_to_wp2.x() *
-      wp1_to_wp0.y();
-    cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
 
-    double bend_delta = asin(cp);
+    double dotp = wp1_to_wp0_norm.dot(wp1_to_wp2_norm);
+
+    double bend_delta = acos(dotp);
     double half_bend_delta = bend_delta * 0.5;
+    // compute the other angle in a right angle triangle, 90 - half_turn_delta
+    double half_turn_arc = M_PI / 2.0 - half_bend_delta;
 
-    double half_turn_arc = M_PI / 2.0 - half_bend_delta; // right angle tri, 90 - half_turn_delta
-    double target_radius = min_turning_radius;
+    // slight bit of art here. Our right-angled-ish turns tend to
+    // overshoot and look ugly, possibly due to the turning
+    // acceleration/decceleration. So we apply a multiplier based off
+    // how right-angleish our turn is
+    double half_pi = M_PI / 2.0;
+    double diff = std::abs(bend_delta - half_pi);
+    double range = 20.0 * M_PI / 180.0;
+    double m = diff / range;
+    m = m > 1.0 ? 1.0 : m;
+    m = m < 0.0 ? 0.0 : m;
+    double multiplier = 1.0 + (1.0 - m) * 0.5;
+    double target_radius = min_turning_radius * multiplier;
+
     // use sin rule to obtain length of tangent
     double tangent_length =
       std::abs(target_radius / sin(half_bend_delta) * sin(half_turn_arc));
@@ -320,7 +330,10 @@ void SlotcarCommon::ackmann_path_request_cb(
     bool has_runway = tangent_length < wp1_to_wp0_len &&
       tangent_length < wp1_to_wp2_len;
 
-    // special cases for straight line or no runway
+    // special cases for collinearity or no runway
+    double cp = wp1_to_wp0.x() * wp1_to_wp2.y() - wp1_to_wp2.x() *
+      wp1_to_wp0.y();
+    cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
     if (std::abs(cp) < 0.05 || !has_runway)
     {
       NonHolonomicTrajectory sp2(
@@ -671,7 +684,7 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
 }
 
 std::pair<double, double> SlotcarCommon::update_nonholonomic(
-  Eigen::Isometry3d& pose, const double dt, double& target_linear_velocity)
+  Eigen::Isometry3d& pose, double& target_linear_velocity)
 {
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
 
