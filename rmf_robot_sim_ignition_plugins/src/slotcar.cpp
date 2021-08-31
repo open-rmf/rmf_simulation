@@ -112,7 +112,8 @@ void SlotcarPlugin::Configure(const Entity& entity,
   //executor->add_node(_ros_node);
   //executor->spin();
   dataPtr->init_ros_node(_ros_node);
-  _canonical_link_entity = ecm.Component<components::ModelCanonicalLink>(_entity)->Data();
+  _canonical_link_entity =
+    ecm.Component<components::ModelCanonicalLink>(_entity)->Data();
 
   // Initialize Pose3d component
   if (!ecm.EntityHasComponentType(entity, components::Pose().TypeId()))
