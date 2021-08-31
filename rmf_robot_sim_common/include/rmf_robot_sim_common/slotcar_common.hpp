@@ -269,7 +269,7 @@ private:
   double _stop_radius = 1.0;
 
   double _min_turning_radius = -1.0; // minimum turning radius, will use a formula if negative
-  double _computed_turning_multiplier = 1.0; // if _min_turning_radius is computed, this value multiplies it
+  double _turning_right_angle_mul_offset = 1.0; // if _min_turning_radius is computed, this value multiplies it
 
   PowerParams _params;
   bool _enable_charge = true;
@@ -397,11 +397,11 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     _min_turning_radius);
 
   get_element_val_if_present<SdfPtrT, double>(sdf,
-    "computed_turning_multiplier", this->_computed_turning_multiplier);
+    "turning_right_angle_mul_offset", this->_turning_right_angle_mul_offset);
   RCLCPP_INFO(
     logger(),
-    "Setting computed turning multiplier to: %f",
-    _computed_turning_multiplier);
+    "Setting turning right angle multiplier offset to: %f",
+    _turning_right_angle_mul_offset);
   
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "stop_distance", this->_stop_distance);

@@ -320,7 +320,7 @@ void SlotcarCommon::ackmann_path_request_cb(
     double m = diff / range;
     m = m > 1.0 ? 1.0 : m;
     m = m < 0.0 ? 0.0 : m;
-    double multiplier = 1.0 + (1.0 - m) * 0.5;
+    double multiplier = 1.0 + (1.0 - m) * _turning_right_angle_mul_offset;
     double target_radius = min_turning_radius * multiplier;
 
     // use sin rule to obtain length of tangent
@@ -364,11 +364,6 @@ void SlotcarCommon::ackmann_path_request_cb(
         true);
       turn_traj.v0 = -wp1_to_wp0_norm;
       turn_traj.v1 = wp1_to_wp2_norm;
-
-      Eigen::Vector2d wp0_to_wp1_norm = -wp1_to_wp0_norm;
-      Eigen::Vector2d perp_wp1_wp2(wp0_to_wp1_norm.y(), -wp0_to_wp1_norm.x());
-      if (cp < 0)
-        perp_wp1_wp2 = -perp_wp1_wp2;
 
       NonHolonomicTrajectory end_traj(
         Eigen::Vector2d(tangent1.x(), tangent1.y()),
