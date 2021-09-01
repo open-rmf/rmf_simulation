@@ -2,6 +2,19 @@
 Changelog for package rmf_building_sim_gazebo_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2021-09-01)
+------------------
+* Fix dependencies (`#26 <https://github.com/open-rmf/rmf_simulation/issues/26>`_)
+* fix compile error on qt > 5.14 (`#27 <https://github.com/open-rmf/rmf_simulation/issues/27>`_)
+* Changes for galactic (`#25 <https://github.com/open-rmf/rmf_simulation/issues/25>`_)
+* Make menge mandatory and fix building_sim dependencies (`#19 <https://github.com/open-rmf/rmf_simulation/issues/19>`_)
+* Add quality declaration documents (`#1 <https://github.com/open-rmf/rmf_simulation/issues/1>`_)
+* Crowd step size fix for large physics step sizes (`#10 <https://github.com/open-rmf/rmf_simulation/issues/10>`_)
+* Slotcar plugin package move and utils cleanup (`#5 <https://github.com/open-rmf/rmf_simulation/issues/5>`_)
+* account for renaming to rmf_building_map_tools (`#4 <https://github.com/open-rmf/rmf_simulation/issues/4>`_)
+* account for renaming from building_map_msgs to rmf_building_map_msgs (`#3 <https://github.com/open-rmf/rmf_simulation/issues/3>`_)
+* Contributors: Charayaphan Nakorn Boon Han, Geoffrey Biggs, Luca Della Vedova, Marco A. Gutiérrez, Teo Koon Peng, Yadu
+
 1.2.0 (2021-01-06)
 ------------------
 * Merge branch 'release-1.1'
