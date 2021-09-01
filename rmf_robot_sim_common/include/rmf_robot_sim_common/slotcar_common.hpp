@@ -271,6 +271,8 @@ private:
   double _min_turning_radius = -1.0; // minimum turning radius, will use a formula if negative
   double _turning_right_angle_mul_offset = 1.0; // if _min_turning_radius is computed, this value multiplies it
 
+  bool _reversible = true; // true if the robot can drive backwards
+
   PowerParams _params;
   bool _enable_charge = true;
   bool _enable_instant_charge = false;
@@ -418,6 +420,10 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "base_width", this->_base_width);
   RCLCPP_INFO(logger(), "Setting base width to: %f", _base_width);
+
+  get_element_val_if_present<SdfPtrT, bool>(sdf,
+    "reversible", this->_reversible);
+  RCLCPP_INFO(logger(), "Setting reversible to: %d", _reversible);
 
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "nominal_voltage", this->_params.nominal_voltage);
