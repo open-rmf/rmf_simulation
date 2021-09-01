@@ -2,6 +2,19 @@
 Changelog for package rmf_robot_sim_gazebo_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2020-09-01)
+------------------
+* Nonholonomic slotcar turning fixes, add turning multiplier offset parameter, rename compute_ds variables (`#41 <https://github.com/open-rmf/rmf_simulation/issues/41>`_)
+* fix typo on gazebo_dev dependency (`#28 <https://github.com/open-rmf/rmf_simulation/issues/28>`_)
+* Fix dependencies (`#26 <https://github.com/open-rmf/rmf_simulation/issues/26>`_)
+* Changes and corrections to support ROS 2 Galactic (`#23 <https://github.com/open-rmf/rmf_simulation/issues/23>`_)
+* Add quality declaration documents (`#1 <https://github.com/open-rmf/rmf_simulation/issues/1>`_)
+* Add build and style actions (`#11 <https://github.com/open-rmf/rmf_simulation/issues/11>`_)
+* Slotcar plugin package move and utils cleanup (`#5 <https://github.com/open-rmf/rmf_simulation/issues/5>`_)
+* account for renaming from building_map_msgs to rmf_building_map_msgs (`#3 <https://github.com/open-rmf/rmf_simulation/issues/3>`_)
+* Package renames (`#2 <https://github.com/open-rmf/rmf_simulation/issues/2>`_)
+* Contributors: Charayaphan Nakorn Boon Han, Geoffrey Biggs, Luca Della Vedova, Marco A. Gutiérrez, ddengster
+
 1.1.0 (2020-09-23)
 ------------------
 * Support cross-compiling with ROS 2 Foxy and Eloquent. [#103](https://github.com/osrf/rmf_demos/pull/103)

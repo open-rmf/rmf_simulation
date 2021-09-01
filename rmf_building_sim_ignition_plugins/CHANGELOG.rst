@@ -2,6 +2,20 @@
 Changelog for package rmf_building_sim_ignition_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2021-09-01)
+------------------
+* Added rosdep key for ignition-edifice, made it a mandatory dependency (`#31 <https://github.com/open-rmf/rmf_simulation/issues/31>`_)
+* Skip updating ignition plugins when simulation is paused (`#34 <https://github.com/open-rmf/rmf_simulation/issues/34>`_)
+* updating for galactic and rolling compatibility (`#29 <https://github.com/open-rmf/rmf_simulation/issues/29>`_)
+* Fix dependencies (`#26 <https://github.com/open-rmf/rmf_simulation/issues/26>`_)
+* Make menge mandatory and fix building_sim dependencies (`#19 <https://github.com/open-rmf/rmf_simulation/issues/19>`_)
+* Add quality declaration documents (`#1 <https://github.com/open-rmf/rmf_simulation/issues/1>`_)
+* Crowd step size fix for large physics step sizes (`#10 <https://github.com/open-rmf/rmf_simulation/issues/10>`_)
+* Update to Ignition Edifice (`#8 <https://github.com/open-rmf/rmf_simulation/issues/8>`_)
+* Slotcar plugin package move and utils cleanup (`#5 <https://github.com/open-rmf/rmf_simulation/issues/5>`_)
+* account for renaming from building_map_msgs to rmf_building_map_msgs (`#3 <https://github.com/open-rmf/rmf_simulation/issues/3>`_)
+* Contributors: Charayaphan Nakorn Boon Han, Geoffrey Biggs, Luca Della Vedova, Marco A. Gutiérrez
+
 1.2.0 (2021-01-06)
 ------------------
 * Remove Slotcar/Lift AABB component when not required to speed up demos (`#271 <https://github.com/osrf/traffic_editor/issues/271>`_)

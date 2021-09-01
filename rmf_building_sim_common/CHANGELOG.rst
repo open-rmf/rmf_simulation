@@ -2,6 +2,21 @@
 Changelog for package rmf_building_sim_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.0 (2021-09-01)
+------------------
+* Fix dependencies (`#26 <https://github.com/open-rmf/rmf_simulation/issues/26>`_)
+* Changes for galactic (`#25 <https://github.com/open-rmf/rmf_simulation/issues/25>`_)
+* Removing unnecessary qt5 dependency from CMakeLists (`#22 <https://github.com/open-rmf/rmf_simulation/issues/22>`_)
+* Make menge mandatory and fix building_sim dependencies (`#19 <https://github.com/open-rmf/rmf_simulation/issues/19>`_)
+* Start using ros-tooling for build and test workflow, added coverage, tsan (`#14 <https://github.com/open-rmf/rmf_simulation/issues/14>`_)
+* Add quality declaration documents (`#1 <https://github.com/open-rmf/rmf_simulation/issues/1>`_)
+* Crowd step size fix for large physics step sizes (`#10 <https://github.com/open-rmf/rmf_simulation/issues/10>`_)
+* Add build and style actions (`#11 <https://github.com/open-rmf/rmf_simulation/issues/11>`_)
+* Slotcar plugin package move and utils cleanup (`#5 <https://github.com/open-rmf/rmf_simulation/issues/5>`_)
+* Refactor and cleanup utils (`#6 <https://github.com/open-rmf/rmf_simulation/issues/6>`_)
+* account for renaming from building_map_msgs to rmf_building_map_msgs (`#3 <https://github.com/open-rmf/rmf_simulation/issues/3>`_)
+* Contributors: Aaron Chong, Charayaphan Nakorn Boon Han, Geoffrey Biggs, Luca Della Vedova, Marco A. Gutiérrez, Yadu
+
 1.2.0 (2021-01-06)
 ------------------
 * Add animation switch to crowd simulation plugin (`#238 <https://github.com/osrf/traffic_editor/pull/238>`_)
