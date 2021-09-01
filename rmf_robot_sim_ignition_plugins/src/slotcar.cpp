@@ -60,6 +60,10 @@ private:
   bool _read_aabb_dimensions = true;
   bool _remove_world_pose_cmd = false;
 
+  // Previous velocities, used to do open loop velocity control
+  double _prev_v_command = 0.0;
+  double _prev_w_command = 0.0;
+
   void charge_state_cb(const ignition::msgs::Selection& msg);
 
   void send_control_signals(EntityComponentManager& ecm,
@@ -163,14 +167,19 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   auto ang_vel_cmd =
     ecm.Component<components::AngularVelocityCmd>(_entity);
 
-  double v_robot = lin_vel_cmd->Data()[0];
-  double w_robot = ang_vel_cmd->Data()[2];
+  // Open loop control
+  double v_robot = _prev_v_command;
+  double w_robot = _prev_w_command;
   std::array<double, 2> target_vels;
   target_vels = dataPtr->calculate_model_control_signals({v_robot, w_robot},
       displacements, dt, target_linear_velocity);
 
   lin_vel_cmd->Data()[0] = target_vels[0];
   ang_vel_cmd->Data()[2] = target_vels[1];
+
+  // Update previous velocities
+  _prev_v_command = target_vels[0];
+  _prev_w_command = target_vels[1];
 
   if (phys_plugin == PhysEnginePlugin::TPE) // Need to manually move any payloads
   {
