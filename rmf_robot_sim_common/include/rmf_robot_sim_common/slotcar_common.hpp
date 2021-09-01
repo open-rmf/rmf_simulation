@@ -54,11 +54,6 @@ struct NonHolonomicTrajectory
   Eigen::Vector2d v1;
 
   bool turning = false;
-  float turning_radius = 0.0f;
-  float turn_arc_radians = 0.0f;
-  float turn_arclength = 0.0f;
-  Eigen::Vector2d turn_circle_center;
-  Eigen::Vector2d turn_target_heading;
 };
 
 // Edit reference of parameter for template type deduction
@@ -145,25 +140,28 @@ public:
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
 
-  std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose);
+  std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose,
+    double& target_linear_velocity);
 
   bool emergency_stop(const std::vector<Eigen::Vector3d>& obstacle_positions,
     const Eigen::Vector3d& current_heading);
 
   std::array<double, 2> calculate_control_signals(const std::array<double,
     2>& curr_velocities,
-    const std::pair<double, double>& velocities,
-    const double dt) const;
+    const std::pair<double, double>& displacements,
+    const double dt,
+    const double target_linear_velocity = 0.0) const;
 
   std::array<double, 2> calculate_joint_control_signals(
     const std::array<double, 2>& w_tire,
-    const std::pair<double, double>& velocities,
+    const std::pair<double, double>& displacements,
     const double dt) const;
 
   std::array<double, 2> calculate_model_control_signals(
     const std::array<double, 2>& curr_velocities,
-    const std::pair<double, double>& velocities,
-    const double dt) const;
+    const std::pair<double, double>& displacements,
+    const double dt,
+    const double target_linear_velocity = 0.0) const;
 
   void charge_state_cb(const std::string& name, bool selected);
 
@@ -271,6 +269,7 @@ private:
   double _stop_radius = 1.0;
 
   double _min_turning_radius = -1.0; // minimum turning radius, will use a formula if negative
+  double _turning_right_angle_mul_offset = 1.0; // if _min_turning_radius is computed, this value multiplies it
 
   PowerParams _params;
   bool _enable_charge = true;
@@ -396,6 +395,13 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     logger(),
     "Setting minimum turning radius to: %f",
     _min_turning_radius);
+
+  get_element_val_if_present<SdfPtrT, double>(sdf,
+    "turning_right_angle_mul_offset", this->_turning_right_angle_mul_offset);
+  RCLCPP_INFO(
+    logger(),
+    "Setting turning right angle multiplier offset to: %f",
+    _turning_right_angle_mul_offset);
 
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "stop_distance", this->_stop_distance);
