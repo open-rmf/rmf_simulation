@@ -42,14 +42,14 @@ private:
 
   void charge_state_cb(ConstSelectionPtr& msg);
 
-  void send_control_signals(const std::pair<double, double>& velocities,
+  void send_control_signals(const std::pair<double, double>& displacements,
     const double dt)
   {
     std::array<double, 2> w_tire;
     for (std::size_t i = 0; i < 2; ++i)
       w_tire[i] = joints[i]->GetVelocity(0);
     auto joint_signals = dataPtr->calculate_joint_control_signals(w_tire,
-        velocities, dt);
+        displacements, dt);
     for (std::size_t i = 0; i < 2; ++i)
     {
       joints[i]->SetParam("vel", 0, joint_signals[i]);
@@ -164,11 +164,11 @@ void SlotcarPlugin::OnUpdate()
   auto pose = _model->WorldPose();
   auto obstacle_positions = get_obstacle_positions(world);
 
-  auto velocities =
+  auto displacements =
     dataPtr->update(rmf_plugins_utils::convert_pose(pose),
       obstacle_positions, time);
 
-  send_control_signals(velocities, dt);
+  send_control_signals(displacements, dt);
 }
 
 GZ_REGISTER_MODEL_PLUGIN(SlotcarPlugin)
