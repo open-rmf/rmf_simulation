@@ -1,4 +1,4 @@
-# building\_gazebo\_plugins
+# rmf\_building\_sim\_ignition\_plugins
 
 This package provides Ignition plugins for allowing simulated building infrastructure to communicate with a ROS system.
 
