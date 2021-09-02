@@ -250,7 +250,7 @@ private:
     _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
-  
+
   std::string _steering_type = DIFF_DRIVE;
 
   std::string _current_task_id;
