@@ -87,6 +87,8 @@ double compute_friction_energy(
 }
 
 using SlotcarCommon = rmf_robot_sim_common::SlotcarCommon;
+const std::string SlotcarCommon::DIFF_DRIVE = "diff_drive";
+const std::string SlotcarCommon::ACKERMANN = "ackermann";
 
 SlotcarCommon::SlotcarCommon()
 {
@@ -150,7 +152,7 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     10,
     std::bind(&SlotcarCommon::mode_request_cb, this, std::placeholders::_1));
 
-  if (!is_holonomic())
+  if (is_ackermann_steered())
   {
     _traj_sub =
       _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
@@ -878,11 +880,6 @@ void SlotcarCommon::publish_robot_state(const double time)
   }
 }
 
-bool SlotcarCommon::is_holonomic()
-{
-  return _is_holonomic;
-}
-
 void SlotcarCommon::publish_tf2(const rclcpp::Time& t)
 {
   geometry_msgs::msg::TransformStamped tf_stamped;
@@ -1050,4 +1047,14 @@ double SlotcarCommon::compute_discharge(
   double dSOC = dQ / (_params.nominal_capacity * 3600.0);
 
   return dSOC;
+}
+
+bool SlotcarCommon::is_ackermann_steered() const
+{
+  return this->_steering_type == ACKERMANN;
+}
+
+std::string SlotcarCommon::get_steering_type() const
+{
+  return this->_steering_type;
 }

@@ -167,7 +167,13 @@ public:
 
   void publish_robot_state(const double time);
 
-  bool is_holonomic();
+  // steering type constants
+  static const std::string DIFF_DRIVE;
+  static const std::string ACKERMANN;
+
+  std::string get_steering_type() const;
+
+  bool is_ackermann_steered() const;
 
 private:
   // Paramters needed for power dissipation and charging calculations
@@ -244,7 +250,8 @@ private:
     _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
-  bool _is_holonomic = true;
+  
+  std::string _steering_type = DIFF_DRIVE;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
@@ -343,11 +350,14 @@ bool get_element_val_if_present(
 template<typename SdfPtrT>
 void SlotcarCommon::read_sdf(SdfPtrT& sdf)
 {
-  get_element_val_if_present<SdfPtrT, bool>(sdf, "holonomic",
-    this->_is_holonomic);
+  get_element_val_if_present<SdfPtrT, std::string>(sdf, "steering",
+    this->_steering_type);
+
+  if (_steering_type != DIFF_DRIVE && _steering_type != ACKERMANN)
+    _steering_type = DIFF_DRIVE;
   RCLCPP_INFO(
     logger(),
-    "Vehicle is %s", _is_holonomic ? "holonomic" : "non-holonomic");
+    "Vehicle uses %s steering", _steering_type.c_str());
 
   get_element_val_if_present<SdfPtrT, double>(sdf, "nominal_drive_speed",
     this->_nominal_drive_speed);
