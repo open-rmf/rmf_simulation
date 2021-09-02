@@ -4,6 +4,7 @@ Changelog for package rmf_robot_sim_gazebo_plugins
 
 1.3.0 (2020-09-01)
 ------------------
+* Change parameter tag from holonomic to steering (`#46 <https://github.com/open-rmf/rmf_simulation/issues/46>`_)
 * Nonholonomic slotcar turning fixes, add turning multiplier offset parameter, rename compute_ds variables (`#41 <https://github.com/open-rmf/rmf_simulation/issues/41>`_)
 * fix typo on gazebo_dev dependency (`#28 <https://github.com/open-rmf/rmf_simulation/issues/28>`_)
 * Fix dependencies (`#26 <https://github.com/open-rmf/rmf_simulation/issues/26>`_)
