@@ -362,7 +362,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     * 1e-9;
 
   using namespace rmf_robot_sim_common;
-  if (dataPtr->get_steering_type() == SlotcarCommon::STEERING_TYPE::ACKERMANN)
+  if (dataPtr->get_steering_type() == SteeringType::ACKERMANN)
   {
     double target_linear_velocity = 0.0;
     auto& pose = ecm.Component<components::Pose>(_entity)->Data();
@@ -377,8 +377,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     send_control_signals(ecm, displacements, _payloads, dt,
       target_linear_velocity);
   }
-  else if (dataPtr->get_steering_type() ==
-    SlotcarCommon::STEERING_TYPE::DIFF_DRIVE)
+  else if (dataPtr->get_steering_type() == SteeringType::DIFF_DRIVE)
   {
     auto pose = ecm.Component<components::Pose>(_entity)->Data();
     auto obstacle_positions = get_obstacle_positions(ecm);

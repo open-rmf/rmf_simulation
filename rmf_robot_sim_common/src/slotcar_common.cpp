@@ -1049,10 +1049,10 @@ double SlotcarCommon::compute_discharge(
 
 bool SlotcarCommon::is_ackermann_steered() const
 {
-  return this->_steering_type == STEERING_TYPE::ACKERMANN;
+  return this->_steering_type == SteeringType::ACKERMANN;
 }
 
-SlotcarCommon::STEERING_TYPE SlotcarCommon::get_steering_type() const
+rmf_robot_sim_common::SteeringType SlotcarCommon::get_steering_type() const
 {
   return this->_steering_type;
 }

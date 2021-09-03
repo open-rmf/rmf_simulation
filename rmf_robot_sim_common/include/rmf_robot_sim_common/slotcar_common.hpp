@@ -120,6 +120,13 @@ typedef struct TrajectoryPoint
   : pos(_pos), quat(_quat) {}
 } TrajectoryPoint;
 
+// steering type constants
+enum class SteeringType
+{
+  DIFF_DRIVE,
+  ACKERMANN
+};
+
 class SlotcarCommon
 {
 public:
@@ -167,14 +174,7 @@ public:
 
   void publish_robot_state(const double time);
 
-  // steering type constants
-  enum class STEERING_TYPE
-  {
-    DIFF_DRIVE,
-    ACKERMANN
-  };
-
-  STEERING_TYPE get_steering_type() const;
+  SteeringType get_steering_type() const;
 
   bool is_ackermann_steered() const;
 
@@ -254,7 +254,7 @@ private:
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
 
-  STEERING_TYPE _steering_type = STEERING_TYPE::DIFF_DRIVE;
+  SteeringType _steering_type = SteeringType::DIFF_DRIVE;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
@@ -358,9 +358,9 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     steering_type);
 
   if (steering_type == "ackermann")
-    _steering_type = STEERING_TYPE::ACKERMANN;
+    _steering_type = SteeringType::ACKERMANN;
   else if (steering_type == "diff_drive")
-    _steering_type = STEERING_TYPE::DIFF_DRIVE;
+    _steering_type = SteeringType::DIFF_DRIVE;
 
   RCLCPP_INFO(
     logger(),
