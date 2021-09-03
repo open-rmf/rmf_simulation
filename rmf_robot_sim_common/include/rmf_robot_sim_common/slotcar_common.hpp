@@ -120,6 +120,13 @@ typedef struct TrajectoryPoint
   : pos(_pos), quat(_quat) {}
 } TrajectoryPoint;
 
+// steering type constants
+enum class SteeringType
+{
+  DIFF_DRIVE,
+  ACKERMANN
+};
+
 class SlotcarCommon
 {
 public:
@@ -167,7 +174,9 @@ public:
 
   void publish_robot_state(const double time);
 
-  bool is_holonomic();
+  SteeringType get_steering_type() const;
+
+  bool is_ackermann_steered() const;
 
 private:
   // Paramters needed for power dissipation and charging calculations
@@ -244,7 +253,8 @@ private:
     _building_map_sub;
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
-  bool _is_holonomic = true;
+
+  SteeringType _steering_type = SteeringType::DIFF_DRIVE;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
@@ -343,11 +353,18 @@ bool get_element_val_if_present(
 template<typename SdfPtrT>
 void SlotcarCommon::read_sdf(SdfPtrT& sdf)
 {
-  get_element_val_if_present<SdfPtrT, bool>(sdf, "holonomic",
-    this->_is_holonomic);
+  std::string steering_type;
+  get_element_val_if_present<SdfPtrT, std::string>(sdf, "steering",
+    steering_type);
+
+  if (steering_type == "ackermann")
+    _steering_type = SteeringType::ACKERMANN;
+  else if (steering_type == "diff_drive")
+    _steering_type = SteeringType::DIFF_DRIVE;
+
   RCLCPP_INFO(
     logger(),
-    "Vehicle is %s", _is_holonomic ? "holonomic" : "non-holonomic");
+    "Vehicle uses %s steering", steering_type.c_str());
 
   get_element_val_if_present<SdfPtrT, double>(sdf, "nominal_drive_speed",
     this->_nominal_drive_speed);
