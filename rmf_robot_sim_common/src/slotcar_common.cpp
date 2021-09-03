@@ -87,8 +87,6 @@ double compute_friction_energy(
 }
 
 using SlotcarCommon = rmf_robot_sim_common::SlotcarCommon;
-const std::string SlotcarCommon::DIFF_DRIVE = "diff_drive";
-const std::string SlotcarCommon::ACKERMANN = "ackermann";
 
 SlotcarCommon::SlotcarCommon()
 {
@@ -1051,10 +1049,10 @@ double SlotcarCommon::compute_discharge(
 
 bool SlotcarCommon::is_ackermann_steered() const
 {
-  return this->_steering_type == ACKERMANN;
+  return this->_steering_type == STEERING_TYPE::ACKERMANN;
 }
 
-std::string SlotcarCommon::get_steering_type() const
+SlotcarCommon::STEERING_TYPE SlotcarCommon::get_steering_type() const
 {
   return this->_steering_type;
 }

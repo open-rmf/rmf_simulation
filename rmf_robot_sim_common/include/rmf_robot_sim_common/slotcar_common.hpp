@@ -168,10 +168,13 @@ public:
   void publish_robot_state(const double time);
 
   // steering type constants
-  static const std::string DIFF_DRIVE;
-  static const std::string ACKERMANN;
+  enum class STEERING_TYPE
+  {
+    DIFF_DRIVE,
+    ACKERMANN
+  };
 
-  std::string get_steering_type() const;
+  STEERING_TYPE get_steering_type() const;
 
   bool is_ackermann_steered() const;
 
@@ -251,7 +254,7 @@ private:
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
 
-  std::string _steering_type = DIFF_DRIVE;
+  STEERING_TYPE _steering_type = STEERING_TYPE::DIFF_DRIVE;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
@@ -350,14 +353,18 @@ bool get_element_val_if_present(
 template<typename SdfPtrT>
 void SlotcarCommon::read_sdf(SdfPtrT& sdf)
 {
+  std::string steering_type;
   get_element_val_if_present<SdfPtrT, std::string>(sdf, "steering",
-    this->_steering_type);
+    steering_type);
 
-  if (_steering_type != DIFF_DRIVE && _steering_type != ACKERMANN)
-    _steering_type = DIFF_DRIVE;
+  if (steering_type == "ackermann")
+    _steering_type = STEERING_TYPE::ACKERMANN;
+  else if (steering_type == "diff_drive")
+    _steering_type = STEERING_TYPE::DIFF_DRIVE;
+
   RCLCPP_INFO(
     logger(),
-    "Vehicle uses %s steering", _steering_type.c_str());
+    "Vehicle uses %s steering", steering_type.c_str());
 
   get_element_val_if_present<SdfPtrT, double>(sdf, "nominal_drive_speed",
     this->_nominal_drive_speed);
