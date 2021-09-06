@@ -5,6 +5,7 @@ Changelog for package rmf_robot_sim_ignition_plugins
 1.3.0 (2021-09-01)
 ------------------
 * Make Ignition Edifice dependency mandatory to fix binary builds(`#45 <https://github.com/open-rmf/rmf_simulation/issues/45>`_)
+* Change parameter tag from holonomic to steering (`#46 <https://github.com/open-rmf/rmf_simulation/issues/46>`_)
 * Change slotcar control to explicitly open loop (`#43 <https://github.com/open-rmf/rmf_simulation/issues/43>`_)
 * Nonholonomic slotcar turning fixes, add turning multiplier offset parameter, rename compute_ds variables (`#41 <https://github.com/open-rmf/rmf_simulation/issues/41>`_)
 * Support nonholonomic movement for slotcar (`#33 <https://github.com/open-rmf/rmf_simulation/issues/33>`_)
