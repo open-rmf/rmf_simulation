@@ -368,7 +368,8 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     dataPtr->update(rmf_plugins_utils::convert_pose(pose),
       obstacle_positions, time);
 
-  send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt, update_result.speed);
+  send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
+    update_result.speed);
 }
 
 IGNITION_ADD_PLUGIN(

@@ -37,9 +37,9 @@ namespace rmf_robot_sim_common {
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
 
 //3rd coordinate is yaw
-struct NonHolonomicTrajectory
+struct AckermannTrajectory
 {
-  NonHolonomicTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
+  AckermannTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
     const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
     bool _turning = false)
   : x0(_x0), x1(_x1),
@@ -212,7 +212,7 @@ private:
 
   std::vector<Eigen::Isometry3d> trajectory;
   std::size_t _traj_wp_idx = 0;
-  std::vector<NonHolonomicTrajectory> ackermann_trajectory;
+  std::vector<AckermannTrajectory> ackermann_trajectory;
   std::size_t _ackermann_traj_idx = 0;
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;

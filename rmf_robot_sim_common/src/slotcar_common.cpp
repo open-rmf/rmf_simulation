@@ -262,10 +262,6 @@ void SlotcarCommon::diff_drive_path_request_cb(
 void SlotcarCommon::ackermann_path_request_cb(
   const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
 {
-  if (path_request_valid(msg) == false)
-    return;
-  if (model_name() != msg->robot_name)
-    return;
   // yaw is ignored
   double min_turning_radius = _min_turning_radius;
   if (min_turning_radius < 0.0)
@@ -278,7 +274,7 @@ void SlotcarCommon::ackermann_path_request_cb(
     return;
 
   // add 1st trajectory
-  NonHolonomicTrajectory traj(
+  AckermannTrajectory traj(
     Eigen::Vector2d(locations[0].x, locations[0].y),
     Eigen::Vector2d(locations[1].x, locations[1].y));
 
@@ -341,18 +337,18 @@ void SlotcarCommon::ackermann_path_request_cb(
     cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
     if (std::abs(cp) < 0.05 || !has_runway)
     {
-      NonHolonomicTrajectory sp2(
+      AckermannTrajectory sp2(
         Eigen::Vector2d(wp[1].x(), wp[1].y()),
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
 
-      NonHolonomicTrajectory& last_traj = this->ackermann_trajectory.back();
+      AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
       last_traj.v1 = sp2.v0;
 
       this->ackermann_trajectory.push_back(sp2);
     }
     else
     {
-      NonHolonomicTrajectory& last_traj = this->ackermann_trajectory.back();
+      AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
 
       // bend, build an intermediate spline using turn rate.
       Eigen::Vector2d tangent0 = wp[1] + tangent_length * wp1_to_wp0_norm;
@@ -362,7 +358,7 @@ void SlotcarCommon::ackermann_path_request_cb(
       last_traj.x1 = Eigen::Vector2d(tangent0.x(), tangent0.y());
       last_traj.v1 = last_traj.v0;
 
-      NonHolonomicTrajectory turn_traj(
+      AckermannTrajectory turn_traj(
         Eigen::Vector2d(tangent0.x(), tangent0.y()),
         Eigen::Vector2d(tangent1.x(), tangent1.y()),
         Eigen::Vector2d(0, 0),
@@ -370,7 +366,7 @@ void SlotcarCommon::ackermann_path_request_cb(
       turn_traj.v0 = -wp1_to_wp0_norm;
       turn_traj.v1 = wp1_to_wp2_norm;
 
-      NonHolonomicTrajectory end_traj(
+      AckermannTrajectory end_traj(
         Eigen::Vector2d(tangent1.x(), tangent1.y()),
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
       end_traj.v0 = wp1_to_wp2_norm;
@@ -381,7 +377,7 @@ void SlotcarCommon::ackermann_path_request_cb(
     }
   }
 
-  NonHolonomicTrajectory& last_traj = this->ackermann_trajectory.back();
+  AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
   last_traj.v1 = last_traj.v0;
 }
 
@@ -457,6 +453,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   const double time)
 {
   std::lock_guard<std::mutex> lock(_mutex);
+  _pose = pose;
+  publish_robot_state(time);
   switch (this->_steering_type)
   {
     case SteeringType::DIFF_DRIVE:
@@ -483,9 +481,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   const rclcpp::Time now{t_sec, t_nsec, RCL_ROS_TIME};
   double dt = time - _last_update_time;
   _last_update_time = time;
-
-  _pose = pose;
-  publish_robot_state(time);
 
   // Update battery state of charge
   if (_initialized_pose)
@@ -697,14 +692,12 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
   const std::vector<Eigen::Vector3d>& /*obstacle_positions*/,
   const double time)
 {
-  _pose = pose;
-  publish_robot_state(time);
 
   UpdateResult result;
   if (_ackermann_traj_idx >= ackermann_trajectory.size())
     return result;
 
-  const NonHolonomicTrajectory& traj =
+  const AckermannTrajectory& traj =
     ackermann_trajectory[_ackermann_traj_idx];
   double dpos_mag = std::numeric_limits<double>::max();
   double wp_range = 0.75;
