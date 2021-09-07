@@ -1,4 +1,4 @@
-# building\_gazebo\_plugins
+# rmf\_building\_sim\_gazebo\_plugins
 
 This package provides Gazebo simulator plugins for allowing simulated building infrastructure to communicate with a ROS system.
 

@@ -21,11 +21,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
-find_package(ignition-cmake2 QUIET)
-if (NOT ignition-cmake2_FOUND)
-  message("ignition-cmake not found, skipping ignition gazebo plugins")
-  return()
-endif()
+find_package(ignition-cmake2 REQUIRED)
 
 ign_find_package(ignition-gazebo5 REQUIRED)
 set(IGN_GAZEBO_VER 5)
