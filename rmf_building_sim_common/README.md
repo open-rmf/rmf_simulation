@@ -1,4 +1,4 @@
-# building\_plugins\_common
+# rmf\_building\_sim\_common
 
 This package provides a common library for the Ignition and Gazebo simulator plugins for simulated building infrastructure.
 
