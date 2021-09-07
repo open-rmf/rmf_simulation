@@ -680,9 +680,12 @@ std::pair<double, double> SlotcarCommon::update(const Eigen::Isometry3d& pose,
 }
 
 std::pair<double, double> SlotcarCommon::update_nonholonomic(
-  Eigen::Isometry3d& pose, double& target_linear_velocity)
+  Eigen::Isometry3d& pose, double& target_linear_velocity, const double time)
 {
   std::lock_guard<std::mutex> lock(_ackmann_path_req_mutex);
+
+  _pose = pose;
+  publish_robot_state(time);
 
   std::pair<double, double> displacements;
   target_linear_velocity = 0.0;

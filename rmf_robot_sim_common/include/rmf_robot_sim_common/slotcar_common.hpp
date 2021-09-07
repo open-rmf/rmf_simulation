@@ -148,7 +148,7 @@ public:
     const double time);
 
   std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose,
-    double& target_linear_velocity);
+    double& target_linear_velocity, const double time);
 
   bool emergency_stop(const std::vector<Eigen::Vector3d>& obstacle_positions,
     const Eigen::Vector3d& current_heading);
