@@ -130,6 +130,13 @@ enum class SteeringType
 class SlotcarCommon
 {
 public:
+  typedef struct UpdateResult
+  {
+    double v = 0.0; // Target displacement in X (forward)
+    double w = 0.0; // Target displacement in yaw
+    double speed = 0.0; // Target speed
+  } UpdateResult;
+
   SlotcarCommon();
 
   rclcpp::Logger logger() const;
@@ -143,12 +150,9 @@ public:
 
   void init_ros_node(const rclcpp::Node::SharedPtr node);
 
-  std::pair<double, double> update(const Eigen::Isometry3d& pose,
+  UpdateResult update(const Eigen::Isometry3d& pose,
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
-
-  std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose,
-    double& target_linear_velocity, const double time);
 
   bool emergency_stop(const std::vector<Eigen::Vector3d>& obstacle_positions,
     const Eigen::Vector3d& current_heading);
@@ -164,19 +168,9 @@ public:
     const std::pair<double, double>& displacements,
     const double dt) const;
 
-  std::array<double, 2> calculate_model_control_signals(
-    const std::array<double, 2>& curr_velocities,
-    const std::pair<double, double>& displacements,
-    const double dt,
-    const double target_linear_velocity = 0.0) const;
-
   void charge_state_cb(const std::string& name, bool selected);
 
   void publish_robot_state(const double time);
-
-  SteeringType get_steering_type() const;
-
-  bool is_ackermann_steered() const;
 
 private:
   // Paramters needed for power dissipation and charging calculations
@@ -218,15 +212,14 @@ private:
 
   std::vector<Eigen::Isometry3d> trajectory;
   std::size_t _traj_wp_idx = 0;
-  std::vector<NonHolonomicTrajectory> nonholonomic_trajectory;
-  std::size_t _nonholonomic_traj_idx = 0;
+  std::vector<NonHolonomicTrajectory> ackermann_trajectory;
+  std::size_t _ackermann_traj_idx = 0;
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
   std::vector<rclcpp::Time> _hold_times;
 
   std::mutex _mutex;
-  std::mutex _ackmann_path_req_mutex;
 
   std::string _model_name;
   bool _emergency_stop = false;
@@ -317,7 +310,10 @@ private:
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
-  void ackmann_path_request_cb(
+  void diff_drive_path_request_cb(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+
+  void ackermann_path_request_cb(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
@@ -325,6 +321,14 @@ private:
   void mode_request_cb(const rmf_fleet_msgs::msg::ModeRequest::SharedPtr msg);
 
   void map_cb(const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg);
+
+  UpdateResult update_diff_drive(const Eigen::Isometry3d& pose,
+    const std::vector<Eigen::Vector3d>& obstacle_positions,
+    const double time);
+
+  UpdateResult update_ackermann(const Eigen::Isometry3d& pose,
+    const std::vector<Eigen::Vector3d>& obstacle_positions,
+    const double time);
 
   bool near_charger(const Eigen::Isometry3d& pose) const;
 

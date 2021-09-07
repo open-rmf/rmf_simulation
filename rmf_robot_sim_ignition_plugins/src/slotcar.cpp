@@ -171,7 +171,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   double v_robot = _prev_v_command;
   double w_robot = _prev_w_command;
   std::array<double, 2> target_vels;
-  target_vels = dataPtr->calculate_model_control_signals({v_robot, w_robot},
+  target_vels = dataPtr->calculate_control_signals({v_robot, w_robot},
       displacements, dt, target_linear_velocity);
 
   lin_vel_cmd->Data()[0] = target_vels[0];
@@ -361,41 +361,14 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count())
     * 1e-9;
 
-  using namespace rmf_robot_sim_common;
-  if (dataPtr->get_steering_type() == SteeringType::ACKERMANN)
-  {
-    double target_linear_velocity = 0.0;
-    auto& pose = ecm.Component<components::Pose>(_entity)->Data();
-    auto isometry_pose = rmf_plugins_utils::convert_pose(pose);
-    auto displacements = dataPtr->update_nonholonomic(isometry_pose,
-        target_linear_velocity, time);
+  auto pose = ecm.Component<components::Pose>(_entity)->Data();
+  auto obstacle_positions = get_obstacle_positions(ecm);
 
-    //convert back to account for flips
-    pose = rmf_plugins_utils::convert_to_pose<ignition::math::Pose3d>(
-      isometry_pose);
+  auto update_result =
+    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
+      obstacle_positions, time);
 
-    send_control_signals(ecm, displacements, _payloads, dt,
-      target_linear_velocity);
-  }
-  else if (dataPtr->get_steering_type() == SteeringType::DIFF_DRIVE)
-  {
-    auto pose = ecm.Component<components::Pose>(_entity)->Data();
-    auto obstacle_positions = get_obstacle_positions(ecm);
-
-    auto p = pose.Pos();
-
-    //printf("%s: %g %g!\n", dataPtr->model_name().c_str(), p.X(), p.Y());
-
-    auto displacements =
-      dataPtr->update(rmf_plugins_utils::convert_pose(pose),
-        obstacle_positions, time);
-
-    send_control_signals(ecm, displacements, _payloads, dt);
-  }
-  else
-  {
-    RCLCPP_INFO(dataPtr->logger(), "Unknown steering type");
-  }
+  send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt, update_result.speed);
 }
 
 IGNITION_ADD_PLUGIN(
