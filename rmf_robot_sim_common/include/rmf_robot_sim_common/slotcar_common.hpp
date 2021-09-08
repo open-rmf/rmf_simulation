@@ -112,13 +112,13 @@ inline Eigen::Isometry3d convert_pose(const IgnPoseT& _pose)
   return tf;
 }
 
-typedef struct TrajectoryPoint
+struct TrajectoryPoint
 {
   Eigen::Vector3d pos;
   Eigen::Quaterniond quat;
   TrajectoryPoint(const Eigen::Vector3d& _pos, const Eigen::Quaterniond& _quat)
   : pos(_pos), quat(_quat) {}
-} TrajectoryPoint;
+};
 
 // steering type constants
 enum class SteeringType
@@ -130,12 +130,12 @@ enum class SteeringType
 class SlotcarCommon
 {
 public:
-  typedef struct UpdateResult
+  struct UpdateResult
   {
     double v = 0.0; // Target displacement in X (forward)
     double w = 0.0; // Target displacement in yaw
     double speed = 0.0; // Target speed
-  } UpdateResult;
+  };
 
   SlotcarCommon();
 
@@ -310,10 +310,10 @@ private:
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
-  void diff_drive_path_request_cb(
+  void handle_diff_drive_path_request(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
-  void ackermann_path_request_cb(
+  void handle_ackermann_path_request(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
@@ -322,11 +322,11 @@ private:
 
   void map_cb(const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg);
 
-  UpdateResult update_diff_drive(const Eigen::Isometry3d& pose,
+  UpdateResult update_diff_drive(
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
 
-  UpdateResult update_ackermann(const Eigen::Isometry3d& pose,
+  UpdateResult update_ackermann(
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
 

@@ -186,18 +186,17 @@ void SlotcarCommon::path_request_cb(
   switch (this->_steering_type)
   {
     case SteeringType::DIFF_DRIVE:
-      diff_drive_path_request_cb(msg);
+      handle_diff_drive_path_request(msg);
       break;
     case SteeringType::ACKERMANN:
-      ackermann_path_request_cb(msg);
+      handle_ackermann_path_request(msg);
       break;
     default:
       break;
-      // NOOP
   }
 }
 
-void SlotcarCommon::diff_drive_path_request_cb(
+void SlotcarCommon::handle_diff_drive_path_request(
   const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
 {
   const auto old_path = _remaining_path;
@@ -259,7 +258,7 @@ void SlotcarCommon::diff_drive_path_request_cb(
   }
 }
 
-void SlotcarCommon::ackermann_path_request_cb(
+void SlotcarCommon::handle_ackermann_path_request(
   const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
 {
   // yaw is ignored
@@ -458,19 +457,17 @@ SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   switch (this->_steering_type)
   {
     case SteeringType::DIFF_DRIVE:
-      return update_diff_drive(pose, obstacle_positions, time);
+      return update_diff_drive(obstacle_positions, time);
     case SteeringType::ACKERMANN:
       // TODO(anyone) use obstacle_positions for emergency stop for ackermann
-      return update_ackermann(pose, obstacle_positions, time);
+      return update_ackermann(obstacle_positions, time);
     default:
       return UpdateResult();
-      // NOOP
   }
 }
 
 // First value of par is x_target, second is yaw_target
 SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
-  const Eigen::Isometry3d& pose,
   const std::vector<Eigen::Vector3d>& obstacle_positions,
   const double time)
 {
@@ -648,13 +645,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       current_heading,
       goal_heading);
 
-    // Put in a deadzone if yaw is small enough. This essentially locks the
-    // tires. COMMENTED OUT as it breaks rotations for some reason...
-    // if(std::abs(result.w) < std::max(0.1*M_PI/180.00, goal_yaw_tolerance))
-    // {
-    //   result.w = 0.0;
-    // }
-
     result.v = 0.0;
   }
 
@@ -688,9 +678,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 }
 
 SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
-  const Eigen::Isometry3d& pose,
   const std::vector<Eigen::Vector3d>& /*obstacle_positions*/,
-  const double time)
+  const double /*time*/)
 {
 
   UpdateResult result;
@@ -706,7 +695,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
   if (traj.turning == false)
   {
     Eigen::Vector3d to_waypoint = Eigen::Vector3d(traj.x1.x(), traj.x1.y(), 0) -
-      pose.translation();
+      _pose.translation();
     to_waypoint(2) = 0.0;
 
     const Eigen::Vector3d dpos = to_waypoint;
@@ -716,7 +705,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     result.v = dpos_mag >= wp_range ? dpos_mag : 0.0;
 
     // figure out where we are relative to the goal point
-    Eigen::Vector2d position(pose.translation().x(), pose.translation().y());
+    Eigen::Vector2d position(_pose.translation().x(), _pose.translation().y());
     Eigen::Vector2d dest_pt = traj.x1;
     Eigen::Vector2d forward = traj.v1;
     Eigen::Vector2d dest_pt_to_current_position = position - dest_pt;
@@ -725,7 +714,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     // we behind the goal point, turn to suit our needs
     if (dotp_location < 0.0)
     {
-      Eigen::Vector2d heading = pose.linear().block<2, 1>(0, 0);
+      Eigen::Vector2d heading = _pose.linear().block<2, 1>(0, 0);
       heading = heading.normalized();
       Eigen::Vector2d dpos_norm(dpos.x(), dpos.y());
       dpos_norm = dpos_norm.normalized();
@@ -737,19 +726,16 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     else
       result.w = 0.0;
 
-    // printf("_ackermann_traj_idx %d dpos_mag: %g displacements %g, %g\n",
-    //   _ackermann_traj_idx, dpos_mag, result.v, result.w);
-
     close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
     if (_ackermann_traj_idx != (ackermann_trajectory.size() - 1))
       result.speed = _nominal_drive_speed;
   }
   else
   {
-    Eigen::Vector2d position(pose.translation().x(), pose.translation().y());
+    Eigen::Vector2d position(_pose.translation().x(), _pose.translation().y());
     result.speed = _nominal_drive_speed;
 
-    Eigen::Vector2d heading = pose.linear().block<2, 1>(0, 0);
+    Eigen::Vector2d heading = _pose.linear().block<2, 1>(0, 0);
     heading = heading.normalized();
     Eigen::Vector2d target_heading = traj.v1;
 
