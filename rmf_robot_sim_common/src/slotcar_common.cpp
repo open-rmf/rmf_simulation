@@ -721,6 +721,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
 
       double dotp = heading.dot(dpos_norm);
       double cross = heading.x() * dpos_norm.y() - heading.y() * dpos_norm.x();
+      // Clamp to avoid numerical errors due to floating point precision
+      std::clamp(dotp, -1.0, 1.0);
       result.w = cross < 0.0 ? -acos(dotp) : acos(dotp);
     }
     else
@@ -742,6 +744,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     double heading_dotp = heading.dot(target_heading);
     double cross = heading.x() * target_heading.y() - heading.y() *
       target_heading.x();
+    // Clamp to avoid numerical errors due to floating point precision
+    std::clamp(heading_dotp, -1.0, 1.0);
     result.w = cross <
       0.0 ? -acos(heading_dotp) : acos(heading_dotp);
 
