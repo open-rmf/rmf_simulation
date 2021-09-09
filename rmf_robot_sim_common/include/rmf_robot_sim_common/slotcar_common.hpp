@@ -37,9 +37,9 @@ namespace rmf_robot_sim_common {
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
 
 //3rd coordinate is yaw
-struct NonHolonomicTrajectory
+struct AckermannTrajectory
 {
-  NonHolonomicTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
+  AckermannTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
     const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
     bool _turning = false)
   : x0(_x0), x1(_x1),
@@ -112,13 +112,13 @@ inline Eigen::Isometry3d convert_pose(const IgnPoseT& _pose)
   return tf;
 }
 
-typedef struct TrajectoryPoint
+struct TrajectoryPoint
 {
   Eigen::Vector3d pos;
   Eigen::Quaterniond quat;
   TrajectoryPoint(const Eigen::Vector3d& _pos, const Eigen::Quaterniond& _quat)
   : pos(_pos), quat(_quat) {}
-} TrajectoryPoint;
+};
 
 // steering type constants
 enum class SteeringType
@@ -130,6 +130,13 @@ enum class SteeringType
 class SlotcarCommon
 {
 public:
+  struct UpdateResult
+  {
+    double v = 0.0; // Target displacement in X (forward)
+    double w = 0.0; // Target displacement in yaw
+    double speed = 0.0; // Target speed
+  };
+
   SlotcarCommon();
 
   rclcpp::Logger logger() const;
@@ -143,12 +150,9 @@ public:
 
   void init_ros_node(const rclcpp::Node::SharedPtr node);
 
-  std::pair<double, double> update(const Eigen::Isometry3d& pose,
+  UpdateResult update(const Eigen::Isometry3d& pose,
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
-
-  std::pair<double, double> update_nonholonomic(Eigen::Isometry3d& pose,
-    double& target_linear_velocity);
 
   bool emergency_stop(const std::vector<Eigen::Vector3d>& obstacle_positions,
     const Eigen::Vector3d& current_heading);
@@ -164,19 +168,9 @@ public:
     const std::pair<double, double>& displacements,
     const double dt) const;
 
-  std::array<double, 2> calculate_model_control_signals(
-    const std::array<double, 2>& curr_velocities,
-    const std::pair<double, double>& displacements,
-    const double dt,
-    const double target_linear_velocity = 0.0) const;
-
   void charge_state_cb(const std::string& name, bool selected);
 
   void publish_robot_state(const double time);
-
-  SteeringType get_steering_type() const;
-
-  bool is_ackermann_steered() const;
 
 private:
   // Paramters needed for power dissipation and charging calculations
@@ -218,15 +212,14 @@ private:
 
   std::vector<Eigen::Isometry3d> trajectory;
   std::size_t _traj_wp_idx = 0;
-  std::vector<NonHolonomicTrajectory> nonholonomic_trajectory;
-  std::size_t _nonholonomic_traj_idx = 0;
+  std::vector<AckermannTrajectory> ackermann_trajectory;
+  std::size_t _ackermann_traj_idx = 0;
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
   std::vector<rclcpp::Time> _hold_times;
 
   std::mutex _mutex;
-  std::mutex _ackmann_path_req_mutex;
 
   std::string _model_name;
   bool _emergency_stop = false;
@@ -317,7 +310,10 @@ private:
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
-  void ackmann_path_request_cb(
+  void handle_diff_drive_path_request(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+
+  void handle_ackermann_path_request(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
@@ -325,6 +321,14 @@ private:
   void mode_request_cb(const rmf_fleet_msgs::msg::ModeRequest::SharedPtr msg);
 
   void map_cb(const rmf_building_map_msgs::msg::BuildingMap::SharedPtr msg);
+
+  UpdateResult update_diff_drive(
+    const std::vector<Eigen::Vector3d>& obstacle_positions,
+    const double time);
+
+  UpdateResult update_ackermann(
+    const std::vector<Eigen::Vector3d>& obstacle_positions,
+    const double time);
 
   bool near_charger(const Eigen::Isometry3d& pose) const;
 

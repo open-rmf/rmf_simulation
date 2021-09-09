@@ -164,11 +164,11 @@ void SlotcarPlugin::OnUpdate()
   auto pose = _model->WorldPose();
   auto obstacle_positions = get_obstacle_positions(world);
 
-  auto displacements =
+  auto update_result =
     dataPtr->update(rmf_plugins_utils::convert_pose(pose),
       obstacle_positions, time);
 
-  send_control_signals(displacements, dt);
+  send_control_signals({update_result.v, update_result.w}, dt);
 }
 
 GZ_REGISTER_MODEL_PLUGIN(SlotcarPlugin)
