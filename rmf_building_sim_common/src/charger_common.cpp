@@ -104,7 +104,7 @@ void ChargerCommon::complete_charger_charge(std::string name)
   auto it = chargers_.find(name);
   if(it == chargers_.end()) return;
   {
-    it->second.state_ = State::COMPLETED;
+    //it->second.state_ = State::COMPLETED;
   }
 }
 
