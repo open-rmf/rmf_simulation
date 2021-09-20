@@ -71,7 +71,6 @@ private:
     IDLE = rmf_charger_msgs::msg::ChargerState::CHARGER_IDLE,
     ASSIGNED = rmf_charger_msgs::msg::ChargerState::CHARGER_ASSIGNED, 
     CHARGING = rmf_charger_msgs::msg::ChargerState::CHARGER_CHARGING, 
-    //COMPLETED = rmf_charger_msgs::msg::ChargerState::CHARGER_COMPLETED
   };
 
   struct Charger
