@@ -2,7 +2,7 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
@@ -12,10 +12,7 @@
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/door_common.hpp>
 
-// TODO remove this
-using namespace ignition;
-using namespace gazebo;
-using namespace systems;
+using namespace ignition::gazebo;
 
 using namespace rmf_building_sim_common;
 
@@ -38,15 +35,9 @@ private:
 
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointPosition().TypeId()))
-      ecm.CreateComponent(entity, components::JointPosition({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointVelocity().TypeId()))
-      ecm.CreateComponent(entity, components::JointVelocity({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointVelocityCmd().TypeId()))
-      ecm.CreateComponent(entity, components::JointVelocityCmd({0}));
+    enableComponent<components::JointPosition>(ecm, entity);
+    enableComponent<components::JointVelocity>(ecm, entity);
+    enableComponent<components::JointVelocityCmd>(ecm, entity);
   }
 
 public:
@@ -71,7 +62,6 @@ public:
     if (!rclcpp::ok())
       rclcpp::init(0, argv);
     std::string plugin_name("plugin_" + name);
-    ignwarn << "Initializing plugin with name " << plugin_name << std::endl;
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     RCLCPP_INFO(_ros_node->get_logger(),
@@ -156,7 +146,6 @@ IGNITION_ADD_PLUGIN(
   DoorPlugin::ISystemConfigure,
   DoorPlugin::ISystemPreUpdate)
 
-// TODO would prefer namespaced
 IGNITION_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
 
 } // namespace rmf_building_sim_ignition_plugins
