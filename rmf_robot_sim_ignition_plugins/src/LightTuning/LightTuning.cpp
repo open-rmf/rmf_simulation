@@ -586,6 +586,7 @@ void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
 
 bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
 {
+  /*
   if (_event->type() == ignition::gazebo::gui::events::Render::kType)
   {
     if (!scene_ptr)
@@ -597,6 +598,8 @@ bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
     render_lights();
   }
   else if (_event->type() ==
+  */
+  if (_event->type() ==
     ignition::gazebo::gui::events::EntitiesSelected::kType)
   {
     auto event =

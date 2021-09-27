@@ -24,6 +24,7 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
@@ -178,12 +179,7 @@ void TeleportIngestorPlugin::fill_robot_list(EntityComponentManager& ecm,
 void TeleportIngestorPlugin::transport_model(EntityComponentManager& ecm)
 {
   // Ingestor assumes control of entity. Set its pose and cancel any pre-existing velocity cmds
-  auto cmd = ecm.Component<components::WorldPoseCmd>(_ingested_entity);
-  if (!cmd)
-  {
-    ecm.CreateComponent(_ingested_entity,
-      components::WorldPoseCmd(ignition::math::Pose3<double>()));
-  }
+  enableComponent<components::WorldPoseCmd>(ecm, _ingested_entity);
   auto new_pose = ecm.Component<components::Pose>(_ingestor)->Data();
   ecm.Component<components::WorldPoseCmd>(_ingested_entity)->Data() = new_pose;
 
@@ -221,6 +217,7 @@ void TeleportIngestorPlugin::send_ingested_item_home(
     }
     else
     {
+      enableComponent<components::WorldPoseCmd>(ecm, _ingested_entity);
       auto cmd = ecm.Component<components::WorldPoseCmd>(_ingested_entity);
       if (!cmd)
       {
