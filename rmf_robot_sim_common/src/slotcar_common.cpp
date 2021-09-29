@@ -399,11 +399,19 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   const double v_robot = curr_velocities[0];
   const double w_robot = curr_velocities[1];
 
-  const double v_target = rmf_plugins_utils::compute_ds(displacements.first,
-      v_robot,
-      _nominal_drive_speed,
-      _nominal_drive_acceleration, _max_drive_acceleration, dt,
-      target_linear_velocity);
+  double v_target = 0.0;
+  if (this->_steering_type == SteeringType::ACKERMANN)
+    v_target = rmf_plugins_utils::compute_ds_linear(displacements.first,
+        v_robot,
+        _nominal_drive_speed,
+        _nominal_drive_acceleration, _max_drive_acceleration, dt,
+        target_linear_velocity);
+  else
+    v_target = rmf_plugins_utils::compute_ds(displacements.first,
+        v_robot,
+        _nominal_drive_speed,
+        _nominal_drive_acceleration, _max_drive_acceleration, dt,
+        target_linear_velocity);
 
   double w_target = rmf_plugins_utils::compute_ds(displacements.second,
       w_robot,

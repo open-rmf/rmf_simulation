@@ -63,6 +63,15 @@ double compute_ds(
   const double dt,
   const double v_target = 0.0);
 
+double compute_ds_linear(
+  double s_target,
+  double v_actual,
+  const double v_max,
+  const double accel_nom,
+  const double accel_max,
+  const double dt,
+  const double v_target = 0.0);
+
 struct MotionParams
 {
   double v_max = 0.2;
