@@ -90,7 +90,8 @@ double compute_ds_linear(
   if (v_actual > 0.0 && s_target > 0.0)
   {
     // use equations of motion to figure out an acceleration
-    double desired_acceleration = (pow(v_target, 2) - pow(v_actual, 2)) / (2.0 * s_target);
+    double desired_acceleration =
+      (pow(v_target, 2) - pow(v_actual, 2)) / (2.0 * s_target);
     if (desired_acceleration > accel_max)
       desired_acceleration = accel_max;
 
