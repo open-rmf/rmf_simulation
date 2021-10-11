@@ -720,7 +720,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     double dotp_location = forward.dot(dest_pt_to_current_position);
 
     // we behind the goal point, turn to suit our needs
-    if (dotp_location < 0.0)
+    if (dotp_location < 0.0 && dpos_mag >= wp_range)
     {
       Eigen::Vector2d heading = _pose.linear().block<2, 1>(0, 0);
       heading = heading.normalized();
@@ -739,6 +739,26 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
     if (_ackermann_traj_idx != (ackermann_trajectory.size() - 1))
       result.speed = _nominal_drive_speed;
+    else
+    {
+      // last segment, starting from 0 velocity to 
+      auto& last_segment = ackermann_trajectory[_ackermann_traj_idx];
+      double segment_dist = (last_segment.x1 - last_segment.x0).norm();
+      
+      if (dpos_mag >= (segment_dist * 0.5))
+      {
+        // if we're in the first half of the segment,
+        // tell our integrator to attain the drive speed assuming
+        // half the segment dist to reach it
+        result.v = segment_dist * 0.5;
+        result.speed = _nominal_drive_speed;
+      }
+      else
+      {
+        // slow down to 0
+        result.speed = 0.0;
+      }
+    }
   }
   else
   {
