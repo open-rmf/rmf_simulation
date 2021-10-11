@@ -70,7 +70,8 @@ private:
     const std::pair<double, double>& displacements,
     const std::unordered_set<Entity> payloads,
     const double dt,
-    const double target_linear_velocity = 0.0);
+    const double target_linear_velocity,
+    const std::optional<double>& max_linear_velocity);
   void init_infrastructure(EntityComponentManager& ecm);
   void item_dispensed_cb(const ignition::msgs::UInt64_V& msg);
   void item_ingested_cb(const ignition::msgs::Entity& msg);
@@ -160,7 +161,8 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   const std::pair<double, double>& displacements,
   const std::unordered_set<Entity> payloads,
   const double dt,
-  const double target_linear_velocity)
+  const double target_linear_velocity,
+  const std::optional<double>& max_linear_velocity)
 {
   auto lin_vel_cmd =
     ecm.Component<components::LinearVelocityCmd>(_entity);
@@ -172,7 +174,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   double w_robot = _prev_w_command;
   std::array<double, 2> target_vels;
   target_vels = dataPtr->calculate_control_signals({v_robot, w_robot},
-      displacements, dt, target_linear_velocity);
+      displacements, dt, target_linear_velocity, max_linear_velocity);
 
   lin_vel_cmd->Data()[0] = target_vels[0];
   ang_vel_cmd->Data()[2] = target_vels[1];
@@ -369,7 +371,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
       obstacle_positions, time);
 
   send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
-    update_result.speed);
+    update_result.speed, update_result.max_speed);
 }
 
 IGNITION_ADD_PLUGIN(

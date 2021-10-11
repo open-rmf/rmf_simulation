@@ -41,10 +41,10 @@ struct AckermannTrajectory
 {
   AckermannTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
     const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
-    bool _turning = false)
+    bool _turning = false, double _approach_speed = 0.0)
   : x0(_x0), x1(_x1),
     v0((x1 - x0).normalized()), v1(_v1),
-    turning(_turning)
+    turning(_turning), approach_speed(_approach_speed)
   {}
   // positions
   Eigen::Vector2d x0;
@@ -54,6 +54,8 @@ struct AckermannTrajectory
   Eigen::Vector2d v1;
 
   bool turning = false;
+  // Target speed for approaching this waypoint
+  double approach_speed = 0.0;
 };
 
 // Edit reference of parameter for template type deduction
@@ -134,7 +136,8 @@ public:
   {
     double v = 0.0; // Target displacement in X (forward)
     double w = 0.0; // Target displacement in yaw
-    double speed = 0.0; // Target speed
+    double speed = 0.0; // Target speed at next waypoint
+    std::optional<double> max_speed = std::nullopt; // Maximum speed allowed while navigating
   };
 
   SlotcarCommon();
@@ -161,7 +164,8 @@ public:
     2>& curr_velocities,
     const std::pair<double, double>& displacements,
     const double dt,
-    const double target_linear_velocity = 0.0) const;
+    const double target_linear_velocity = 0.0,
+    const std::optional<double>& linear_speed_limit = std::nullopt) const;
 
   std::array<double, 2> calculate_joint_control_signals(
     const std::array<double, 2>& w_tire,

@@ -276,6 +276,7 @@ void SlotcarCommon::handle_ackermann_path_request(
   AckermannTrajectory traj(
     Eigen::Vector2d(locations[0].x, locations[0].y),
     Eigen::Vector2d(locations[1].x, locations[1].y));
+  traj.approach_speed = locations[1].approach_speed;
 
   this->ackermann_trajectory.push_back(traj);
 
@@ -341,6 +342,7 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
 
       AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
+      sp2.approach_speed = locations[i].approach_speed;
       last_traj.v1 = sp2.v0;
 
       this->ackermann_trajectory.push_back(sp2);
@@ -353,7 +355,7 @@ void SlotcarCommon::handle_ackermann_path_request(
       Eigen::Vector2d tangent0 = wp[1] + tangent_length * wp1_to_wp0_norm;
       Eigen::Vector2d tangent1 = wp[1] + tangent_length * wp1_to_wp2_norm;
 
-      // shorten the last trajectory and set it's heading
+      // shorten the last trajectory and set its heading
       last_traj.x1 = Eigen::Vector2d(tangent0.x(), tangent0.y());
       last_traj.v1 = last_traj.v0;
 
@@ -361,7 +363,7 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(tangent0.x(), tangent0.y()),
         Eigen::Vector2d(tangent1.x(), tangent1.y()),
         Eigen::Vector2d(0, 0),
-        true);
+        true, locations[i-1].approach_speed);
       turn_traj.v0 = -wp1_to_wp0_norm;
       turn_traj.v1 = wp1_to_wp2_norm;
 
@@ -370,6 +372,7 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
       end_traj.v0 = wp1_to_wp2_norm;
       end_traj.v1 = wp1_to_wp2_norm;
+      end_traj.approach_speed = locations[i].approach_speed;
 
       this->ackermann_trajectory.push_back(turn_traj);
       this->ackermann_trajectory.push_back(end_traj);
@@ -394,14 +397,17 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   const std::array<double, 2>& curr_velocities,
   const std::pair<double, double>& displacements,
   const double dt,
-  const double target_linear_velocity) const
+  const double target_linear_velocity,
+  const std::optional<double>& linear_speed_limit) const
 {
   const double v_robot = curr_velocities[0];
   const double w_robot = curr_velocities[1];
 
+  const double max_lin_vel = linear_speed_limit.has_value() ?
+    linear_speed_limit.value() : _nominal_drive_speed;
   const double v_target = rmf_plugins_utils::compute_ds(displacements.first,
       v_robot,
-      _nominal_drive_speed,
+      max_lin_vel,
       _nominal_drive_acceleration, _max_drive_acceleration, dt,
       target_linear_velocity);
 
@@ -413,6 +419,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   return std::array<double, 2>{v_target, w_target};
 }
 
+// TODO(anyone) implement target velocity / speed limit for this function
 std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
   const std::array<double, 2>& w_tire,
   const std::pair<double, double>& displacements,
@@ -457,6 +464,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   switch (this->_steering_type)
   {
     case SteeringType::DIFF_DRIVE:
+      // TODO(anyone) parse speed limits in diff drive robots
       return update_diff_drive(obstacle_positions, time);
     case SteeringType::ACKERMANN:
       // TODO(anyone) use obstacle_positions for emergency stop for ackermann
@@ -730,12 +738,35 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
 
     close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
     if (_ackermann_traj_idx != (ackermann_trajectory.size() - 1))
-      result.speed = _nominal_drive_speed;
+    {
+      // Apply speed limit if one is present in the trajectory
+      if (traj.approach_speed > 0.0)
+      {
+        result.speed = traj.approach_speed;
+        result.max_speed = traj.approach_speed;
+      }
+      else
+      {
+        result.speed = _nominal_drive_speed;
+        result.max_speed = _nominal_drive_speed;
+      }
+    }
   }
   else
   {
     Eigen::Vector2d position(_pose.translation().x(), _pose.translation().y());
-    result.speed = _nominal_drive_speed;
+    // Apply speed limit if one is present in the trajectory
+    // TODO(anyone) speed while turning should probably be lower
+    if (traj.approach_speed > 0.0)
+    {
+      result.speed = traj.approach_speed;
+      result.max_speed = traj.approach_speed;
+    }
+    else
+    {
+      result.speed = _nominal_drive_speed;
+      result.max_speed = _nominal_drive_speed;
+    }
 
     Eigen::Vector2d heading = _pose.linear().block<2, 1>(0, 0);
     heading = heading.normalized();
