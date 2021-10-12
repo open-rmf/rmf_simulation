@@ -58,6 +58,18 @@ struct AckermannTrajectory
   double approach_speed = 0.0;
 };
 
+struct DiffDriveTrajectory
+{
+  DiffDriveTrajectory(const Eigen::Isometry3d& _pose,
+      const double _approach_speed = 0.0)
+  : pose(_pose), approach_speed(_approach_speed)
+  {}
+  DiffDriveTrajectory() {}
+  // positions
+  Eigen::Isometry3d pose;
+  double approach_speed = 0.0;
+};
+
 // Edit reference of parameter for template type deduction
 template<typename IgnQuatT>
 inline void convert(const Eigen::Quaterniond& _q, IgnQuatT& quat)
@@ -214,7 +226,7 @@ private:
   double last_topic_pub = 0.0;
   std::size_t _sequence = 0;
 
-  std::vector<Eigen::Isometry3d> trajectory;
+  std::vector<DiffDriveTrajectory> trajectory;
   std::size_t _traj_wp_idx = 0;
   std::vector<AckermannTrajectory> ackermann_trajectory;
   std::size_t _ackermann_traj_idx = 0;

@@ -223,8 +223,8 @@ void SlotcarCommon::handle_diff_drive_path_request(
 
     Eigen::Quaterniond quat(
       Eigen::AngleAxisd(msg->path[i].yaw, Eigen::Vector3d::UnitZ()));
-    trajectory.at(i).translation() = v3;
-    trajectory.at(i).linear() = Eigen::Matrix3d(quat);
+    trajectory.at(i).pose.translation() = v3;
+    trajectory.at(i).pose.linear() = Eigen::Matrix3d(quat);
 
     _hold_times.at(i) = msg->path[i].t;
   }
@@ -234,7 +234,7 @@ void SlotcarCommon::handle_diff_drive_path_request(
   _current_task_id = msg->task_id;
   _adapter_error = false;
 
-  const double initial_dist = compute_dpos(trajectory.front(), _pose).norm();
+  const double initial_dist = compute_dpos(trajectory.front().pose, _pose).norm();
 
   if (initial_dist > INITIAL_DISTANCE_THRESHOLD)
   {
@@ -551,7 +551,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   if (_traj_wp_idx < trajectory.size())
   {
     const Eigen::Vector3d dpos = compute_dpos(
-      trajectory.at(_traj_wp_idx), _pose);
+      trajectory.at(_traj_wp_idx).pose, _pose);
 
     if (_hold_times.size() != trajectory.size())
     {
@@ -587,10 +587,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       if (_traj_wp_idx+1 < trajectory.size())
       {
         const auto dpos_next =
-          compute_dpos(trajectory.at(_traj_wp_idx+1), _pose);
+          compute_dpos(trajectory.at(_traj_wp_idx+1).pose, _pose);
 
         const auto goal_heading =
-          compute_heading(trajectory.at(_traj_wp_idx+1));
+          compute_heading(trajectory.at(_traj_wp_idx+1).pose);
 
         double dir = 1.0;
         result.w = compute_change_in_rotation(
@@ -601,7 +601,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       }
       else
       {
-        const auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx));
+        const auto goal_heading =
+          compute_heading(trajectory.at(_traj_wp_idx).pose);
         result.w = compute_change_in_rotation(
           current_heading, goal_heading);
       }
@@ -632,7 +633,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     if (!rotate_towards_next_target && _traj_wp_idx < trajectory.size())
     {
       const double d_yaw_tolerance = 5.0 * M_PI / 180.0;
-      auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx));
+      auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx).pose);
       double dir = 1.0;
       result.w =
         compute_change_in_rotation(current_heading, dpos, &goal_heading, &dir);
@@ -648,7 +649,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   }
   else
   {
-    const auto goal_heading = compute_heading(trajectory.back());
+    const auto goal_heading = compute_heading(trajectory.back().pose);
     result.w = compute_change_in_rotation(
       current_heading,
       goal_heading);
@@ -682,6 +683,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   }
 
   _rot_dir = result.w >= 0 ? 1 : -1;
+  result.max_speed = trajectory.at(_traj_wp_idx).approach_speed;
   return result;
 }
 
