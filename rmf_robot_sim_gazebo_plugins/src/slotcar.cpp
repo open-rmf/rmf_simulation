@@ -43,13 +43,14 @@ private:
   void charge_state_cb(ConstSelectionPtr& msg);
 
   void send_control_signals(const std::pair<double, double>& displacements,
-    const double dt)
+    const double dt, const double target_linear_velocity,
+    const std::optional<double>& max_linear_velocity)
   {
     std::array<double, 2> w_tire;
     for (std::size_t i = 0; i < 2; ++i)
       w_tire[i] = joints[i]->GetVelocity(0);
     auto joint_signals = dataPtr->calculate_joint_control_signals(w_tire,
-        displacements, dt);
+        displacements, dt, target_linear_velocity, max_linear_velocity);
     for (std::size_t i = 0; i < 2; ++i)
     {
       joints[i]->SetParam("vel", 0, joint_signals[i]);
@@ -168,7 +169,8 @@ void SlotcarPlugin::OnUpdate()
     dataPtr->update(rmf_plugins_utils::convert_pose(pose),
       obstacle_positions, time);
 
-  send_control_signals({update_result.v, update_result.w}, dt);
+  send_control_signals({update_result.v, update_result.w}, dt,
+      update_result.speed, update_result.max_speed);
 }
 
 GZ_REGISTER_MODEL_PLUGIN(SlotcarPlugin)

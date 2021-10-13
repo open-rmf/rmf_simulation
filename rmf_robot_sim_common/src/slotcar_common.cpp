@@ -225,6 +225,9 @@ void SlotcarCommon::handle_diff_drive_path_request(
       Eigen::AngleAxisd(msg->path[i].yaw, Eigen::Vector3d::UnitZ()));
     trajectory.at(i).pose.translation() = v3;
     trajectory.at(i).pose.linear() = Eigen::Matrix3d(quat);
+    const double approach_speed = msg->path[i].approach_speed;
+    if (approach_speed > 0.0)
+      trajectory.at(i).approach_speed = approach_speed;
 
     _hold_times.at(i) = msg->path[i].t;
   }
@@ -419,18 +422,20 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   return std::array<double, 2>{v_target, w_target};
 }
 
-// TODO(anyone) implement target velocity / speed limit for this function
 std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
   const std::array<double, 2>& w_tire,
   const std::pair<double, double>& displacements,
-  const double dt) const
+  const double dt,
+  const double target_linear_velocity,
+  const std::optional<double>& linear_speed_limit) const
 {
   std::array<double, 2> curr_velocities;
   curr_velocities[0] = (w_tire[0] + w_tire[1]) * _tire_radius / 2.0;
   curr_velocities[1] = (w_tire[1] - w_tire[0]) * _tire_radius / _base_width;
 
   std::array<double, 2> new_velocities = calculate_control_signals(
-    curr_velocities, displacements, dt);
+    curr_velocities, displacements, dt, target_linear_velocity,
+    linear_speed_limit);
 
   std::array<double, 2> joint_signals;
   for (std::size_t i = 0; i < 2; ++i)
@@ -550,6 +555,9 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
   if (_traj_wp_idx < trajectory.size())
   {
+    const double approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
+    if (approach_speed > 0.0)
+      result.max_speed = approach_speed;
     const Eigen::Vector3d dpos = compute_dpos(
       trajectory.at(_traj_wp_idx).pose, _pose);
 
@@ -683,7 +691,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   }
 
   _rot_dir = result.w >= 0 ? 1 : -1;
-  result.max_speed = trajectory.at(_traj_wp_idx).approach_speed;
   return result;
 }
 
