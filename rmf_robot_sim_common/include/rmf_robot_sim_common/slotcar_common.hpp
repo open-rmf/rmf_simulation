@@ -41,10 +41,10 @@ struct AckermannTrajectory
 {
   AckermannTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
     const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
-    bool _turning = false, double _approach_speed = 0.0)
+    bool _turning = false)
   : x0(_x0), x1(_x1),
     v0((x1 - x0).normalized()), v1(_v1),
-    turning(_turning), approach_speed(_approach_speed)
+    turning(_turning)
   {}
   // positions
   Eigen::Vector2d x0;
@@ -54,20 +54,20 @@ struct AckermannTrajectory
   Eigen::Vector2d v1;
 
   bool turning = false;
-  // Target speed for approaching this waypoint
-  double approach_speed = 0.0;
+  // Maximum speed for the lane approaching this waypoint
+  std::optional<double> approach_speed;
 };
 
 struct DiffDriveTrajectory
 {
-  DiffDriveTrajectory(const Eigen::Isometry3d& _pose,
-      const double _approach_speed = 0.0)
-  : pose(_pose), approach_speed(_approach_speed)
+  DiffDriveTrajectory(const Eigen::Isometry3d& _pose)
+  : pose(_pose)
   {}
   DiffDriveTrajectory() {}
   // positions
   Eigen::Isometry3d pose;
-  double approach_speed = 0.0;
+  // Maximum speed for the lane approaching this waypoint
+  std::optional<double> approach_speed;
 };
 
 // Edit reference of parameter for template type deduction

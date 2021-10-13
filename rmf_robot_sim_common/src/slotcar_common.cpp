@@ -279,7 +279,8 @@ void SlotcarCommon::handle_ackermann_path_request(
   AckermannTrajectory traj(
     Eigen::Vector2d(locations[0].x, locations[0].y),
     Eigen::Vector2d(locations[1].x, locations[1].y));
-  traj.approach_speed = locations[1].approach_speed;
+  if (locations[1].approach_speed > 0.0)
+    traj.approach_speed = locations[1].approach_speed;
 
   this->ackermann_trajectory.push_back(traj);
 
@@ -345,7 +346,8 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
 
       AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
-      sp2.approach_speed = locations[i].approach_speed;
+      if (locations[i].approach_speed > 0.0)
+        sp2.approach_speed = locations[i].approach_speed;
       last_traj.v1 = sp2.v0;
 
       this->ackermann_trajectory.push_back(sp2);
@@ -366,7 +368,10 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(tangent0.x(), tangent0.y()),
         Eigen::Vector2d(tangent1.x(), tangent1.y()),
         Eigen::Vector2d(0, 0),
-        true, locations[i-1].approach_speed);
+        true);
+      if (locations[i-1].approach_speed > 0.0)
+        turn_traj.approach_speed = locations[i-1].approach_speed;
+
       turn_traj.v0 = -wp1_to_wp0_norm;
       turn_traj.v1 = wp1_to_wp2_norm;
 
@@ -375,7 +380,8 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
       end_traj.v0 = wp1_to_wp2_norm;
       end_traj.v1 = wp1_to_wp2_norm;
-      end_traj.approach_speed = locations[i].approach_speed;
+      if (locations[i].approach_speed > 0.0)
+        end_traj.approach_speed = locations[i].approach_speed;
 
       this->ackermann_trajectory.push_back(turn_traj);
       this->ackermann_trajectory.push_back(end_traj);
@@ -555,9 +561,9 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
   if (_traj_wp_idx < trajectory.size())
   {
-    const double approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
-    if (approach_speed > 0.0)
-      result.max_speed = approach_speed;
+    const auto& approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
+    if (approach_speed.has_value())
+      result.max_speed = approach_speed.value();
     const Eigen::Vector3d dpos = compute_dpos(
       trajectory.at(_traj_wp_idx).pose, _pose);
 
@@ -749,10 +755,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     if (_ackermann_traj_idx != (ackermann_trajectory.size() - 1))
     {
       // Apply speed limit if one is present in the trajectory
-      if (traj.approach_speed > 0.0)
+      if (traj.approach_speed.has_value())
       {
-        result.speed = traj.approach_speed;
-        result.max_speed = traj.approach_speed;
+        result.speed = traj.approach_speed.value();
+        result.max_speed = traj.approach_speed.value();
       }
       else
       {
@@ -765,11 +771,12 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
   {
     Eigen::Vector2d position(_pose.translation().x(), _pose.translation().y());
     // Apply speed limit if one is present in the trajectory
-    // TODO(anyone) speed while turning should probably be lower
-    if (traj.approach_speed > 0.0)
+    // TODO(anyone) speed while turning should be lower
+    // (i.e. vehicles should slow down before a sharp bend)
+    if (traj.approach_speed.has_value())
     {
-      result.speed = traj.approach_speed;
-      result.max_speed = traj.approach_speed;
+      result.speed = traj.approach_speed.value();
+      result.max_speed = traj.approach_speed.value();
     }
     else
     {
