@@ -209,6 +209,7 @@ private:
   double last_tf2_pub = 0.0;
   double last_topic_pub = 0.0;
   std::size_t _sequence = 0;
+  std::size_t _gps_sequence = 0;
 
   std::vector<Eigen::Isometry3d> trajectory;
   std::size_t _traj_wp_idx = 0;
@@ -238,8 +239,12 @@ private:
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> _tf2_broadcaster;
   rclcpp::Publisher<rmf_fleet_msgs::msg::RobotState>::SharedPtr _robot_state_pub;
+  rclcpp::Publisher<rmf_fleet_msgs::msg::RobotState>::SharedPtr
+    _robot_gps_state_pub;
 
   rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr _traj_sub;
+  rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr
+    _gps_traj_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::PauseRequest>::SharedPtr _pause_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::ModeRequest>::SharedPtr _mode_sub;
   rclcpp::Subscription<rmf_building_map_msgs::msg::BuildingMap>::SharedPtr
@@ -247,10 +252,13 @@ private:
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
 
+  rmf_fleet_msgs::msg::PathRequest::SharedPtr gps_path_request_msg;
+
   SteeringType _steering_type = SteeringType::DIFF_DRIVE;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
+  std::vector<rmf_fleet_msgs::msg::Location> _remaining_gps_path;
 
   // Vehicle dynamic constants
   // TODO(MXG): Consider fetching these values from model data
@@ -309,6 +317,9 @@ private:
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+
+  void gps_path_request_cb(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void handle_diff_drive_path_request(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);

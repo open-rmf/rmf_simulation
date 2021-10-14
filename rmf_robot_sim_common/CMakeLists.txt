@@ -26,6 +26,7 @@ find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_ingestor_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
+find_package(rmf_proj REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -126,6 +127,7 @@ ament_target_dependencies(slotcar_common
     std_msgs
     geometry_msgs
     tf2_ros
+    rmf_proj
 )
 
 target_include_directories(slotcar_common
@@ -137,6 +139,7 @@ target_include_directories(slotcar_common
 
 target_link_libraries(slotcar_common
     rmf_robot_sim_utils
+    rmf_proj::rmf_proj
 )
 
 ###############################
@@ -152,6 +155,7 @@ ament_export_dependencies(
   rmf_dispenser_msgs
   rmf_ingestor_msgs
   rmf_building_map_msgs
+  rmf_proj
 )
 
 ament_export_include_directories(include)
