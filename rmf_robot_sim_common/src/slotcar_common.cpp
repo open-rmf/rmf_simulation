@@ -394,7 +394,7 @@ void SlotcarCommon::handle_ackermann_path_request(
 
     Eigen::Vector2d v = Eigen::Vector2d(cos(desired_yaw), sin(desired_yaw));
     Eigen::Vector2d v_perp = Eigen::Vector2d(v.y(), -v.x());
-    std::cout << v_perp << std::endl;
+
     if (turn_left)
       circle_position = last_traj.x1 - v_perp * radius;
     else // turn right
