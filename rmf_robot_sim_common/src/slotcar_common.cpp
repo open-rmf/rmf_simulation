@@ -378,7 +378,7 @@ void SlotcarCommon::handle_ackermann_path_request(
 
   AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
   last_traj.v1 = last_traj.v0;
-  
+
   if (_obey_target_yaw_ackermann)
   {
     // add a turning trajectory to the desired yaw if it differs from the computed one
@@ -424,10 +424,10 @@ void SlotcarCommon::handle_ackermann_path_request(
         tangent_pt = p2 - side_perp;
 
       AckermannTrajectory end_turn_traj(
-          Eigen::Vector2d(tangent_pt.x(), tangent_pt.y()),
-          Eigen::Vector2d(last_traj.x1.x(), last_traj.x1.y()),
-          Eigen::Vector2d(0, 0),
-          true);
+        Eigen::Vector2d(tangent_pt.x(), tangent_pt.y()),
+        Eigen::Vector2d(last_traj.x1.x(), last_traj.x1.y()),
+        Eigen::Vector2d(0, 0),
+        true);
       last_traj.x1 = tangent_pt;
       last_traj.v1 = last_traj.v0;
       end_turn_traj.v0 = last_traj.v1;
@@ -799,10 +799,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
       result.speed = _nominal_drive_speed;
     else
     {
-      // last segment, starting from 0 velocity to 
+      // last segment, starting from 0 velocity to
       auto& last_segment = ackermann_trajectory[_ackermann_traj_idx];
       double segment_dist = (last_segment.x1 - last_segment.x0).norm();
-      
+
       if (dpos_mag >= (segment_dist * 0.5))
       {
         // if we're in the first half of the segment,
@@ -846,14 +846,15 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     // determine turn directionality
     Eigen::Vector2d traj_start_to_dest_pt = dest_pt - traj.x0;
     Eigen::Vector2d start_heading = traj.v0;
-    double cross = start_heading.x() * traj_start_to_dest_pt.y() - start_heading.y() *
+    double cross = start_heading.x() * traj_start_to_dest_pt.y() -
+      start_heading.y() *
       traj_start_to_dest_pt.x();
 
     if (heading_dotp > 0.99 && projection < -0.75)
       result.w = 0.0;
     else
       result.w = cross < 0.0 ? -acos(heading_dotp) : acos(heading_dotp);
-    
+
     close_enough = heading_dotp > 0.99 && projection > 0.0;
   }
 
