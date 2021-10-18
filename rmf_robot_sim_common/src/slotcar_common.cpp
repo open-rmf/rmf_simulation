@@ -598,6 +598,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     _old_lin_vel = lin_vel;
     _old_ang_vel = ang_vel;
   }
+  else
+    _rest_position = _pose.translation();
   _old_pose = _pose;
   _initialized_pose = true;
 
@@ -627,7 +629,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     const auto hold_time =
       rclcpp::Time(_hold_times.at(_traj_wp_idx), RCL_ROS_TIME);
 
-    const bool close_enough = (dpos_mag < 0.02);
+    const bool close_enough = (dpos_mag < 0.25);
 
     const bool checkpoint_pause =
       pause_request.type == pause_request.TYPE_PAUSE_AT_CHECKPOINT
@@ -700,8 +702,32 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       // If d_yaw is less than a certain tolerance (i.e. we don't need to spin
       // too much), then we'll include the forward velocity. Otherwise, we will
       // only spin in place until we are oriented in the desired direction.
-      result.v = std::abs(result.w) <
-        d_yaw_tolerance ? dir * dpos_mag : 0.0;
+      if (std::abs(result.w) >= d_yaw_tolerance)
+        result.v = 0.0;
+      else if (!close_enough)
+      {
+        Eigen::Vector3d end = trajectory.at(_traj_wp_idx).translation();
+        Eigen::Vector3d start;
+        if (_traj_wp_idx > 0)
+          start = trajectory.at(_traj_wp_idx - 1).translation();
+        else
+          start = _rest_position;
+
+        double segment_dist = (end - start).norm();
+        if (dpos_mag >= (segment_dist * 0.5))
+        {
+          // if we're in the first half of the segment,
+          // tell our integrator to attain the drive speed assuming
+          // half the segment dist to reach it
+          result.v = dir * segment_dist * 0.5;
+          result.speed = _nominal_drive_speed;
+        }
+        else
+        {
+          result.v = dir * dpos_mag;
+          result.speed = 0.0;
+        }
+      }
     }
   }
   else
@@ -712,6 +738,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       goal_heading);
 
     result.v = 0.0;
+    _rest_position = _pose.translation();
   }
 
   const bool immediate_pause =

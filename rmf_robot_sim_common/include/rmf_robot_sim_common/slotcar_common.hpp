@@ -232,6 +232,7 @@ private:
   double _old_ang_vel = 0.0; // Angular velocity at previous time step
   Eigen::Isometry3d _pose; // Pose at current time step
   int _rot_dir = 1; // Current direction of rotation
+  Eigen::Vector3d _rest_position;
 
   std::unordered_map<std::string, double> _level_to_elevation;
   bool _initialized_levels = false;
