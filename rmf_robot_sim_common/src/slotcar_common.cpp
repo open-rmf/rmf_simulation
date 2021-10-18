@@ -379,59 +379,62 @@ void SlotcarCommon::handle_ackermann_path_request(
   AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
   last_traj.v1 = last_traj.v0;
   
-  // add a turning trajectory to the desired yaw if it differs from the computed one
-  double prev_yaw = atan2(last_traj.v1.y(), last_traj.v1.x());
-  auto& last_location = locations.back();
-  double desired_yaw = last_location.yaw;
-  double threshold = 5.0 / 180.0 * M_PI;
-  if (std::abs(desired_yaw - prev_yaw) >= threshold)
+  if (_obey_target_yaw_ackermann)
   {
-    double radius = min_turning_radius * 0.5;
+    // add a turning trajectory to the desired yaw if it differs from the computed one
+    double prev_yaw = atan2(last_traj.v1.y(), last_traj.v1.x());
+    auto& last_location = locations.back();
+    double desired_yaw = last_location.yaw;
+    double threshold = 5.0 / 180.0 * M_PI;
+    if (std::abs(desired_yaw - prev_yaw) >= threshold)
+    {
+      double radius = min_turning_radius * 0.5;
 
-    bool turn_left = prev_yaw < desired_yaw;
-    Eigen::Vector2d circle_position;
-    Eigen::Vector2d tangent_to_circle;
+      bool turn_left = prev_yaw < desired_yaw;
+      Eigen::Vector2d circle_position;
+      Eigen::Vector2d tangent_to_circle;
 
-    Eigen::Vector2d v = Eigen::Vector2d(cos(desired_yaw), sin(desired_yaw));
-    Eigen::Vector2d v_perp = Eigen::Vector2d(v.y(), -v.x());
+      Eigen::Vector2d v = Eigen::Vector2d(cos(desired_yaw), sin(desired_yaw));
+      Eigen::Vector2d v_perp = Eigen::Vector2d(v.y(), -v.x());
 
-    if (turn_left)
-      circle_position = last_traj.x1 - v_perp * radius;
-    else // turn right
-      circle_position = last_traj.x1 + v_perp * radius;
+      if (turn_left)
+        circle_position = last_traj.x1 - v_perp * radius;
+      else // turn right
+        circle_position = last_traj.x1 + v_perp * radius;
 
-    // solve for tangent point
-    // https://web.archive.org/web/20210124122457/http://csharphelper.com/blog/2014/09/determine-where-two-circles-intersect-in-c/
-    Eigen::Vector2d p0 = last_traj.x0;
-    Eigen::Vector2d p1 = circle_position;
-    Eigen::Vector2d p0_to_p1 = p1 - p0;
-    double d = p0_to_p1.norm();
-    double r1 = radius;
-    double r0 = sqrt(d * d - r1 * r1);
-    double a = (r0 * r0 - r1 * r1 + d * d) / (2.0 * d);
-    double h = sqrt(r0 * r0 - a * a);
+      // solve for tangent point
+      // https://web.archive.org/web/20210124122457/http://csharphelper.com/blog/2014/09/determine-where-two-circles-intersect-in-c/
+      Eigen::Vector2d p0 = last_traj.x0;
+      Eigen::Vector2d p1 = circle_position;
+      Eigen::Vector2d p0_to_p1 = p1 - p0;
+      double d = p0_to_p1.norm();
+      double r1 = radius;
+      double r0 = sqrt(d * d - r1 * r1);
+      double a = (r0 * r0 - r1 * r1 + d * d) / (2.0 * d);
+      double h = sqrt(r0 * r0 - a * a);
 
-    Eigen::Vector2d p2 = p0 + (p0_to_p1 / d) * a;
-    Eigen::Vector2d side = (p0_to_p1 / d) * h;
-    Eigen::Vector2d side_perp = Eigen::Vector2d(side.y(), -side.x());
+      Eigen::Vector2d p2 = p0 + (p0_to_p1 / d) * a;
+      Eigen::Vector2d side = (p0_to_p1 / d) * h;
+      Eigen::Vector2d side_perp = Eigen::Vector2d(side.y(), -side.x());
 
-    Eigen::Vector2d tangent_pt;
-    if (turn_left)
-      tangent_pt = p2 + side_perp;
-    else
-      tangent_pt = p2 - side_perp;
+      Eigen::Vector2d tangent_pt;
+      if (turn_left)
+        tangent_pt = p2 + side_perp;
+      else
+        tangent_pt = p2 - side_perp;
 
-    AckermannTrajectory end_turn_traj(
-        Eigen::Vector2d(tangent_pt.x(), tangent_pt.y()),
-        Eigen::Vector2d(last_traj.x1.x(), last_traj.x1.y()),
-        Eigen::Vector2d(0, 0),
-        true);
-    last_traj.x1 = tangent_pt;
-    last_traj.v1 = last_traj.v0;
-    end_turn_traj.v0 = last_traj.v1;
-    end_turn_traj.v1 = v;
+      AckermannTrajectory end_turn_traj(
+          Eigen::Vector2d(tangent_pt.x(), tangent_pt.y()),
+          Eigen::Vector2d(last_traj.x1.x(), last_traj.x1.y()),
+          Eigen::Vector2d(0, 0),
+          true);
+      last_traj.x1 = tangent_pt;
+      last_traj.v1 = last_traj.v0;
+      end_turn_traj.v0 = last_traj.v1;
+      end_turn_traj.v1 = v;
 
-    this->ackermann_trajectory.push_back(end_turn_traj);
+      this->ackermann_trajectory.push_back(end_turn_traj);
+    }
   }
 }
 

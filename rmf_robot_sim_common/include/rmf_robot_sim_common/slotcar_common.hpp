@@ -275,6 +275,7 @@ private:
   double _turning_right_angle_mul_offset = 1.0; // if _min_turning_radius is computed, this value multiplies it
 
   bool _reversible = true; // true if the robot can drive backwards
+  bool _obey_target_yaw_ackermann = false;
 
   PowerParams _params;
   bool _enable_charge = true;
@@ -441,6 +442,11 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "base_width", this->_base_width);
   RCLCPP_INFO(logger(), "Setting base width to: %f", _base_width);
+
+  get_element_val_if_present<SdfPtrT, bool>(sdf,
+    "obey_target_yaw_ackermann", this->_obey_target_yaw_ackermann);
+  RCLCPP_INFO(logger(), "Setting _obey_target_yaw_ackermann to: %d",
+    _obey_target_yaw_ackermann);
 
   get_element_val_if_present<SdfPtrT, bool>(sdf,
     "reversible", this->_reversible);
