@@ -17,6 +17,7 @@
 
 #include <ignition/msgs.hh>
 #include <ignition/transport.hh>
+#include <ignition/transport/Node.hh>
 #include <rclcpp/rclcpp.hpp>
 
 #include <rmf_robot_sim_common/utils.hpp>
@@ -78,6 +79,12 @@ private:
     ignition::msgs::Double& rep);
   std::vector<Eigen::Vector3d> get_obstacle_positions(
     EntityComponentManager& ecm);
+
+  void path_request_marker_update(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr);
+
+  ignition::msgs::Marker_V _trajectory_marker_msg;
+  ignition::transport::Node _trajectory_marker_node;
 };
 
 SlotcarPlugin::SlotcarPlugin()
@@ -154,6 +161,9 @@ void SlotcarPlugin::Configure(const Entity& entity,
     std::cerr << "Error subscribing to topic [/slotcar_height]" << std::endl;
   }
 
+  dataPtr->set_path_request_callback(std::bind(&SlotcarPlugin::
+    path_request_marker_update,
+    this, std::placeholders::_1));
 }
 
 void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
@@ -370,6 +380,67 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 
   send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
     update_result.speed);
+}
+
+void SlotcarPlugin::path_request_marker_update(
+  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
+{
+  auto& locations = msg->path;
+  _trajectory_marker_msg.clear_marker();
+
+  double elevation = 0.05;
+
+  auto marker = _trajectory_marker_msg.add_marker();
+  marker->set_id(0);
+  marker->set_ns("trajectory_line");
+  marker->set_action(ignition::msgs::Marker::ADD_MODIFY);
+  marker->set_type(ignition::msgs::Marker::LINE_STRIP);
+  marker->set_visibility(ignition::msgs::Marker::GUI);
+  marker->mutable_lifetime()->set_sec(9999);
+
+  ignition::msgs::Set(marker->mutable_material()->mutable_ambient(),
+    ignition::math::Color(0, 0, 1, 1));
+  ignition::msgs::Set(marker->mutable_material()->mutable_diffuse(),
+    ignition::math::Color(0, 0, 1, 1));
+
+  for (size_t i = 0; i < locations.size(); ++i)
+  {
+    auto loc = locations[i];
+    ignition::msgs::Set(marker->add_point(),
+      ignition::math::Vector3d(loc.x, loc.y, elevation));
+  }
+
+  auto marker_headings = _trajectory_marker_msg.add_marker();
+  marker_headings->set_id(1);
+  marker_headings->set_ns("trajectory_headings");
+  marker_headings->set_action(ignition::msgs::Marker::ADD_MODIFY);
+  marker_headings->set_type(ignition::msgs::Marker::LINE_LIST);
+  marker_headings->set_visibility(ignition::msgs::Marker::GUI);
+  marker_headings->mutable_lifetime()->set_sec(9999);
+
+  ignition::msgs::Set(marker_headings->mutable_material()->mutable_ambient(),
+    ignition::math::Color(0, 1, 0, 1));
+  ignition::msgs::Set(marker_headings->mutable_material()->mutable_diffuse(),
+    ignition::math::Color(0, 1, 0, 1));
+
+  for (size_t i = 0; i < locations.size(); ++i)
+  {
+    auto loc = locations[i];
+    double yaw = loc.yaw;
+    Eigen::Vector2d dir(cos(yaw), sin(yaw));
+
+    double elevation_dir = elevation + 0.05;
+    ignition::msgs::Set(marker_headings->add_point(),
+      ignition::math::Vector3d(loc.x, loc.y, elevation_dir));
+    ignition::msgs::Set(marker_headings->add_point(),
+      ignition::math::Vector3d(loc.x + dir.x(), loc.y + dir.y(),
+      elevation_dir));
+  }
+
+  ignition::msgs::Boolean res;
+  bool result;
+  _trajectory_marker_node.Request(
+    "/marker_array", _trajectory_marker_msg, 5000, res, result);
 }
 
 IGNITION_ADD_PLUGIN(

@@ -272,6 +272,10 @@ void SlotcarCommon::handle_ackermann_path_request(
   if (locations.size() < 2)
     return;
 
+
+  if (_path_request_callback)
+    _path_request_callback(msg);
+
   // add 1st trajectory
   AckermannTrajectory traj(
     Eigen::Vector2d(locations[0].x, locations[0].y),

@@ -172,6 +172,11 @@ public:
 
   void publish_robot_state(const double time);
 
+  using PathRequestCallback =
+    std::function<void(const rmf_fleet_msgs::msg::PathRequest::SharedPtr)>;
+  void set_path_request_callback(PathRequestCallback cb)
+  { _path_request_callback = cb; }
+
 private:
   // Paramters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
@@ -293,6 +298,8 @@ private:
   static constexpr double _charger_dist_thres = 0.3;
 
   bool _docking = false;
+
+  PathRequestCallback _path_request_callback = nullptr;
 
   std::string get_level_name(const double z) const;
 
