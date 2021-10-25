@@ -28,6 +28,7 @@
 #include <rmf_fleet_msgs/msg/robot_mode.hpp>
 #include <rmf_fleet_msgs/msg/robot_state.hpp>
 #include <rmf_fleet_msgs/msg/path_request.hpp>
+#include <rmf_fleet_msgs/msg/geo_path_request.hpp>
 #include <rmf_fleet_msgs/msg/pause_request.hpp>
 #include <rmf_fleet_msgs/msg/mode_request.hpp>
 #include <rmf_building_map_msgs/msg/building_map.hpp>
@@ -243,7 +244,7 @@ private:
     _robot_gps_state_pub;
 
   rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr _traj_sub;
-  rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr
+  rclcpp::Subscription<rmf_fleet_msgs::msg::GeoPathRequest>::SharedPtr
     _gps_traj_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::PauseRequest>::SharedPtr _pause_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::ModeRequest>::SharedPtr _mode_sub;
@@ -252,13 +253,10 @@ private:
 
   rmf_fleet_msgs::msg::RobotMode _current_mode;
 
-  rmf_fleet_msgs::msg::PathRequest::SharedPtr gps_path_request_msg;
-
   SteeringType _steering_type = SteeringType::DIFF_DRIVE;
 
   std::string _current_task_id;
   std::vector<rmf_fleet_msgs::msg::Location> _remaining_path;
-  std::vector<rmf_fleet_msgs::msg::Location> _remaining_gps_path;
 
   // Vehicle dynamic constants
   // TODO(MXG): Consider fetching these values from model data
@@ -283,6 +281,10 @@ private:
   double _turning_right_angle_mul_offset = 1.0; // if _min_turning_radius is computed, this value multiplies it
 
   bool _reversible = true; // true if the robot can drive backwards
+
+  bool _cart_request = false;
+  std::string _cartesian_crs = "EPSG:3414"; // default cartesian system is SVY21
+  std::string _robot_state_crs = "EPSG:3414"; // default published /gps_robot_state is SVY21
 
   PowerParams _params;
   bool _enable_charge = true;
@@ -319,7 +321,7 @@ private:
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void gps_path_request_cb(
-    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
+    const rmf_fleet_msgs::msg::GeoPathRequest::SharedPtr msg);
 
   void handle_diff_drive_path_request(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
@@ -362,6 +364,26 @@ bool get_element_val_if_present(
     return false;
   }
   _val = _sdf->template Get<valueT>(_element_name);
+  return true;
+}
+
+template<typename SdfPtrT, typename valueT>
+bool get_child_element_val_if_present(
+  SdfPtrT& _sdf,
+  const std::string& _element_name,
+  const std::string& _child_element_name,
+  valueT& _val)
+{
+  if (!_sdf->HasElement(_element_name))
+  {
+    return false;
+  }
+  if (!_sdf->GetElementImpl(_element_name)->HasElement(_child_element_name))
+  {
+    return false;
+  }
+  _val = _sdf->GetElementImpl(_element_name)->template Get<valueT>
+    (_child_element_name);
   return true;
 }
 
@@ -456,6 +478,15 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
   get_element_val_if_present<SdfPtrT, bool>(sdf,
     "reversible", this->_reversible);
   RCLCPP_INFO(logger(), "Setting reversible to: %d", _reversible);
+
+  get_child_element_val_if_present<SdfPtrT, std::string>(sdf, "crs",
+    "cartesian_crs", this->_cartesian_crs);
+  RCLCPP_INFO(logger(), "Setting cartesian system to: %s", _cartesian_crs);
+
+  get_child_element_val_if_present<SdfPtrT, std::string>(sdf, "crs",
+    "robot_state_crs", this->_robot_state_crs);
+  RCLCPP_INFO(logger(), "Setting robot state coordinate system to: %s",
+    _robot_state_crs);
 
   get_element_val_if_present<SdfPtrT, double>(sdf,
     "nominal_voltage", this->_params.nominal_voltage);

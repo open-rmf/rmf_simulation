@@ -139,16 +139,17 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     qos_profile,
     std::bind(&SlotcarCommon::map_cb, this, std::placeholders::_1));
 
-  _gps_traj_sub =
-    _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
-    "/robot_gps_path_requests",
-    10,
-    std::bind(&SlotcarCommon::gps_path_request_cb, this, std::placeholders::_1));
-
   _traj_sub = _ros_node->create_subscription<rmf_fleet_msgs::msg::PathRequest>(
     "/robot_path_requests",
     10,
     std::bind(&SlotcarCommon::path_request_cb, this, std::placeholders::_1));
+
+  _gps_traj_sub =
+    _ros_node->create_subscription<rmf_fleet_msgs::msg::GeoPathRequest>(
+    "/robot_gps_path_requests",
+    10,
+    std::bind(&SlotcarCommon::gps_path_request_cb, this,
+    std::placeholders::_1));
 
   using PauseRequest = rmf_fleet_msgs::msg::PauseRequest;
   _pause_sub = _ros_node->create_subscription<PauseRequest>(
@@ -193,6 +194,7 @@ void SlotcarCommon::path_request_cb(
 {
   if (path_request_valid(msg) == false)
     return;
+  _cart_request = true;
   std::lock_guard<std::mutex> lock(_mutex);
   switch (this->_steering_type)
   {
@@ -205,20 +207,41 @@ void SlotcarCommon::path_request_cb(
     default:
       break;
   }
+  _cart_request = false;
 }
 
 void SlotcarCommon::gps_path_request_cb(
-  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
+  const rmf_fleet_msgs::msg::GeoPathRequest::SharedPtr msg)
 {
-  // Defines gps_path_request_msg if there is a GPS path request
-  gps_path_request_msg = msg;
+  if (!_cart_request)
+  {
+    auto cart_path_request =
+      std::make_shared<rmf_fleet_msgs::msg::PathRequest>();
+    cart_path_request->fleet_name = msg->fleet_name;
+    cart_path_request->robot_name = msg->robot_name;
+    cart_path_request->path = msg->path;
+    cart_path_request->task_id = msg->task_id;
+
+    rmf_proj::Transform _transform(msg->coordinate_system, _cartesian_crs);
+    for (auto& waypoint : cart_path_request->path)
+    {
+      double cart_x = 0.0;
+      double cart_y = 0.0;
+      _transform.transform_1_to_2(waypoint.x, waypoint.y, cart_x, cart_y);
+
+      waypoint.x = cart_x;
+      waypoint.y = cart_y;
+    }
+
+    path_request_cb(cart_path_request);
+  }
+  return;
 }
 
 void SlotcarCommon::handle_diff_drive_path_request(
   const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
 {
   const auto old_path = _remaining_path;
-  const auto old_gps_path = _remaining_gps_path;
 
   RCLCPP_INFO(
     logger(),
@@ -248,7 +271,6 @@ void SlotcarCommon::handle_diff_drive_path_request(
     _hold_times.at(i) = msg->path[i].t;
   }
   _remaining_path = msg->path;
-  _remaining_gps_path = gps_path_request_msg->path;
   _traj_wp_idx = 0;
 
   _current_task_id = msg->task_id;
@@ -267,7 +289,6 @@ void SlotcarCommon::handle_diff_drive_path_request(
     // We'll stick with the old path when an adapter error happens so that the
     // fleet adapter knows where the robot currently is along its previous path.
     _remaining_path = old_path;
-    _remaining_gps_path = old_gps_path;
 
     _adapter_error = true;
   }
@@ -276,7 +297,6 @@ void SlotcarCommon::handle_diff_drive_path_request(
     trajectory.erase(trajectory.begin());
     _hold_times.erase(_hold_times.begin());
     _remaining_path.erase(_remaining_path.begin());
-    _remaining_gps_path.erase(_remaining_gps_path.begin());
   }
 }
 
@@ -629,7 +649,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
         return result;
 
       _remaining_path.erase(_remaining_path.begin());
-      _remaining_gps_path.erase(_remaining_gps_path.begin());
       RCLCPP_INFO(logger(),
         "%s reached waypoint %ld/%d",
         _model_name.c_str(),
@@ -955,44 +974,28 @@ void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
   _robot_state_pub->publish(robot_state_msg);
 
   // Publish robot state in lat/lon coordinates
-  rmf_proj::WGS84GPS_SVY21_Transform _transform;
+  rmf_proj::Transform _transform(_cartesian_crs, _robot_state_crs);
   rmf_fleet_msgs::msg::RobotState robot_gps_state_msg;
   robot_gps_state_msg = robot_state_msg;
-  robot_gps_state_msg.name = _model_name;
-  robot_gps_state_msg.battery_percent = std::ceil(100.0 * _soc);
 
-  double gps_lat = 0.0;
-  double gps_long = 0.0;
-  _transform.transform_2_to_1(
-    _pose.translation()[0], _pose.translation()[1], gps_lat, gps_long);
-  robot_gps_state_msg.location.x = gps_lat;
-  robot_gps_state_msg.location.y = gps_long;
-  robot_gps_state_msg.location.yaw = compute_yaw(_pose);
-  robot_gps_state_msg.location.t = t;
-  robot_gps_state_msg.location.level_name = get_level_name(
-    _pose.translation()[2]);
-
-  if (robot_gps_state_msg.location.level_name.empty())
+  if (_robot_state_crs != _cartesian_crs) // convert crs for robot_gps_state if necessary
   {
-    RCLCPP_ERROR(
-      logger(),
-      "Unable to determine the current level_name for robot [%s]. Kindly "
-      "ensure the building_map_server is running. The RobotState message for"
-      "this robot will not be published.",
-      _model_name.c_str());
-
-    return;
+    double gps_lat = 0.0;
+    double gps_long = 0.0;
+    _transform.transform_1_to_2(
+      _pose.translation()[0], _pose.translation()[1], gps_lat, gps_long);
+    robot_gps_state_msg.location.x = gps_lat;
+    robot_gps_state_msg.location.y = gps_long;
   }
 
-  robot_gps_state_msg.task_id = _current_task_id;
-  robot_gps_state_msg.path = _remaining_gps_path;
-  robot_gps_state_msg.mode = _current_mode;
-  robot_gps_state_msg.mode.mode_request_id = pause_request.mode_request_id;
-
-  if (_adapter_error)
+  for (auto& waypoint : robot_gps_state_msg.path)
   {
-    robot_gps_state_msg.mode.mode =
-      rmf_fleet_msgs::msg::RobotMode::MODE_ADAPTER_ERROR;
+    double gps_lat = 0.0;
+    double gps_long = 0.0;
+    _transform.transform_1_to_2(waypoint.x, waypoint.y, gps_lat, gps_long);
+
+    waypoint.x = gps_lat;
+    waypoint.y = gps_long;
   }
 
   robot_gps_state_msg.seq = ++_gps_sequence;
