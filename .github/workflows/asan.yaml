@@ -40,11 +40,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: colcon-test-logs
-          path: |
-            ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log/latest_test/rmf_building_sim_common/streams.log
-            ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log/latest_test/rmf_building_sim_gazebo_plugins/streams.log
-            ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log/latest_test/rmf_building_sim_ignition_plugins/streams.log
-            ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log/latest_test/rmf_robot_sim_common/streams.log
-            ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log/latest_test/rmf_robot_sim_gazebo_plugins/streams.log
-            ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log/latest_test/rmf_robot_sim_ignition_plugins/streams.log
+          path: ${{ steps.build_and_test.outputs.ros-workspace-directory-name }}/log
         if: always()
