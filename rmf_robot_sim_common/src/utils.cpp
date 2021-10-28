@@ -59,6 +59,55 @@ double compute_ds(
 }
 
 //==============================================================================
+double compute_ds_linear(
+  double s_target,
+  double v_actual,
+  const double v_max,
+  const double accel_nom,
+  const double accel_max,
+  const double dt,
+  const double v_target)
+{
+  double sign = 1.0;
+  if (s_target < 0.0)
+  {
+    // Limits get confusing when we need to go backwards, so we'll flip signs
+    // here so that we pretend the target is forwards
+    s_target *= -1.0;
+    v_actual *= -1.0;
+    sign = -1.0;
+  }
+
+  // We should try not to shoot past the targstd::vector<event::ConnectionPtr> connections;et
+  double next_v = s_target / dt;
+
+  // Test velocity limit
+  next_v = std::min(next_v, v_max);
+
+  // Test acceleration limit
+  next_v = std::min(next_v, accel_nom * dt + v_actual);
+
+  if (v_actual > 0.0 && s_target > 0.0)
+  {
+    // use equations of motion to figure out an acceleration
+    double desired_acceleration =
+      (pow(v_target, 2) - pow(v_actual, 2)) / (2.0 * s_target);
+    if (desired_acceleration > accel_max)
+      desired_acceleration = accel_max;
+
+    next_v = desired_acceleration * dt + v_actual;
+  }
+
+  // if you have a target velocity and a distance shorter than that, set to
+  // the target velocity otherwise it'll hard-stop
+  if (s_target < v_target)
+    next_v = v_target;
+
+  // Flip the sign the to correct direction before returning the value
+  return sign * next_v;
+}
+
+//==============================================================================
 double compute_desired_rate_of_change(
   double _s_target,
   double _v_actual,
