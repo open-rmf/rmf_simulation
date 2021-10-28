@@ -386,8 +386,18 @@ void SlotcarPlugin::path_request_marker_update(
   const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
 {
   auto& locations = msg->path;
-  _trajectory_marker_msg.clear_marker();
 
+  ignition::msgs::Boolean res;
+  bool result;
+  for (uint i = 0; i < _trajectory_marker_msg.marker_size(); ++i)
+  {
+    auto marker = _trajectory_marker_msg.mutable_marker(i);
+    marker->set_action(ignition::msgs::Marker::DELETE_ALL);
+  }
+  _trajectory_marker_node.Request(
+    "/marker_array", _trajectory_marker_msg, 5000, res, result);
+
+  _trajectory_marker_msg.clear_marker();
   double elevation = 0.05;
 
   auto marker = _trajectory_marker_msg.add_marker();
@@ -396,7 +406,7 @@ void SlotcarPlugin::path_request_marker_update(
   marker->set_action(ignition::msgs::Marker::ADD_MODIFY);
   marker->set_type(ignition::msgs::Marker::LINE_STRIP);
   marker->set_visibility(ignition::msgs::Marker::GUI);
-  marker->mutable_lifetime()->set_sec(9999);
+  marker->mutable_lifetime()->set_sec(0);
 
   ignition::msgs::Set(marker->mutable_material()->mutable_ambient(),
     ignition::math::Color(0, 0, 1, 1));
@@ -437,8 +447,6 @@ void SlotcarPlugin::path_request_marker_update(
       elevation_dir));
   }
 
-  ignition::msgs::Boolean res;
-  bool result;
   _trajectory_marker_node.Request(
     "/marker_array", _trajectory_marker_msg, 5000, res, result);
 }
