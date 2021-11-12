@@ -154,8 +154,8 @@ target_include_directories(crowd_simulator
 
 install(
   TARGETS door lift toggle_floors toggle_charging thumbnail_generator crowd_simulator
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION lib/${PROJECT_NAME}
+  ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()
