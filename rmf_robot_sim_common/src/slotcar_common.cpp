@@ -414,14 +414,13 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
 
   const double max_lin_vel = linear_speed_limit.has_value() ?
     linear_speed_limit.value() : _nominal_drive_speed;
-  double v_target = 0.0;
-  v_target = rmf_plugins_utils::compute_ds(displacements.first,
+  const double v_target = rmf_plugins_utils::compute_ds(displacements.first,
       v_robot,
       max_lin_vel,
       _nominal_drive_acceleration, _max_drive_acceleration, dt,
       target_linear_velocity);
 
-  double w_target = rmf_plugins_utils::compute_ds(displacements.second,
+  const double w_target = rmf_plugins_utils::compute_ds(displacements.second,
       w_robot,
       _nominal_turn_speed,
       _nominal_turn_acceleration, _max_turn_acceleration, dt);
@@ -476,7 +475,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   switch (this->_steering_type)
   {
     case SteeringType::DIFF_DRIVE:
-      // TODO(anyone) parse speed limits in diff drive robots
       return update_diff_drive(obstacle_positions, time);
     case SteeringType::ACKERMANN:
       // TODO(anyone) use obstacle_positions for emergency stop for ackermann
