@@ -170,7 +170,7 @@ void SlotcarPlugin::OnUpdate()
       obstacle_positions, time);
 
   send_control_signals({update_result.v, update_result.w}, dt,
-      update_result.speed, update_result.max_speed);
+    update_result.speed, update_result.max_speed);
 }
 
 GZ_REGISTER_MODEL_PLUGIN(SlotcarPlugin)

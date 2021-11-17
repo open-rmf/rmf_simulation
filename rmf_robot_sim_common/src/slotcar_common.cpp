@@ -237,7 +237,8 @@ void SlotcarCommon::handle_diff_drive_path_request(
   _current_task_id = msg->task_id;
   _adapter_error = false;
 
-  const double initial_dist = compute_dpos(trajectory.front().pose, _pose).norm();
+  const double initial_dist =
+    compute_dpos(trajectory.front().pose, _pose).norm();
 
   if (initial_dist > INITIAL_DISTANCE_THRESHOLD)
   {
