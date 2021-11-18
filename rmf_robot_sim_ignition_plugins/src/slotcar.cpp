@@ -372,6 +372,31 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 
   send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
     update_result.speed, update_result.max_speed);
+
+  rmf_robot_sim_common::SlotcarCommon::PursuitState pursuit_state;
+  dataPtr->get_pursuit_state(pursuit_state);
+  ignition::msgs::Marker marker_msg;
+  marker_msg.set_id(0);
+  marker_msg.set_ns("lookahead_point");
+  marker_msg.set_action(ignition::msgs::Marker::ADD_MODIFY);
+  marker_msg.set_type(ignition::msgs::Marker::SPHERE);
+  marker_msg.set_visibility(ignition::msgs::Marker::GUI);
+  ignition::msgs::Set(marker_msg.mutable_pose(),
+    ignition::math::Pose3d(
+      pursuit_state.lookahead_point(0),
+      pursuit_state.lookahead_point(1),
+      pursuit_state.lookahead_point(2),
+      0, 0, 0));
+  const double scale = 10.0;
+  ignition::msgs::Set(marker_msg.mutable_scale(),
+    ignition::math::Vector3d(scale, scale, scale));
+  marker_msg.mutable_lifetime()->set_sec(0);
+  ignition::msgs::Material *material_msg = marker_msg.mutable_material();
+  /*
+  material_msg->set_ambient(ignition::math::Color(1, 0, 0, 1));
+  material_msg->set_diffuse(ignition::math::Color(1, 0, 0, 1));
+  _ign_node.Request("/marker", marker_msg);
+  */
 }
 
 IGNITION_ADD_PLUGIN(

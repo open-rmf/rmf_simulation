@@ -183,22 +183,7 @@ void SlotcarCommon::path_request_cb(
   if (path_request_valid(msg) == false)
     return;
   std::lock_guard<std::mutex> lock(_mutex);
-  switch (this->_steering_type)
-  {
-    case SteeringType::DIFF_DRIVE:
-      handle_diff_drive_path_request(msg);
-      break;
-    case SteeringType::ACKERMANN:
-      handle_ackermann_path_request(msg);
-      break;
-    default:
-      break;
-  }
-}
 
-void SlotcarCommon::handle_diff_drive_path_request(
-  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
-{
   const auto old_path = _remaining_path;
 
   RCLCPP_INFO(
@@ -240,7 +225,8 @@ void SlotcarCommon::handle_diff_drive_path_request(
   const double initial_dist =
     compute_dpos(trajectory.front().pose, _pose).norm();
 
-  if (initial_dist > INITIAL_DISTANCE_THRESHOLD)
+  if (this->_steering_type == SteeringType::DIFF_DRIVE &&
+      initial_dist > INITIAL_DISTANCE_THRESHOLD)
   {
     trajectory.clear();
     trajectory.push_back(_pose);
@@ -260,137 +246,16 @@ void SlotcarCommon::handle_diff_drive_path_request(
     _hold_times.erase(_hold_times.begin());
     _remaining_path.erase(_remaining_path.begin());
   }
-}
-
-void SlotcarCommon::handle_ackermann_path_request(
-  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
-{
-  // yaw is ignored
-  double min_turning_radius = _min_turning_radius;
-  if (min_turning_radius < 0.0)
-    min_turning_radius = _nominal_drive_speed / _nominal_turn_speed;
-
-  ackermann_trajectory.clear();
-  _ackermann_traj_idx = 0;
-  auto& locations = msg->path;
-  if (locations.size() < 2)
-    return;
-
-  // add 1st trajectory
-  AckermannTrajectory traj(
-    Eigen::Vector2d(locations[0].x, locations[0].y),
-    Eigen::Vector2d(locations[1].x, locations[1].y));
-  if (locations[1].approach_speed > 0.0)
-    traj.approach_speed = locations[1].approach_speed;
-
-  this->ackermann_trajectory.push_back(traj);
-
-  for (uint i = 2; i < locations.size(); ++i)
+  
+  RCLCPP_INFO(logger(), "trajectory has %d points:", (int)trajectory.size());
+  for (const auto &p : trajectory)
   {
-    // for every 3 waypoints, make a bend
-    // instead of 2 straight lines, shorten them and use the
-    // shortened endpoints for a turn
-    std::array<Eigen::Vector2d, 3> wp;
-    wp[0] = Eigen::Vector2d(locations[i - 2].x, locations[i - 2].y);
-    wp[1] = Eigen::Vector2d(locations[i - 1].x, locations[i - 1].y);
-    wp[2] = Eigen::Vector2d(locations[i].x, locations[i].y);
-
-    Eigen::Vector2d wp1_to_wp0 = (wp[0] - wp[1]);
-    Eigen::Vector2d wp1_to_wp2 = (wp[2] - wp[1]);
-    double wp1_to_wp0_len = wp1_to_wp0.norm();
-    double wp1_to_wp2_len = wp1_to_wp2.norm();
-    Eigen::Vector2d wp1_to_wp0_norm = wp1_to_wp0 / wp1_to_wp0_len;
-    Eigen::Vector2d wp1_to_wp2_norm = wp1_to_wp2 / wp1_to_wp2_len;
-
-    // We are solving for points on each line of the bend for turning
-    // to do that:
-    // 1) compute the angular difference
-    // 2) halve the angular difference
-    // 3) we now have a right angled triangle, use the sin rule to obtain lengths
-    // 4) use the lengths along to find start/ending points for the turning trajectory
-
-    double dotp = wp1_to_wp0_norm.dot(wp1_to_wp2_norm);
-
-    double bend_delta = acos(dotp);
-    double half_bend_delta = bend_delta * 0.5;
-    // compute the other angle in a right angle triangle, 90 - half_turn_delta
-    double half_turn_arc = M_PI / 2.0 - half_bend_delta;
-
-    // slight bit of art here. Our right-angled-ish turns tend to
-    // overshoot and look ugly, possibly due to the turning
-    // acceleration/decceleration. So we apply a multiplier based off
-    // how right-angleish our turn is
-    double half_pi = M_PI / 2.0;
-    double diff = std::abs(bend_delta - half_pi);
-    double range = 20.0 * M_PI / 180.0;
-    double m = diff / range;
-    m = m > 1.0 ? 1.0 : m;
-    m = m < 0.0 ? 0.0 : m;
-    double multiplier = 1.0 + (1.0 - m) * _turning_right_angle_mul_offset;
-    double target_radius = min_turning_radius * multiplier;
-
-    // use sin rule to obtain length of tangent
-    double tangent_length =
-      std::abs(target_radius / sin(half_bend_delta) * sin(half_turn_arc));
-
-    bool has_runway = tangent_length < wp1_to_wp0_len &&
-      tangent_length < wp1_to_wp2_len;
-
-    // special cases for collinearity or no runway
-    double cp = wp1_to_wp0.x() * wp1_to_wp2.y() - wp1_to_wp2.x() *
-      wp1_to_wp0.y();
-    cp /= (wp1_to_wp0_len * wp1_to_wp2_len);
-    if (std::abs(cp) < 0.05 || !has_runway)
-    {
-      AckermannTrajectory sp2(
-        Eigen::Vector2d(wp[1].x(), wp[1].y()),
-        Eigen::Vector2d(wp[2].x(), wp[2].y()));
-
-      AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
-      if (locations[i].approach_speed > 0.0)
-        sp2.approach_speed = locations[i].approach_speed;
-      last_traj.v1 = sp2.v0;
-
-      this->ackermann_trajectory.push_back(sp2);
-    }
-    else
-    {
-      AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
-
-      // bend, build an intermediate spline using turn rate.
-      Eigen::Vector2d tangent0 = wp[1] + tangent_length * wp1_to_wp0_norm;
-      Eigen::Vector2d tangent1 = wp[1] + tangent_length * wp1_to_wp2_norm;
-
-      // shorten the last trajectory and set its heading
-      last_traj.x1 = Eigen::Vector2d(tangent0.x(), tangent0.y());
-      last_traj.v1 = last_traj.v0;
-
-      AckermannTrajectory turn_traj(
-        Eigen::Vector2d(tangent0.x(), tangent0.y()),
-        Eigen::Vector2d(tangent1.x(), tangent1.y()),
-        Eigen::Vector2d(0, 0),
-        true);
-      if (locations[i-1].approach_speed > 0.0)
-        turn_traj.approach_speed = locations[i-1].approach_speed;
-
-      turn_traj.v0 = -wp1_to_wp0_norm;
-      turn_traj.v1 = wp1_to_wp2_norm;
-
-      AckermannTrajectory end_traj(
-        Eigen::Vector2d(tangent1.x(), tangent1.y()),
-        Eigen::Vector2d(wp[2].x(), wp[2].y()));
-      end_traj.v0 = wp1_to_wp2_norm;
-      end_traj.v1 = wp1_to_wp2_norm;
-      if (locations[i].approach_speed > 0.0)
-        end_traj.approach_speed = locations[i].approach_speed;
-
-      this->ackermann_trajectory.push_back(turn_traj);
-      this->ackermann_trajectory.push_back(end_traj);
-    }
+    RCLCPP_INFO(
+      logger(),
+      "(%.2f, %.2f)",
+      p.pose.translation().x(),
+      p.pose.translation().y());
   }
-
-  AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
-  last_traj.v1 = last_traj.v0;
 }
 
 void SlotcarCommon::pause_request_cb(
@@ -473,6 +338,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   std::lock_guard<std::mutex> lock(_mutex);
   _pose = pose;
   publish_robot_state(time);
+
   switch (this->_steering_type)
   {
     case SteeringType::DIFF_DRIVE:
@@ -702,116 +568,97 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
 SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
   const std::vector<Eigen::Vector3d>& /*obstacle_positions*/,
-  const double /*time*/)
+  const double time)
 {
-
   UpdateResult result;
-  if (_ackermann_traj_idx >= ackermann_trajectory.size())
+  const int32_t t_sec = static_cast<int32_t>(time);
+  const uint32_t t_nsec =
+    static_cast<uint32_t>((time-static_cast<double>(t_sec)) *1e9);
+  const rclcpp::Time now{t_sec, t_nsec, RCL_ROS_TIME};
+  double dt = time - _last_update_time;
+  _last_update_time = time;
+
+  if (_initialized_pose)
+  {
+    const Eigen::Vector3d dist = compute_dpos(_old_pose, _pose); // Ignore movement along z-axis
+    const Eigen::Vector3d lin_vel = dist / dt;
+    double ang_disp = compute_yaw(_pose, _old_pose, _rot_dir);
+    const double ang_vel = ang_disp / dt;
+
+    const double eps = 0.01;
+    bool stationary = lin_vel.norm() < eps && std::abs(ang_vel) < eps;
+
+    if (stationary)
+      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_IDLE;
+    else
+      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
+
+    _old_lin_vel = lin_vel;
+    _old_ang_vel = ang_vel;
+  }
+  _old_pose = _pose;
+  _initialized_pose = true;
+
+  if (trajectory.empty())
     return result;
 
-  const AckermannTrajectory& traj =
-    ackermann_trajectory[_ackermann_traj_idx];
-  double dpos_mag = std::numeric_limits<double>::max();
-  double wp_range = 0.75;
-  bool close_enough = false;
+  Eigen::Vector3d current_heading = compute_heading(_pose);
 
-  if (traj.turning == false)
+  if (_traj_wp_idx < trajectory.size())
   {
-    Eigen::Vector3d to_waypoint = Eigen::Vector3d(traj.x1.x(), traj.x1.y(), 0) -
-      _pose.translation();
-    to_waypoint(2) = 0.0;
+    const auto& approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
+    if (approach_speed.has_value())
+      result.max_speed = approach_speed.value();
+    const Eigen::Vector3d dpos = compute_dpos(
+      trajectory.at(_traj_wp_idx).pose, _pose);
 
-    const Eigen::Vector3d dpos = to_waypoint;
+    auto dpos_mag = dpos.norm();
 
-    dpos_mag = dpos.norm();
+    const bool close_enough = (dpos_mag < 2.00);  // was 0.02
 
-    result.v = dpos_mag >= wp_range ? dpos_mag : 0.0;
-
-    // figure out where we are relative to the goal point
-    Eigen::Vector2d position(_pose.translation().x(), _pose.translation().y());
-    Eigen::Vector2d dest_pt = traj.x1;
-    Eigen::Vector2d forward = traj.v1;
-    Eigen::Vector2d dest_pt_to_current_position = position - dest_pt;
-    double dotp_location = forward.dot(dest_pt_to_current_position);
-
-    // we behind the goal point, turn to suit our needs
-    if (dotp_location < 0.0)
+    if (close_enough)
     {
-      Eigen::Vector2d heading = _pose.linear().block<2, 1>(0, 0);
-      heading = heading.normalized();
-      Eigen::Vector2d dpos_norm(dpos.x(), dpos.y());
-      dpos_norm = dpos_norm.normalized();
+      _traj_wp_idx++;
+      if (_remaining_path.empty())
+        return result;
 
-      double dotp = heading.dot(dpos_norm);
-      double cross = heading.x() * dpos_norm.y() - heading.y() * dpos_norm.x();
-      // Clamp to avoid numerical errors due to floating point precision
-      dotp = std::clamp(dotp, -1.0, 1.0);
-      result.w = cross < 0.0 ? -acos(dotp) : acos(dotp);
+      _remaining_path.erase(_remaining_path.begin());
+      RCLCPP_INFO(logger(),
+        "%s reached waypoint %ld/%d",
+        _model_name.c_str(),
+        _traj_wp_idx,
+        (int)trajectory.size());
+      if (_traj_wp_idx == trajectory.size())
+      {
+        RCLCPP_INFO(
+          logger(),
+          "%s reached goal -- rotating to face target",
+          _model_name.c_str());
+      }
     }
-    else
-      result.w = 0.0;
 
-    close_enough = (dpos_mag < wp_range) || dotp_location >= 0.0;
-    if (_ackermann_traj_idx != (ackermann_trajectory.size() - 1))
+    if (_traj_wp_idx < trajectory.size())
     {
-      // Apply speed limit if one is present in the trajectory
-      if (traj.approach_speed.has_value())
-      {
-        result.speed = traj.approach_speed.value();
-        result.max_speed = traj.approach_speed.value();
-      }
-      else
-      {
-        result.speed = _nominal_drive_speed;
-        result.max_speed = _nominal_drive_speed;
-      }
+      _pursuit_state.lookahead_radius = 10.0;
+      _pursuit_state.lookahead_point(0) = _pose.translation()(0) + 10.0;
+      _pursuit_state.lookahead_point(1) = _pose.translation()(1);
+      _pursuit_state.lookahead_point(2) = _pose.translation()(2);
+
+      auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx).pose);
+      double dir = 1.0;
+      result.w =
+        compute_change_in_rotation(current_heading, dpos, &goal_heading, &dir);
+
+      result.v = 1.0 * (dpos_mag + 0.1);
     }
   }
   else
   {
-    Eigen::Vector2d position(_pose.translation().x(), _pose.translation().y());
-    // Apply speed limit if one is present in the trajectory
-    // TODO(anyone) speed while turning should be lower
-    // (i.e. vehicles should slow down before a sharp bend)
-    if (traj.approach_speed.has_value())
-    {
-      result.speed = traj.approach_speed.value();
-      result.max_speed = traj.approach_speed.value();
-    }
-    else
-    {
-      result.speed = _nominal_drive_speed;
-      result.max_speed = _nominal_drive_speed;
-    }
-
-    Eigen::Vector2d heading = _pose.linear().block<2, 1>(0, 0);
-    heading = heading.normalized();
-    Eigen::Vector2d target_heading = traj.v1;
-
-    double heading_dotp = heading.dot(target_heading);
-    double cross = heading.x() * target_heading.y() - heading.y() *
-      target_heading.x();
-    // Clamp to avoid numerical errors due to floating point precision
-    heading_dotp = std::clamp(heading_dotp, -1.0, 1.0);
-    result.w = cross <
-      0.0 ? -acos(heading_dotp) : acos(heading_dotp);
-
-    // figure out if we're close enough
-    Eigen::Vector2d dest_pt = traj.x1;
-    Eigen::Vector2d forward = traj.v1;
-    Eigen::Vector2d dest_pt_to_current_position = position - dest_pt;
-    double dotp = forward.dot(dest_pt_to_current_position);
-    if (dotp < 0.0)
-      result.v = dest_pt_to_current_position.norm();
-
-    dpos_mag = (Eigen::Vector2d(traj.x1.x(), traj.x1.y()) - position).norm();
-
-    close_enough = dotp > 0.0 || dpos_mag < 0.125;
+    result.w = 0.0;
+    result.v = 0.0;
   }
 
-  if (close_enough)
-    ++_ackermann_traj_idx;
-
+  _rot_dir = result.w >= 0 ? 1 : -1;
   return result;
 }
 
@@ -1090,4 +937,9 @@ double SlotcarCommon::compute_discharge(
   double dSOC = dQ / (_params.nominal_capacity * 3600.0);
 
   return dSOC;
+}
+
+void SlotcarCommon::get_pursuit_state(PursuitState& pursuit_state)
+{
+  pursuit_state = _pursuit_state;
 }

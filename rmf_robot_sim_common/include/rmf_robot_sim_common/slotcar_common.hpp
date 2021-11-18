@@ -36,34 +36,12 @@ namespace rmf_robot_sim_common {
 
 // TODO migrate ign-math-eigen conversions when upgrading to ign-math5
 
-//3rd coordinate is yaw
-struct AckermannTrajectory
+struct SlotcarTrajectory
 {
-  AckermannTrajectory(const Eigen::Vector2d& _x0, const Eigen::Vector2d& _x1,
-    const Eigen::Vector2d& _v1 = Eigen::Vector2d(0, 0),
-    bool _turning = false)
-  : x0(_x0), x1(_x1),
-    v0((x1 - x0).normalized()), v1(_v1),
-    turning(_turning)
-  {}
-  // positions
-  Eigen::Vector2d x0;
-  Eigen::Vector2d x1;
-  // headings
-  Eigen::Vector2d v0;
-  Eigen::Vector2d v1;
-
-  bool turning = false;
-  // Maximum speed for the lane approaching this waypoint
-  std::optional<double> approach_speed;
-};
-
-struct DiffDriveTrajectory
-{
-  DiffDriveTrajectory(const Eigen::Isometry3d& _pose)
+  SlotcarTrajectory(const Eigen::Isometry3d& _pose)
   : pose(_pose)
   {}
-  DiffDriveTrajectory() {}
+  SlotcarTrajectory() {}
   // positions
   Eigen::Isometry3d pose;
   // Maximum speed for the lane approaching this waypoint
@@ -152,6 +130,13 @@ public:
     std::optional<double> max_speed = std::nullopt; // Maximum speed allowed while navigating
   };
 
+  struct PursuitState
+  {
+    double lookahead_radius = 0.0;
+    Eigen::Vector3d lookahead_point = Eigen::Vector3d::Zero();
+    std::vector<Eigen::Vector3d> lookahead_segments;
+  };
+
   SlotcarCommon();
 
   rclcpp::Logger logger() const;
@@ -189,6 +174,8 @@ public:
   void charge_state_cb(const std::string& name, bool selected);
 
   void publish_robot_state(const double time);
+
+  void get_pursuit_state(PursuitState& pursuit_state);
 
 private:
   // Paramters needed for power dissipation and charging calculations
@@ -228,10 +215,8 @@ private:
   double last_topic_pub = 0.0;
   std::size_t _sequence = 0;
 
-  std::vector<DiffDriveTrajectory> trajectory;
+  std::vector<SlotcarTrajectory> trajectory;
   std::size_t _traj_wp_idx = 0;
-  std::vector<AckermannTrajectory> ackermann_trajectory;
-  std::size_t _ackermann_traj_idx = 0;
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
@@ -311,6 +296,8 @@ private:
 
   bool _docking = false;
 
+  PursuitState _pursuit_state;
+
   std::string get_level_name(const double z) const;
 
   double compute_change_in_rotation(
@@ -327,12 +314,6 @@ private:
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void path_request_cb(const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
-
-  void handle_diff_drive_path_request(
-    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
-
-  void handle_ackermann_path_request(
-    const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);
 
   void pause_request_cb(const rmf_fleet_msgs::msg::PauseRequest::SharedPtr msg);
 
@@ -380,9 +361,14 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     steering_type);
 
   if (steering_type == "ackermann")
+  {
     _steering_type = SteeringType::ACKERMANN;
+    _reversible = false;
+  }
   else if (steering_type == "diff_drive")
+  {
     _steering_type = SteeringType::DIFF_DRIVE;
+  }
 
   RCLCPP_INFO(
     logger(),
