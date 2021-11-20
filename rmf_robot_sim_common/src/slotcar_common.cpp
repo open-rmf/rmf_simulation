@@ -286,6 +286,19 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
       _nominal_drive_acceleration, _max_drive_acceleration, dt,
       target_linear_velocity);
 
+  static int counter = 0;
+  if (counter++ % 100 == 0)
+  {
+    RCLCPP_INFO(logger(),
+      "max_lin_vel: %.3f v_robot: %.3f w_robot: %.3f  dt: %.6f target_linear_velocity: %.3f v_target: %.3f",
+      max_lin_vel,
+      v_robot,
+      w_robot,
+      dt,
+      target_linear_velocity,
+      v_target);
+  }
+
   const double w_target = rmf_plugins_utils::compute_ds(displacements.second,
       w_robot,
       _nominal_turn_speed,
@@ -609,12 +622,15 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     const auto& approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
     if (approach_speed.has_value())
       result.max_speed = approach_speed.value();
+    else
+      result.max_speed = _nominal_drive_speed;
+
     const Eigen::Vector3d dpos = compute_dpos(
       trajectory.at(_traj_wp_idx).pose, _pose);
 
     auto dpos_mag = dpos.norm();
 
-    const bool close_enough = (dpos_mag < 2.00);  // was 0.02
+    const bool close_enough = (dpos_mag < 5.00);  // was 0.02
 
     if (close_enough)
     {
@@ -649,11 +665,34 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
       result.w =
         compute_change_in_rotation(current_heading, dpos, &goal_heading, &dir);
 
-      result.v = 1.0 * (dpos_mag + 0.1);
+      if (_traj_wp_idx == trajectory.size() - 1)
+      {
+        // if it's the last waypoint, slow to a stop nicely
+        result.v = 1.0 * (dpos_mag + 0.1);
+        result.speed = 0;
+      }
+      else
+      {
+        // otherwise, drive through the waypoints
+        double turning_amount = fabs(result.w);
+        if (turning_amount > 1)
+          turning_amount = 1;
+        result.v = 11.0 * (1.0 - 0.9 * turning_amount);
+        result.speed = result.max_speed.value();
+      }
+
+      static int counter = 0;
+      if (counter++ % 100 == 0)
+      {
+        RCLCPP_INFO(
+          logger(),
+          "vehicle command: v = %.1f, w = %.1f, speed = %.1f, max_speed = %.1f", result.v, result.w, result.speed, result.max_speed.value());
+      }
     }
   }
   else
   {
+    _current_task_id = "";
     result.w = 0.0;
     result.v = 0.0;
   }
