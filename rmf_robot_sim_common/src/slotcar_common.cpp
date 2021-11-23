@@ -560,7 +560,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
   if (_traj_wp_idx < trajectory.size())
   {
-    const auto& approach_speed_limit = trajectory.at(_traj_wp_idx).approach_speed_limit;
+    const auto& approach_speed_limit =
+      trajectory.at(_traj_wp_idx).approach_speed_limit;
     if (approach_speed_limit.has_value())
       result.max_speed = approach_speed_limit.value();
     const Eigen::Vector3d dpos = compute_dpos(
