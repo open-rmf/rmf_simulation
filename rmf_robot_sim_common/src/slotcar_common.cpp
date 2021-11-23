@@ -225,9 +225,8 @@ void SlotcarCommon::handle_diff_drive_path_request(
       Eigen::AngleAxisd(msg->path[i].yaw, Eigen::Vector3d::UnitZ()));
     trajectory.at(i).pose.translation() = v3;
     trajectory.at(i).pose.linear() = Eigen::Matrix3d(quat);
-    const double approach_speed = msg->path[i].approach_speed;
-    if (approach_speed > 0.0)
-      trajectory.at(i).approach_speed = approach_speed;
+    if (msg->path[i].obey_approach_speed_limit)
+      trajectory.at(i).approach_speed_limit = msg->path[i].approach_speed_limit;
 
     _hold_times.at(i) = msg->path[i].t;
   }
@@ -280,8 +279,8 @@ void SlotcarCommon::handle_ackermann_path_request(
   AckermannTrajectory traj(
     Eigen::Vector2d(locations[0].x, locations[0].y),
     Eigen::Vector2d(locations[1].x, locations[1].y));
-  if (locations[1].approach_speed > 0.0)
-    traj.approach_speed = locations[1].approach_speed;
+  if (locations[1].obey_approach_speed_limit)
+    traj.approach_speed_limit = locations[1].approach_speed_limit;
 
   this->ackermann_trajectory.push_back(traj);
 
@@ -347,8 +346,8 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
 
       AckermannTrajectory& last_traj = this->ackermann_trajectory.back();
-      if (locations[i].approach_speed > 0.0)
-        sp2.approach_speed = locations[i].approach_speed;
+      if (locations[i].obey_approach_speed_limit)
+        sp2.approach_speed_limit = locations[i].approach_speed_limit;
       last_traj.v1 = sp2.v0;
 
       this->ackermann_trajectory.push_back(sp2);
@@ -370,8 +369,8 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(tangent1.x(), tangent1.y()),
         Eigen::Vector2d(0, 0),
         true);
-      if (locations[i-1].approach_speed > 0.0)
-        turn_traj.approach_speed = locations[i-1].approach_speed;
+      if (locations[i-1].obey_approach_speed_limit)
+        turn_traj.approach_speed_limit = locations[i-1].approach_speed_limit;
 
       turn_traj.v0 = -wp1_to_wp0_norm;
       turn_traj.v1 = wp1_to_wp2_norm;
@@ -381,8 +380,8 @@ void SlotcarCommon::handle_ackermann_path_request(
         Eigen::Vector2d(wp[2].x(), wp[2].y()));
       end_traj.v0 = wp1_to_wp2_norm;
       end_traj.v1 = wp1_to_wp2_norm;
-      if (locations[i].approach_speed > 0.0)
-        end_traj.approach_speed = locations[i].approach_speed;
+      if (locations[i].obey_approach_speed_limit)
+        end_traj.approach_speed_limit = locations[i].approach_speed_limit;
 
       this->ackermann_trajectory.push_back(turn_traj);
       this->ackermann_trajectory.push_back(end_traj);
@@ -561,9 +560,9 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
   if (_traj_wp_idx < trajectory.size())
   {
-    const auto& approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
-    if (approach_speed.has_value())
-      result.max_speed = approach_speed.value();
+    const auto& approach_speed_limit = trajectory.at(_traj_wp_idx).approach_speed_limit;
+    if (approach_speed_limit.has_value())
+      result.max_speed = approach_speed_limit.value();
     const Eigen::Vector3d dpos = compute_dpos(
       trajectory.at(_traj_wp_idx).pose, _pose);
 
@@ -755,10 +754,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     if (_ackermann_traj_idx != (ackermann_trajectory.size() - 1))
     {
       // Apply speed limit if one is present in the trajectory
-      if (traj.approach_speed.has_value())
+      if (traj.approach_speed_limit.has_value())
       {
-        result.speed = traj.approach_speed.value();
-        result.max_speed = traj.approach_speed.value();
+        result.speed = traj.approach_speed_limit.value();
+        result.max_speed = traj.approach_speed_limit.value();
       }
       else
       {
@@ -773,10 +772,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     // Apply speed limit if one is present in the trajectory
     // TODO(anyone) speed while turning should be lower
     // (i.e. vehicles should slow down before a sharp bend)
-    if (traj.approach_speed.has_value())
+    if (traj.approach_speed_limit.has_value())
     {
-      result.speed = traj.approach_speed.value();
-      result.max_speed = traj.approach_speed.value();
+      result.speed = traj.approach_speed_limit.value();
+      result.max_speed = traj.approach_speed_limit.value();
     }
     else
     {

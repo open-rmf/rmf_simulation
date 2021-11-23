@@ -55,7 +55,7 @@ struct AckermannTrajectory
 
   bool turning = false;
   // Maximum speed for the lane approaching this waypoint
-  std::optional<double> approach_speed;
+  std::optional<double> approach_speed_limit;
 };
 
 struct DiffDriveTrajectory
@@ -67,7 +67,7 @@ struct DiffDriveTrajectory
   // positions
   Eigen::Isometry3d pose;
   // Maximum speed for the lane approaching this waypoint
-  std::optional<double> approach_speed;
+  std::optional<double> approach_speed_limit;
 };
 
 // Edit reference of parameter for template type deduction
