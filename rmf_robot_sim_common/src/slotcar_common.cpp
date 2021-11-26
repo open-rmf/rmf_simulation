@@ -622,9 +622,9 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
 
   if (_traj_wp_idx < trajectory.size())
   {
-    const auto& approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
-    if (approach_speed.has_value())
-      result.max_speed = approach_speed.value();
+    const auto& limit = trajectory.at(_traj_wp_idx).approach_speed_limit;
+    if (limit.has_value())
+      result.max_speed = limit.value();
     else
       result.max_speed = _nominal_drive_speed;
 
