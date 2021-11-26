@@ -210,9 +210,11 @@ void SlotcarCommon::path_request_cb(
       Eigen::AngleAxisd(msg->path[i].yaw, Eigen::Vector3d::UnitZ()));
     trajectory.at(i).pose.translation() = v3;
     trajectory.at(i).pose.linear() = Eigen::Matrix3d(quat);
-    const double approach_speed = msg->path[i].approach_speed;
-    if (approach_speed > 0.0)
-      trajectory.at(i).approach_speed = approach_speed;
+    if (msg->path[i].obey_approach_speed_limit &&
+      msg->path[i].approach_speed_limit > 0.0)
+    {
+      trajectory.at(i).approach_speed_limit = msg->path[i].approach_speed_limit;
+    }
 
     _hold_times.at(i) = msg->path[i].t;
   }
@@ -440,9 +442,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
   if (_traj_wp_idx < trajectory.size())
   {
-    const auto& approach_speed = trajectory.at(_traj_wp_idx).approach_speed;
-    if (approach_speed.has_value())
-      result.max_speed = approach_speed.value();
+    const auto& approach_speed_limit =
+      trajectory.at(_traj_wp_idx).approach_speed_limit;
+    if (approach_speed_limit.has_value())
+      result.max_speed = approach_speed_limit.value();
     const Eigen::Vector3d dpos = compute_dpos(
       trajectory.at(_traj_wp_idx).pose, _pose);
 
@@ -670,6 +673,14 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         // if it's the last waypoint, slow to a stop nicely
         result.v = 1.0 * (dpos_mag + 0.1);
         result.speed = 0;
+        /*
+        // Apply speed limit if one is present in the trajectory
+        if (traj.approach_speed_limit.has_value())
+        {
+          result.speed = traj.approach_speed_limit.value();
+          result.max_speed = traj.approach_speed_limit.value();
+        }
+        */
       }
       else
       {
