@@ -2,6 +2,11 @@
 Changelog for package rmf_building_sim_gazebo_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2021-30-11)
+------------------
+* Making install location package specific to fix: `#100 <https://github.com/open-rmf/rmf/issues/100>`_
+* Contributors: Marco A. Gutierrez
+
 1.3.0 (2021-09-01)
 ------------------
 * Fix dependencies (`#26 <https://github.com/open-rmf/rmf_simulation/issues/26>`_)

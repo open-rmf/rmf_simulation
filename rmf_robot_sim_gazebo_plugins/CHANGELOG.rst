@@ -2,6 +2,11 @@
 Changelog for package rmf_robot_sim_gazebo_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2021-30-11)
+------------------
+* Making install location package specific to fix: `#100 <https://github.com/open-rmf/rmf/issues/100>`_
+* Contributors: Marco A. Gutierrez
+
 1.3.0 (2020-09-01)
 ------------------
 * Change parameter tag from holonomic to steering (`#46 <https://github.com/open-rmf/rmf_simulation/issues/46>`_)
