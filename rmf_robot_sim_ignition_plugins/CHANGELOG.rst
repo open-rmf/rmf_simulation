@@ -2,6 +2,11 @@
 Changelog for package rmf_robot_sim_ignition_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.3.1 (2021-30-11)
+------------------
+* Making install location package specific to fix: `#100 <https://github.com/open-rmf/rmf/issues/100>`_
+* Contributors: Marco A. Gutierrez
+
 1.3.0 (2021-09-01)
 ------------------
 * Make Ignition Edifice dependency mandatory to fix binary builds(`#45 <https://github.com/open-rmf/rmf_simulation/issues/45>`_)
