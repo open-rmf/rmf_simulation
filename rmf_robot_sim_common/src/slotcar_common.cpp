@@ -288,6 +288,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
       _nominal_drive_acceleration, _max_drive_acceleration, dt,
       target_linear_velocity);
 
+  /*
   static int counter = 0;
   if (counter++ % 100 == 0)
   {
@@ -300,6 +301,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
       target_linear_velocity,
       v_target);
   }
+  */
 
   const double w_target = rmf_plugins_utils::compute_ds(displacements.second,
       w_robot,
@@ -692,6 +694,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         result.speed = result.max_speed.value();
       }
 
+      /*
       static int counter = 0;
       if (counter++ % 100 == 0)
       {
@@ -699,6 +702,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
           logger(),
           "vehicle command: v = %.1f, w = %.1f, speed = %.1f, max_speed = %.1f", result.v, result.w, result.speed, result.max_speed.value());
       }
+      */
     }
   }
   else
