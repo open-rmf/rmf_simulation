@@ -690,7 +690,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         double turning_amount = fabs(result.w);
         if (turning_amount > 1)
           turning_amount = 1;
-        result.v = 11.0 * (1.0 - 0.9 * turning_amount);
+        result.v = result.max_speed.value() * (1.0 - 0.9 * turning_amount);
         result.speed = result.max_speed.value();
       }
 
