@@ -222,12 +222,12 @@ void SlotcarCommon::gps_path_request_cb(
     cart_path_request->path = msg->path;
     cart_path_request->task_id = msg->task_id;
 
-    rmf_proj::Transform _transform(msg->coordinate_system, _cartesian_crs);
+    rmf_proj::Transform _transform(_cartesian_crs, msg->coordinate_system);
     for (auto& waypoint : cart_path_request->path)
     {
       double cart_x = 0.0;
       double cart_y = 0.0;
-      _transform.transform_1_to_2(waypoint.x, waypoint.y, cart_x, cart_y);
+      _transform.transform_2_to_1(waypoint.x, waypoint.y, cart_x, cart_y);
 
       waypoint.x = cart_x;
       waypoint.y = cart_y;
