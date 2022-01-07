@@ -235,6 +235,7 @@ private:
 
   std::unordered_map<std::string, double> _level_to_elevation;
   bool _initialized_levels = false;
+  std::string _last_known_level;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> _tf2_broadcaster;
   rclcpp::Publisher<rmf_fleet_msgs::msg::RobotState>::SharedPtr _robot_state_pub;
@@ -293,7 +294,7 @@ private:
 
   bool _docking = false;
 
-  std::string get_level_name(const double z) const;
+  std::string get_level_name(const double z);
 
   double compute_change_in_rotation(
     const Eigen::Vector3d& heading_vec,
