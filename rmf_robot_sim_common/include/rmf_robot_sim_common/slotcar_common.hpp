@@ -130,11 +130,11 @@ public:
     std::optional<double> max_speed = std::nullopt; // Maximum speed allowed while navigating
   };
 
+  // Ignition plugin reads this to display markers
   struct PursuitState
   {
-    double lookahead_radius = 0.0;
     Eigen::Vector3d lookahead_point = Eigen::Vector3d::Zero();
-    std::vector<Eigen::Vector3d> lookahead_segments;
+    std::size_t traj_wp_idx;
   };
 
   SlotcarCommon();
@@ -177,8 +177,12 @@ public:
 
   void get_pursuit_state(PursuitState& pursuit_state);
 
+  void get_trajectory(std::vector<SlotcarTrajectory>& traj);
+
+  bool display_markers = false; // Ignition only: toggles display of waypoint and lookahead markers
+
 private:
-  // Paramters needed for power dissipation and charging calculations
+  // Parameters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
   struct PowerParams
   {
@@ -297,6 +301,7 @@ private:
   bool _docking = false;
 
   PursuitState _pursuit_state;
+  double _lookahead_distance = 8.0;
 
   std::string get_level_name(const double z) const;
 
@@ -495,6 +500,17 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     logger(),
     "Setting nominal power to: %f",
     _params.nominal_power);
+
+  get_element_val_if_present<SdfPtrT, double>(sdf,
+    "lookahead_distance", this->_lookahead_distance);
+  RCLCPP_INFO(
+    logger(),
+    "Setting lookahead distance to: %f",
+    _lookahead_distance);
+
+  get_element_val_if_present<SdfPtrT, bool>(sdf,
+    "display_markers", this->display_markers);
+  RCLCPP_INFO(logger(), "Setting display_markers to: %d", display_markers);
 
   // Charger Waypoint coordinates are in child element of top level world element
   if (sdf->GetParent() && sdf->GetParent()->GetParent())

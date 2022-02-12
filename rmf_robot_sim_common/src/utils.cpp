@@ -25,7 +25,7 @@ double compute_ds(
     sign = -1.0;
   }
 
-  // We should try not to shoot past the targstd::vector<event::ConnectionPtr> connections;et
+  // We should try not to shoot past the target
   double next_v = s_target / dt;
 
   // Test velocity limit
@@ -44,14 +44,16 @@ double compute_ds(
     if (accel_nom <= deceleration)
     {
       // If the smallest constant deceleration for reaching the goal is
-      // greater than
+      // greater than the nominal acceleration, then we should begin
+      // decelerating right away so that we can smoothly reach the goal while
+      // decelerating as close to the nominal acceleration as possible.
       next_v = -deceleration * dt + v_actual;
     }
   }
 
   // if you have a target velocity and a distance shorter than that, set to
   // the target velocity otherwise it'll hard-stop
-  if (s_target < v_target)
+  if (s_target <= v_target)
     next_v = v_target;
 
   // Flip the sign the to correct direction before returning the value

@@ -15,6 +15,7 @@
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
 
+#include <ignition/math/eigen3.hh>
 #include <ignition/msgs.hh>
 #include <ignition/transport.hh>
 #include <rclcpp/rclcpp.hpp>
@@ -79,6 +80,7 @@ private:
     ignition::msgs::Double& rep);
   std::vector<Eigen::Vector3d> get_obstacle_positions(
     EntityComponentManager& ecm);
+  void draw_markers();
 };
 
 SlotcarPlugin::SlotcarPlugin()
@@ -303,6 +305,89 @@ bool SlotcarPlugin::get_slotcar_height(const ignition::msgs::Entity& req,
   return false;
 }
 
+void SlotcarPlugin::draw_markers()
+{
+  rmf_robot_sim_common::SlotcarCommon::PursuitState pursuit_state;
+  dataPtr->get_pursuit_state(pursuit_state);
+  auto traj_wp_idx = pursuit_state.traj_wp_idx;
+  std::vector<rmf_robot_sim_common::SlotcarTrajectory> trajectory;
+  dataPtr->get_trajectory(trajectory);
+
+  // Lookahead point
+  ignition::msgs::Marker marker_msg;
+  marker_msg.set_ns(dataPtr->model_name() + "_lookahead_point");
+  marker_msg.set_id(1);
+  marker_msg.set_action(ignition::msgs::Marker::ADD_MODIFY);
+  marker_msg.set_type(ignition::msgs::Marker::CYLINDER);
+  marker_msg.set_visibility(ignition::msgs::Marker::GUI);
+
+  ignition::msgs::Set(marker_msg.mutable_pose(),
+    ignition::math::Pose3d(
+      pursuit_state.lookahead_point(0),
+      pursuit_state.lookahead_point(1),
+      pursuit_state.lookahead_point(2),
+      0, 0, 0));
+  const double scale = 2.0;
+  ignition::msgs::Set(marker_msg.mutable_scale(),
+    ignition::math::Vector3d(scale, scale, scale));
+  ignition::msgs::Set(marker_msg.mutable_material()->mutable_ambient(),
+    ignition::math::Color(0, 0, 1, 1));
+  ignition::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(),
+    ignition::math::Color(0, 0, 1, 1));
+  _ign_node.Request("/marker", marker_msg);
+
+  // Waypoints and lines between them
+  ignition::msgs::Marker line_marker;
+  line_marker.set_ns(dataPtr->model_name() + "_line");
+  line_marker.set_id(1);
+  line_marker.set_action(ignition::msgs::Marker::ADD_MODIFY);
+  line_marker.set_type(ignition::msgs::Marker::LINE_STRIP);
+  line_marker.set_visibility(ignition::msgs::Marker::GUI);
+  ignition::msgs::Set(
+    line_marker.mutable_material()->mutable_ambient(),
+    ignition::math::Color(1, 0, 0, 1));
+  ignition::msgs::Set(
+    line_marker.mutable_material()->mutable_diffuse(),
+    ignition::math::Color(1, 0, 0, 1));
+
+  for (size_t i = 0; i < trajectory.size(); ++i)
+  {
+    auto wp = trajectory.at(i);
+    auto loc = wp.pose.translation();
+
+    // Add points to the trajectory line, slightly elevated for visibility.
+    ignition::msgs::Set(line_marker.add_point(),
+      ignition::math::Vector3d(loc.x(), loc.y(), 0.5)
+    );
+
+    // Draw green markers for waypoints that have been reached, otherwise red.
+    ignition::math::Color waypoint_color(0.0, 1.0, 0.0, 1.0);
+    if (i >= traj_wp_idx)
+    {
+      waypoint_color.Set(1.0, 0.0, 0.0, 1.0);
+    }
+    ignition::msgs::Marker waypoint_marker;
+    waypoint_marker.set_ns(dataPtr->model_name() + "_waypoints");
+    waypoint_marker.set_id(i+1);
+    waypoint_marker.set_action(ignition::msgs::Marker::ADD_MODIFY);
+    waypoint_marker.set_type(ignition::msgs::Marker::SPHERE);
+    waypoint_marker.set_visibility(ignition::msgs::Marker::GUI);
+    ignition::msgs::Set(waypoint_marker.mutable_scale(),
+      ignition::math::Vector3d(1.5, 1.5, 1.5));
+    ignition::msgs::Set(
+      waypoint_marker.mutable_material()->mutable_ambient(),
+      waypoint_color);
+    ignition::msgs::Set(
+      waypoint_marker.mutable_material()->mutable_diffuse(),
+      waypoint_color);
+    ignition::msgs::Set(waypoint_marker.mutable_pose(),
+      ignition::math::eigen3::convert(wp.pose)
+    );
+    _ign_node.Request("/marker", waypoint_marker);
+  }
+  _ign_node.Request("/marker", line_marker);
+}
+
 void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
@@ -373,31 +458,12 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
     update_result.speed, update_result.max_speed);
 
-  rmf_robot_sim_common::SlotcarCommon::PursuitState pursuit_state;
-  dataPtr->get_pursuit_state(pursuit_state);
-  ignition::msgs::Marker marker_msg;
-  marker_msg.set_id(0);
-  marker_msg.set_ns("lookahead_point");
-  marker_msg.set_action(ignition::msgs::Marker::ADD_MODIFY);
-  marker_msg.set_type(ignition::msgs::Marker::SPHERE);
-  marker_msg.set_visibility(ignition::msgs::Marker::GUI);
-  ignition::msgs::Set(marker_msg.mutable_pose(),
-    ignition::math::Pose3d(
-      pursuit_state.lookahead_point(0),
-      pursuit_state.lookahead_point(1),
-      pursuit_state.lookahead_point(2),
-      0, 0, 0));
-  const double scale = 10.0;
-  ignition::msgs::Set(marker_msg.mutable_scale(),
-    ignition::math::Vector3d(scale, scale, scale));
-  marker_msg.mutable_lifetime()->set_sec(0);
-  ignition::msgs::Material *material_msg = marker_msg.mutable_material();
-  /*
-  material_msg->set_ambient(ignition::math::Color(1, 0, 0, 1));
-  material_msg->set_diffuse(ignition::math::Color(1, 0, 0, 1));
-  _ign_node.Request("/marker", marker_msg);
-  */
+  if (dataPtr->display_markers)
+  {
+    draw_markers();
+  }
 }
+
 
 IGNITION_ADD_PLUGIN(
   SlotcarPlugin,
