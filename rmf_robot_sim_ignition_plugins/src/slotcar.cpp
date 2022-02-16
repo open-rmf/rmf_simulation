@@ -343,6 +343,7 @@ void SlotcarPlugin::draw_markers()
   line_marker.set_action(ignition::msgs::Marker::ADD_MODIFY);
   line_marker.set_type(ignition::msgs::Marker::LINE_STRIP);
   line_marker.set_visibility(ignition::msgs::Marker::GUI);
+  line_marker.mutable_lifetime()->set_sec(1);
   ignition::msgs::Set(
     line_marker.mutable_material()->mutable_ambient(),
     ignition::math::Color(1, 0, 0, 1));
@@ -372,6 +373,7 @@ void SlotcarPlugin::draw_markers()
     waypoint_marker.set_action(ignition::msgs::Marker::ADD_MODIFY);
     waypoint_marker.set_type(ignition::msgs::Marker::SPHERE);
     waypoint_marker.set_visibility(ignition::msgs::Marker::GUI);
+    waypoint_marker.mutable_lifetime()->set_sec(1);
     ignition::msgs::Set(waypoint_marker.mutable_scale(),
       ignition::math::Vector3d(1.5, 1.5, 1.5));
     ignition::msgs::Set(
