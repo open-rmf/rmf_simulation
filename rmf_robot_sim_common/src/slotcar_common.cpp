@@ -352,7 +352,8 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   const std::array<double, 2>& curr_velocities,
   const std::pair<double, double>& displacements,
   const double dt,
-  const double target_linear_velocity,
+  const double linear_speed_target_now,
+  const double linear_speed_target_destination,
   const std::optional<double>& linear_speed_limit) const
 {
   const double v_robot = curr_velocities[0];
@@ -360,31 +361,53 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
 
   const double max_lin_vel = linear_speed_limit.has_value() ?
     linear_speed_limit.value() : _nominal_drive_speed;
-  const double v_target = rmf_plugins_utils::compute_ds(displacements.first,
-      v_robot,
-      max_lin_vel,
-      _nominal_drive_acceleration, _max_drive_acceleration, dt,
-      target_linear_velocity);
+  rmf_plugins_utils::MotionParams drive_params {
+    max_lin_vel,
+    _max_drive_acceleration,
+    _nominal_drive_acceleration,
+    0.01,
+    10000000.0};
+  const double v_target = rmf_plugins_utils::compute_desired_rate_of_change(
+    displacements.first,
+    v_robot,
+    linear_speed_target_now,
+    linear_speed_target_destination,
+    drive_params,
+    dt);
+
+  rmf_plugins_utils::MotionParams turn_params {
+    _nominal_turn_speed,
+    _max_turn_acceleration,
+    _nominal_turn_acceleration,
+    0.01,
+    10000000.0};
+  const double w_target = rmf_plugins_utils::compute_desired_rate_of_change(
+    displacements.second,
+    w_robot,
+    _nominal_turn_speed,
+    0.0,
+    turn_params,
+    dt);
 
   /*
   static int counter = 0;
-  if (counter++ % 100 == 0)
+  if (counter++ % 1 == 0)
   {
     RCLCPP_INFO(logger(),
-      "max_lin_vel: %.3f v_robot: %.3f w_robot: %.3f  dt: %.6f target_linear_velocity: %.3f v_target: %.3f",
-      max_lin_vel,
+      "s: %1.5e w: %1.5e  v_robot: %.3f w_robot: %.3f speedtargetnow: %.3f speedtargetdest: %.3f",
+      displacements.first,
+      displacements.second,
       v_robot,
       w_robot,
-      dt,
-      target_linear_velocity,
-      v_target);
+      linear_speed_target_now,
+      linear_speed_target_destination);
+    RCLCPP_INFO(logger(),
+      "max_lin_vel: %.3f v_command: %1.5e  w_command: %1.5e ",
+      max_lin_vel,
+      v_target,
+      w_target);
   }
   */
-
-  const double w_target = rmf_plugins_utils::compute_ds(displacements.second,
-      w_robot,
-      _nominal_turn_speed,
-      _nominal_turn_acceleration, _max_turn_acceleration, dt);
 
   return std::array<double, 2>{v_target, w_target};
 }
@@ -393,7 +416,8 @@ std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
   const std::array<double, 2>& w_tire,
   const std::pair<double, double>& displacements,
   const double dt,
-  const double target_linear_velocity,
+  const double linear_speed_target_now,
+  const double linear_speed_target_destination,
   const std::optional<double>& linear_speed_limit) const
 {
   std::array<double, 2> curr_velocities;
@@ -401,7 +425,8 @@ std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
   curr_velocities[1] = (w_tire[1] - w_tire[0]) * _tire_radius / _base_width;
 
   std::array<double, 2> new_velocities = calculate_control_signals(
-    curr_velocities, displacements, dt, target_linear_velocity,
+    curr_velocities, displacements, dt, linear_speed_target_now,
+    linear_speed_target_destination,
     linear_speed_limit);
 
   std::array<double, 2> joint_signals;
@@ -582,7 +607,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
         result.w = compute_change_in_rotation(
           current_heading, goal_heading);
       }
-
+      result.target_linear_speed_now = 0.0;
       _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_PAUSED;
     }
     else if (close_enough)
@@ -621,6 +646,11 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       // only spin in place until we are oriented in the desired direction.
       result.v = std::abs(result.w) <
         d_yaw_tolerance ? dir * dpos_mag : 0.0;
+      if (result.v != 0.0)
+      {
+        result.target_linear_speed_now = _nominal_drive_speed;
+      }
+      result.target_linear_speed_destination = 0.0;
     }
   }
   else
@@ -820,28 +850,26 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         current_heading, d_target, &goal_heading, &dir);
 
       // As turning yaw increases, slow down more, to a minimum of 20%.
-      double turning = fabs(result.w) / M_PI_2;
-      double slowdown = std::min(0.2, turning + turning * turning);
-      result.max_speed = result.max_speed.value() * (1 - slowdown);
+      double turning = fabs(result.w) / M_PI;
+      double slowdown = std::min(0.2, 2 * turning);
+      result.target_linear_speed_now = result.max_speed.value() *
+        (1 - slowdown);
+      result.target_linear_speed_destination = result.target_linear_speed_now;
 
-      if (_traj_wp_idx == trajectory.size() - 1)
+      if (_traj_wp_idx == trajectory.size() - 1 &&
+        dpos_mag < _lookahead_distance)
       {
-        // if it's the last waypoint, slow to a stop nicely
-        result.speed = 0;
-      }
-      else
-      {
-        // otherwise, drive through the waypoints
-        result.speed = result.max_speed.value();
+        // if near the last waypoint, slow to a stop nicely
+        result.target_linear_speed_destination = 0;
       }
 
       /*
       static int counter = 0;
-      if (counter++ % 100 == 0)
+      if (counter++ % 1 == 0)
       {
         RCLCPP_INFO(
           logger(),
-          "vehicle command: v = %.1f, w = %.1f, speed = %.1f, max_speed = %.1f", result.v, result.w, result.speed, result.max_speed.value());
+          "vehicle command: v = %.2f, w = %.2f, target_linear_speed_now = %.3f, target_linear_speed_destination = %.3f, max_speed = %.3f", result.v, result.w, result.target_linear_speed_now, result.target_linear_speed_destination, result.max_speed.value());
       }
       */
     }

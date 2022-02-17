@@ -126,7 +126,8 @@ public:
   {
     double v = 0.0; // Target displacement in X (forward)
     double w = 0.0; // Target displacement in yaw
-    double speed = 0.0; // Target speed at next waypoint
+    double target_linear_speed_now = 0.0;     // Target linear speed now
+    double target_linear_speed_destination = 0.0; // Target linear speed at destination
     std::optional<double> max_speed = std::nullopt; // Maximum speed allowed while navigating
   };
 
@@ -161,14 +162,16 @@ public:
     2>& curr_velocities,
     const std::pair<double, double>& displacements,
     const double dt,
-    const double target_linear_velocity = 0.0,
+    const double target_velocity_now = 0.0,
+    const double target_velocity_at_dest = 0.0,
     const std::optional<double>& linear_speed_limit = std::nullopt) const;
 
   std::array<double, 2> calculate_joint_control_signals(
     const std::array<double, 2>& w_tire,
     const std::pair<double, double>& displacements,
     const double dt,
-    const double target_linear_velocity = 0.0,
+    const double target_linear_speed_now = 0.0,
+    const double target_linear_speed_destination = 0.0,
     const std::optional<double>& linear_speed_limit = std::nullopt) const;
 
   void charge_state_cb(const std::string& name, bool selected);
