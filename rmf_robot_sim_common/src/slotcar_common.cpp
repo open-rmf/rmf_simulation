@@ -802,23 +802,22 @@ bool SlotcarCommon::emergency_stop(
   return _emergency_stop;
 }
 
-std::string SlotcarCommon::get_level_name(const double z) const
+std::string SlotcarCommon::get_level_name(const double z)
 {
-  std::string level_name = "";
   if (!_initialized_levels)
-    return level_name;
-  auto min_distance = std::numeric_limits<double>::max();
+    return "";
   for (auto it = _level_to_elevation.begin(); it != _level_to_elevation.end();
     ++it)
   {
     const double disp = std::abs(it->second - z);
-    if (disp < min_distance)
+    if (disp < 0.1)
     {
-      min_distance = disp;
-      level_name = it->first;
+      _last_known_level = it->first;
+      return _last_known_level;
     }
   }
-  return level_name;
+  // Robot is transitioning between levels so return last known level
+  return _last_known_level;
 }
 
 double SlotcarCommon::compute_change_in_rotation(
@@ -987,7 +986,7 @@ void SlotcarCommon::charge_state_cb(
 
 bool SlotcarCommon::near_charger(const Eigen::Isometry3d& pose) const
 {
-  std::string lvl_name = get_level_name(pose.translation()[2]);
+  std::string lvl_name = _last_known_level;
   auto waypoints_it = _charger_waypoints.find(lvl_name);
   if (waypoints_it != _charger_waypoints.end())
   {
