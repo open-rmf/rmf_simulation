@@ -32,6 +32,7 @@ private:
   std::shared_ptr<DoorCommon> _door_common = nullptr;
 
   bool _initialized = false;
+  bool _first_iteration = true;
 
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
@@ -43,16 +44,12 @@ private:
 public:
   DoorPlugin()
   {
-    // TODO init ros node
-    // Do nothing
   }
 
   void Configure(const Entity& entity,
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    //_ros_node = gazebo_ros::Node::Get(sdf);
-    // TODO get properties from sdf instead of hardcoded (will fail for multiple instantiations)
     // TODO proper rclcpp init (only once and pass args)
     auto model = Model(entity);
     char const** argv = NULL;
@@ -99,10 +96,14 @@ public:
 
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
-    // TODO parallel thread executor?
     rclcpp::spin_some(_ros_node);
-    if (!_initialized)
+    // JointPosition and JointVelocity components are populated by Physics
+    // system in Update, hence they are uninitialized in the first PreUpdate.
+    if (!_initialized || _first_iteration)
+    {
+      _first_iteration = false;
       return;
+    }
 
     // Don't update the pose if the simulation is paused
     if (info.paused)
@@ -134,7 +135,7 @@ public:
       assert(it != _joints.end());
       auto vel_cmd = ecm.Component<components::JointVelocityCmd>(
         it->second);
-      vel_cmd->Data()[0] = result.velocity;
+      vel_cmd->Data() = {result.velocity};
     }
   }
 
