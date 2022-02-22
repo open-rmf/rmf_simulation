@@ -60,7 +60,7 @@ private:
     enableComponent<components::LinearVelocityCmd>(ecm, entity);
     enableComponent<components::WorldPoseCmd>(ecm, entity);
     auto pos = ecm.Component<components::Pose>(entity);
-    ecm.Component<components::Pose>(entity)->Data() = pos->Data();
+    ecm.Component<components::WorldPoseCmd>(entity)->Data() = pos->Data();
   }
 
   void create_joint_components(Entity entity, EntityComponentManager& ecm)
