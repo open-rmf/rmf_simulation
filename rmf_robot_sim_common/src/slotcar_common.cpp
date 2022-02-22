@@ -336,6 +336,9 @@ void SlotcarCommon::path_request_cb(
       p.pose.translation().x(),
       p.pose.translation().y());
   }
+
+  if (_path_request_callback)
+    _path_request_callback(msg);
 }
 
 void SlotcarCommon::pause_request_cb(
@@ -388,26 +391,6 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
     0.0,
     turn_params,
     dt);
-
-  /*
-  static int counter = 0;
-  if (counter++ % 1 == 0)
-  {
-    RCLCPP_INFO(logger(),
-      "s: %1.5e w: %1.5e  v_robot: %.3f w_robot: %.3f speedtargetnow: %.3f speedtargetdest: %.3f",
-      displacements.first,
-      displacements.second,
-      v_robot,
-      w_robot,
-      linear_speed_target_now,
-      linear_speed_target_destination);
-    RCLCPP_INFO(logger(),
-      "max_lin_vel: %.3f v_command: %1.5e  w_command: %1.5e ",
-      max_lin_vel,
-      v_target,
-      w_target);
-  }
-  */
 
   return std::array<double, 2>{v_target, w_target};
 }
@@ -834,7 +817,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         }
       }
 
-      auto target_3d = Eigen::Vector3d(target(0), target(1), 0);
+      auto target_3d = Eigen::Vector3d(target(0), target(1),
+          trajectory.at(_traj_wp_idx).pose.translation()(2));
       _pursuit_state.lookahead_point(0) = target_3d(0);
       _pursuit_state.lookahead_point(1) = target_3d(1);
       _pursuit_state.lookahead_point(2) = target_3d(2);
@@ -849,10 +833,11 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
       result.w = compute_change_in_rotation(
         current_heading, d_target, &goal_heading, &dir);
 
-      // As turning yaw increases, slow down more, to a minimum of 20%.
+      // As turning yaw increases, slow down more.
       double turning = fabs(result.w) / M_PI;
-      double slowdown = std::min(0.2, 2 * turning);
-      result.target_linear_speed_now = result.max_speed.value() *
+      double slowdown = std::min(0.8, turning);   // Minimum speed 20%
+      result.target_linear_speed_now =
+        std::min(result.max_speed.value(), _nominal_drive_speed) *
         (1 - slowdown);
       result.target_linear_speed_destination = result.target_linear_speed_now;
 
@@ -862,16 +847,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         // if near the last waypoint, slow to a stop nicely
         result.target_linear_speed_destination = 0;
       }
-
-      /*
-      static int counter = 0;
-      if (counter++ % 1 == 0)
-      {
-        RCLCPP_INFO(
-          logger(),
-          "vehicle command: v = %.2f, w = %.2f, target_linear_speed_now = %.3f, target_linear_speed_destination = %.3f, max_speed = %.3f", result.v, result.w, result.target_linear_speed_now, result.target_linear_speed_destination, result.max_speed.value());
-      }
-      */
     }
   }
   else
@@ -1162,12 +1137,7 @@ double SlotcarCommon::compute_discharge(
   return dSOC;
 }
 
-void SlotcarCommon::get_pursuit_state(PursuitState& pursuit_state)
+SlotcarCommon::PursuitState SlotcarCommon::get_pursuit_state() const
 {
-  pursuit_state = _pursuit_state;
-}
-
-void SlotcarCommon::get_trajectory(std::vector<SlotcarTrajectory>& traj)
-{
-  traj = trajectory;
+  return _pursuit_state;
 }

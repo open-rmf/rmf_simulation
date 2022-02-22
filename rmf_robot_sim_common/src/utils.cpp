@@ -15,18 +15,14 @@ double compute_desired_rate_of_change(
   const MotionParams& _motion_params,
   const double _dt)
 {
-  using std::copysign;
-  using std::min;
-  using std::signbit;
-
-  bool v_opposite_s = abs(_v_actual) > 0 &&
-    (signbit(_v_actual) != signbit(_s_target));
+  bool v_opposite_s = abs(_v_actual) > 0.0 &&
+    (std::signbit(_v_actual) != std::signbit(_s_target));
 
   if (abs(_s_target) == 0.0 || v_opposite_s)
   {
-    // Use maximum accleration to come to a stop
-    double v_difference = copysign(
-      min(abs(_v_actual), _motion_params.a_max * _dt),
+    // Use maximum acceleration to come to a stop
+    double v_difference = std::copysign(
+      std::min(abs(_v_actual), _motion_params.a_max * _dt),
       _v_actual);
     return _v_actual - v_difference;
   }
@@ -36,8 +32,8 @@ double compute_desired_rate_of_change(
   double required_accel =
     (pow(_speed_target_dest, 2) - pow(_v_actual, 2)) / (2.0 * _s_target);
   // Test acceleration limit
-  required_accel = copysign(
-    min(abs(required_accel), _motion_params.a_max),
+  required_accel = std::copysign(
+    std::min(abs(required_accel), _motion_params.a_max),
     required_accel);
   if (abs(required_accel) >= _motion_params.a_nom)
   {
@@ -50,13 +46,13 @@ double compute_desired_rate_of_change(
   }
 
   // Test target speed limit
-  double v_target_now = copysign(
-    min(abs(_speed_target_now), _motion_params.v_max), _s_target);
+  double v_target_now = std::copysign(
+    std::min(abs(_speed_target_now), _motion_params.v_max), _s_target);
 
   // Test acceleration limit
   double v_change = v_target_now - _v_actual;
-  v_change = copysign(
-    min(abs(v_change), _motion_params.a_nom * _dt), v_change);
+  v_change = std::copysign(
+    std::min(abs(v_change), _motion_params.a_nom * _dt), v_change);
   double v_next = _v_actual + v_change;
   return v_next;
 }

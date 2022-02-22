@@ -178,11 +178,14 @@ public:
 
   void publish_robot_state(const double time);
 
-  void get_pursuit_state(PursuitState& pursuit_state);
-
-  void get_trajectory(std::vector<SlotcarTrajectory>& traj);
+  PursuitState get_pursuit_state() const;
 
   bool display_markers = false; // Ignition only: toggles display of waypoint and lookahead markers
+
+  using PathRequestCallback =
+    std::function<void(const rmf_fleet_msgs::msg::PathRequest::SharedPtr)>;
+  void set_path_request_callback(PathRequestCallback cb)
+  { _path_request_callback = cb; }
 
 private:
   // Parameters needed for power dissipation and charging calculations
@@ -305,6 +308,8 @@ private:
 
   PursuitState _pursuit_state;
   double _lookahead_distance = 8.0;
+
+  PathRequestCallback _path_request_callback = nullptr;
 
   std::string get_level_name(const double z) const;
 
