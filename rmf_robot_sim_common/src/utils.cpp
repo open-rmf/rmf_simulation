@@ -49,7 +49,13 @@ double compute_desired_rate_of_change(
   double v_target_now = std::copysign(
     std::min(abs(_speed_target_now), _motion_params.v_max), _s_target);
 
-  // Test acceleration limit
+  // When extremely near destination, don't accelerate to _speed_target_now.
+  if (abs((_v_actual + _motion_params.a_nom) * _dt) > abs(_s_target)) {
+    v_target_now = std::copysign(
+     std::max(abs(_s_target/_dt), _speed_target_dest), _s_target);
+  }
+
+  // Test acceleration
   double v_change = v_target_now - _v_actual;
   v_change = std::copysign(
     std::min(abs(v_change), _motion_params.a_nom * _dt), v_change);

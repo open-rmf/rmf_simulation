@@ -332,9 +332,7 @@ void SlotcarPlugin::path_request_marker_update(
   }
   _ign_node.Request(
     "/marker_array", _trajectory_marker_msg, 5000, res, result);
-
-  // _trajectory_marker_msg.clear_marker();
-
+  _trajectory_marker_msg.clear_marker();
   auto line_marker = _trajectory_marker_msg.add_marker();
   line_marker->set_ns(dataPtr->model_name() + "_line");
   line_marker->set_id(1);
@@ -394,9 +392,9 @@ void SlotcarPlugin::path_request_marker_update(
     ignition::msgs::Set(marker_headings->add_point(),
       ignition::math::Vector3d(loc.x, loc.y, elevation));
     ignition::msgs::Set(marker_headings->add_point(),
-      ignition::math::Vector3d(loc.x + length * dir.x(),
+      ignition::math::Vector3d(loc.x + length * dir.x(), 
       loc.y + length * dir.y(),
-      elevation));
+      elevation+0.5));
   }
 
   _ign_node.Request(
