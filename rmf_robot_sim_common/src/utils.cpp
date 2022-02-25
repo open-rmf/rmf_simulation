@@ -50,9 +50,10 @@ double compute_desired_rate_of_change(
     std::min(abs(_speed_target_now), _motion_params.v_max), _s_target);
 
   // When extremely near destination, don't accelerate to _speed_target_now.
-  if (abs((_v_actual + _motion_params.a_nom) * _dt) > abs(_s_target)) {
+  if (abs((_v_actual + _motion_params.a_nom) * _dt) > abs(_s_target))
+  {
     v_target_now = std::copysign(
-     std::max(abs(_s_target/_dt), _speed_target_dest), _s_target);
+      std::max(abs(_s_target/_dt), _speed_target_dest), _s_target);
   }
 
   // Test acceleration

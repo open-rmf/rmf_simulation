@@ -392,7 +392,7 @@ void SlotcarPlugin::path_request_marker_update(
     ignition::msgs::Set(marker_headings->add_point(),
       ignition::math::Vector3d(loc.x, loc.y, elevation));
     ignition::msgs::Set(marker_headings->add_point(),
-      ignition::math::Vector3d(loc.x + length * dir.x(), 
+      ignition::math::Vector3d(loc.x + length * dir.x(),
       loc.y + length * dir.y(),
       elevation+0.5));
   }
