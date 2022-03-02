@@ -15,6 +15,15 @@ double compute_desired_rate_of_change(
   const MotionParams& _motion_params,
   const double _dt)
 {
+  // When velocity is the opposite direction of displacement, stop. But for
+  // very small velocities, the physics engine may not register the small
+  // change required to decelerate to 0.0, so we need to do rounding.
+  double eps = 1e-4;
+  if (abs(_v_actual) < eps)
+  {
+    _v_actual = 0.0;
+  }
+
   bool v_opposite_s = abs(_v_actual) > 0.0 &&
     (std::signbit(_v_actual) != std::signbit(_s_target));
 
