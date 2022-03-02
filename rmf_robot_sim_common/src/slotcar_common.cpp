@@ -88,7 +88,7 @@ double compute_friction_energy(
 
 // Given a line segment from point1 to point2, and a circle centred at (cx, cy),
 // returns the points of intersection.
-std::vector<Eigen::Vector2d> line_circle_intersections(
+static std::vector<Eigen::Vector2d> line_circle_intersections(
   const Eigen::Vector2d point1,
   const Eigen::Vector2d point2,
   const double cx,
@@ -141,7 +141,7 @@ std::vector<Eigen::Vector2d> line_circle_intersections(
 
 // Returns the point on the line segment from A to B that is
 // closest to point P.
-Eigen::Vector2d get_closest_point_on_line_segment(
+static Eigen::Vector2d get_closest_point_on_line_segment(
   Eigen::Vector2d A,
   Eigen::Vector2d B,
   Eigen::Vector2d P)
@@ -820,14 +820,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
         }
       }
 
-      auto target_3d = Eigen::Vector3d(target(0), target(1),
+      _lookahead_point = Eigen::Vector3d(target(0), target(1),
           trajectory.at(_traj_wp_idx).pose.translation()(2));
-      _pursuit_state.lookahead_point(0) = target_3d(0);
-      _pursuit_state.lookahead_point(1) = target_3d(1);
-      _pursuit_state.lookahead_point(2) = target_3d(2);
-      _pursuit_state.traj_wp_idx = _traj_wp_idx;
 
-      Eigen::Vector3d d_target = target_3d - _pose.translation();
+      Eigen::Vector3d d_target = _lookahead_point - _pose.translation();
 
       result.v = d_target.norm();
 
@@ -1140,7 +1136,7 @@ double SlotcarCommon::compute_discharge(
   return dSOC;
 }
 
-SlotcarCommon::PursuitState SlotcarCommon::get_pursuit_state() const
+Eigen::Vector3d SlotcarCommon::get_lookahead_point() const
 {
-  return _pursuit_state;
+  return _lookahead_point;
 }

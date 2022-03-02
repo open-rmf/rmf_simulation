@@ -131,13 +131,6 @@ public:
     std::optional<double> max_speed = std::nullopt; // Maximum speed allowed while navigating
   };
 
-  // Ignition plugin reads this to display markers
-  struct PursuitState
-  {
-    Eigen::Vector3d lookahead_point = Eigen::Vector3d::Zero();
-    std::size_t traj_wp_idx;
-  };
-
   SlotcarCommon();
 
   rclcpp::Logger logger() const;
@@ -178,7 +171,7 @@ public:
 
   void publish_robot_state(const double time);
 
-  PursuitState get_pursuit_state() const;
+  Eigen::Vector3d get_lookahead_point() const;
 
   bool display_markers = false; // Ignition only: toggles display of waypoint and lookahead markers
 
@@ -307,7 +300,7 @@ private:
 
   bool _docking = false;
 
-  PursuitState _pursuit_state;
+  Eigen::Vector3d _lookahead_point;
   double _lookahead_distance = 8.0;
 
   PathRequestCallback _path_request_callback = nullptr;

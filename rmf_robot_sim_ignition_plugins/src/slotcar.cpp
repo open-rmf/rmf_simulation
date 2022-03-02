@@ -403,7 +403,7 @@ void SlotcarPlugin::path_request_marker_update(
 
 void SlotcarPlugin::draw_lookahead_marker()
 {
-  auto pursuit_state = dataPtr->get_pursuit_state();
+  auto lookahead_point = dataPtr->get_lookahead_point();
 
   // Lookahead point
   ignition::msgs::Marker marker_msg;
@@ -415,9 +415,9 @@ void SlotcarPlugin::draw_lookahead_marker()
 
   ignition::msgs::Set(marker_msg.mutable_pose(),
     ignition::math::Pose3d(
-      pursuit_state.lookahead_point(0),
-      pursuit_state.lookahead_point(1),
-      pursuit_state.lookahead_point(2),
+      lookahead_point(0),
+      lookahead_point(1),
+      lookahead_point(2),
       0, 0, 0));
   const double scale = 1.5;
   ignition::msgs::Set(marker_msg.mutable_scale(),
