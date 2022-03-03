@@ -104,14 +104,6 @@ inline Eigen::Isometry3d convert_pose(const IgnPoseT& _pose)
   return tf;
 }
 
-struct TrajectoryPoint
-{
-  Eigen::Vector3d pos;
-  Eigen::Quaterniond quat;
-  TrajectoryPoint(const Eigen::Vector3d& _pos, const Eigen::Quaterniond& _quat)
-  : pos(_pos), quat(_quat) {}
-};
-
 // steering type constants
 enum class SteeringType
 {
