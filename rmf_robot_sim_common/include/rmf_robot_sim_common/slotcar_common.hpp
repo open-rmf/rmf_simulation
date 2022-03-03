@@ -126,15 +126,9 @@ public:
   {
     double v = 0.0; // Target displacement in X (forward)
     double w = 0.0; // Target displacement in yaw
-    double speed = 0.0; // Target speed at next waypoint
+    double target_linear_speed_now = 0.0;     // Target linear speed now
+    double target_linear_speed_destination = 0.0; // Target linear speed at destination
     std::optional<double> max_speed = std::nullopt; // Maximum speed allowed while navigating
-  };
-
-  struct PursuitState
-  {
-    double lookahead_radius = 0.0;
-    Eigen::Vector3d lookahead_point = Eigen::Vector3d::Zero();
-    std::vector<Eigen::Vector3d> lookahead_segments;
   };
 
   SlotcarCommon();
@@ -161,24 +155,33 @@ public:
     2>& curr_velocities,
     const std::pair<double, double>& displacements,
     const double dt,
-    const double target_linear_velocity = 0.0,
+    const double target_velocity_now = 0.0,
+    const double target_velocity_at_dest = 0.0,
     const std::optional<double>& linear_speed_limit = std::nullopt) const;
 
   std::array<double, 2> calculate_joint_control_signals(
     const std::array<double, 2>& w_tire,
     const std::pair<double, double>& displacements,
     const double dt,
-    const double target_linear_velocity = 0.0,
+    const double target_linear_speed_now = 0.0,
+    const double target_linear_speed_destination = 0.0,
     const std::optional<double>& linear_speed_limit = std::nullopt) const;
 
   void charge_state_cb(const std::string& name, bool selected);
 
   void publish_robot_state(const double time);
 
-  void get_pursuit_state(PursuitState& pursuit_state);
+  Eigen::Vector3d get_lookahead_point() const;
+
+  bool display_markers = false; // Ignition only: toggles display of waypoint and lookahead markers
+
+  using PathRequestCallback =
+    std::function<void(const rmf_fleet_msgs::msg::PathRequest::SharedPtr)>;
+  void set_path_request_callback(PathRequestCallback cb)
+  { _path_request_callback = cb; }
 
 private:
-  // Paramters needed for power dissipation and charging calculations
+  // Parameters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
   struct PowerParams
   {
@@ -233,6 +236,7 @@ private:
   // Assumes robot is stationary upon initialization
   Eigen::Vector3d _old_lin_vel = Eigen::Vector3d::Zero(); // Linear velocity at previous time step
   double _old_ang_vel = 0.0; // Angular velocity at previous time step
+  bool _was_rotating; // Whether robot was rotating towards its next target in previous time step
   Eigen::Isometry3d _pose; // Pose at current time step
   int _rot_dir = 1; // Current direction of rotation
 
@@ -296,7 +300,10 @@ private:
 
   bool _docking = false;
 
-  PursuitState _pursuit_state;
+  Eigen::Vector3d _lookahead_point;
+  double _lookahead_distance = 8.0;
+
+  PathRequestCallback _path_request_callback = nullptr;
 
   std::string get_level_name(const double z) const;
 
@@ -495,6 +502,17 @@ void SlotcarCommon::read_sdf(SdfPtrT& sdf)
     logger(),
     "Setting nominal power to: %f",
     _params.nominal_power);
+
+  get_element_val_if_present<SdfPtrT, double>(sdf,
+    "lookahead_distance", this->_lookahead_distance);
+  RCLCPP_INFO(
+    logger(),
+    "Setting lookahead distance to: %f",
+    _lookahead_distance);
+
+  get_element_val_if_present<SdfPtrT, bool>(sdf,
+    "display_markers", this->display_markers);
+  RCLCPP_INFO(logger(), "Setting display_markers to: %d", display_markers);
 
   // Charger Waypoint coordinates are in child element of top level world element
   if (sdf->GetParent() && sdf->GetParent()->GetParent())

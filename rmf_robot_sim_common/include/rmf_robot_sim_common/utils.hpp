@@ -52,16 +52,6 @@ struct SimEntity
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-// TODO(MXG): Refactor the use of this function to replace it with
-// compute_desired_rate_of_change()
-double compute_ds(
-  double s_target,
-  double v_actual,
-  const double v_max,
-  const double accel_nom,
-  const double accel_max,
-  const double dt,
-  const double v_target = 0.0);
 
 struct MotionParams
 {
@@ -73,8 +63,10 @@ struct MotionParams
 };
 
 double compute_desired_rate_of_change(
-  double _s_target,
-  double _v_actual,
+  double _s_target,              // Displacement to destination
+  double _v_actual,              // Current velocity
+  double _speed_target_now,      // Target speed now while on route
+  double _speed_target_dest,     // Target speed at destination
   const MotionParams& _motion_params,
   const double _dt);
 
