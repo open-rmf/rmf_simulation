@@ -67,8 +67,10 @@ private:
   {
     enableComponent<components::JointPosition>(ecm, entity);
     enableComponent<components::JointPositionReset>(ecm, entity);
+    ecm.Component<components::JointPositionReset>(entity)->Data() = {0.0};
     enableComponent<components::JointVelocity>(ecm, entity);
     enableComponent<components::JointVelocityCmd>(ecm, entity);
+    ecm.Component<components::JointVelocityCmd>(entity)->Data() = {0.0};
   }
 
   void fill_physics_engine(Entity entity, EntityComponentManager& ecm)
@@ -196,6 +198,7 @@ public:
       }
 
       _first_iteration = false;
+      return;
     }
 
     // Optimization: Read and store lift's pose and AABB whenever available, then
