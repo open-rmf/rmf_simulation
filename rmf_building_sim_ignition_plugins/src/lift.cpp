@@ -59,7 +59,7 @@ private:
   {
     enableComponent<components::LinearVelocityCmd>(ecm, entity);
     enableComponent<components::WorldPoseCmd>(ecm, entity);
-    auto pos = ecm.Component<components::Pose>(entity);
+    const auto pos = ecm.Component<components::Pose>(entity);
     ecm.Component<components::WorldPoseCmd>(entity)->Data() = pos->Data();
   }
 
