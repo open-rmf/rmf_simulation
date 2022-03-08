@@ -2,7 +2,7 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
@@ -12,10 +12,7 @@
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/door_common.hpp>
 
-// TODO remove this
-using namespace ignition;
-using namespace gazebo;
-using namespace systems;
+using namespace ignition::gazebo;
 
 using namespace rmf_building_sim_common;
 
@@ -35,33 +32,24 @@ private:
   std::shared_ptr<DoorCommon> _door_common = nullptr;
 
   bool _initialized = false;
+  bool _first_iteration = true;
 
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointPosition().TypeId()))
-      ecm.CreateComponent(entity, components::JointPosition({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointVelocity().TypeId()))
-      ecm.CreateComponent(entity, components::JointVelocity({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointVelocityCmd().TypeId()))
-      ecm.CreateComponent(entity, components::JointVelocityCmd({0}));
+    enableComponent<components::JointPosition>(ecm, entity);
+    enableComponent<components::JointVelocity>(ecm, entity);
+    enableComponent<components::JointVelocityCmd>(ecm, entity);
   }
 
 public:
   DoorPlugin()
   {
-    // TODO init ros node
-    // Do nothing
   }
 
   void Configure(const Entity& entity,
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    //_ros_node = gazebo_ros::Node::Get(sdf);
-    // TODO get properties from sdf instead of hardcoded (will fail for multiple instantiations)
     // TODO proper rclcpp init (only once and pass args)
     auto model = Model(entity);
     char const** argv = NULL;
@@ -71,7 +59,6 @@ public:
     if (!rclcpp::ok())
       rclcpp::init(0, argv);
     std::string plugin_name("plugin_" + name);
-    ignwarn << "Initializing plugin with name " << plugin_name << std::endl;
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     RCLCPP_INFO(_ros_node->get_logger(),
@@ -109,10 +96,14 @@ public:
 
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
-    // TODO parallel thread executor?
     rclcpp::spin_some(_ros_node);
-    if (!_initialized)
+    // JointPosition and JointVelocity components are populated by Physics
+    // system in Update, hence they are uninitialized in the first PreUpdate.
+    if (!_initialized || _first_iteration)
+    {
+      _first_iteration = false;
       return;
+    }
 
     // Don't update the pose if the simulation is paused
     if (info.paused)
@@ -144,7 +135,7 @@ public:
       assert(it != _joints.end());
       auto vel_cmd = ecm.Component<components::JointVelocityCmd>(
         it->second);
-      vel_cmd->Data()[0] = result.velocity;
+      vel_cmd->Data() = {result.velocity};
     }
   }
 
@@ -156,7 +147,6 @@ IGNITION_ADD_PLUGIN(
   DoorPlugin::ISystemConfigure,
   DoorPlugin::ISystemPreUpdate)
 
-// TODO would prefer namespaced
 IGNITION_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
 
 } // namespace rmf_building_sim_ignition_plugins
