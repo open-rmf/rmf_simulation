@@ -327,16 +327,6 @@ void SlotcarCommon::path_request_cb(
     _remaining_path.erase(_remaining_path.begin());
   }
 
-  RCLCPP_INFO(logger(), "trajectory has %d points:", (int)trajectory.size());
-  for (const auto& p : trajectory)
-  {
-    RCLCPP_INFO(
-      logger(),
-      "(%.2f, %.2f)",
-      p.pose.translation().x(),
-      p.pose.translation().y());
-  }
-
   if (_path_request_callback)
     _path_request_callback(msg);
 }
