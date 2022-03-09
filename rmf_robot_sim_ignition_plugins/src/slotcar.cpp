@@ -4,8 +4,7 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
@@ -129,19 +128,12 @@ void SlotcarPlugin::Configure(const Entity& entity,
   dataPtr->init_ros_node(_ros_node);
 
   // Initialize Pose3d component
-  if (!ecm.EntityHasComponentType(entity, components::Pose().TypeId()))
-    ecm.CreateComponent(entity, components::Pose());
+  enableComponent<components::Pose>(ecm, entity);
   // Initialize Bounding Box component
-  if (!ecm.EntityHasComponentType(entity,
-    components::AxisAlignedBox().TypeId()))
-    ecm.CreateComponent(entity, components::AxisAlignedBox());
+  enableComponent<components::AxisAlignedBox>(ecm, entity);
   // Initialize Linear/AngularVelocityCmd components to drive slotcar
-  if (!ecm.EntityHasComponentType(_entity,
-    components::LinearVelocityCmd().TypeId()))
-    ecm.CreateComponent(_entity, components::LinearVelocityCmd());
-  if (!ecm.EntityHasComponentType(_entity,
-    components::AngularVelocityCmd().TypeId()))
-    ecm.CreateComponent(_entity, components::AngularVelocityCmd());
+  enableComponent<components::LinearVelocityCmd>(ecm, entity);
+  enableComponent<components::AngularVelocityCmd>(ecm, entity);
 
   // Keep track of when a payload is dispensed onto/ingested from slotcar
   // Needed for TPE Plugin to know when to manually move payload via this plugin
@@ -204,18 +196,8 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   {
     for (const Entity& payload : payloads)
     {
-      if (!ecm.EntityHasComponentType(payload,
-        components::LinearVelocityCmd().TypeId()))
-      {
-        ecm.CreateComponent(payload,
-          components::LinearVelocityCmd({0, 0, 0}));
-      }
-      if (!ecm.EntityHasComponentType(payload,
-        components::AngularVelocityCmd().TypeId()))
-      {
-        ecm.CreateComponent(payload,
-          components::AngularVelocityCmd({0, 0, 0}));
-      }
+      enableComponent<components::LinearVelocityCmd>(ecm, payload);
+      enableComponent<components::AngularVelocityCmd>(ecm, payload);
 
       ecm.Component<components::LinearVelocityCmd>(payload)->Data() =
         lin_vel_cmd->Data();
@@ -467,7 +449,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
       if (volume > 0 && volume != std::numeric_limits<double>::infinity())
       {
         _height = aabb_component->Data().ZLength();
-        ecm.RemoveComponent(_entity, components::AxisAlignedBox().TypeId());
+        enableComponent<components::AxisAlignedBox>(ecm, _entity, false);
         _read_aabb_dimensions = false;
       }
     }

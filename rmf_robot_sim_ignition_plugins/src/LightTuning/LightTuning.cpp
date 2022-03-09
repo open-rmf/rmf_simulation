@@ -29,6 +29,7 @@
 #include <ignition/gazebo/components/World.hh>
 
 #include <ignition/gui/Application.hh>
+#include <ignition/gui/GuiEvents.hh>
 #include <ignition/gui/MainWindow.hh>
 
 #include <ignition/plugin/Register.hh>
@@ -586,7 +587,7 @@ void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
 
 bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
 {
-  if (_event->type() == ignition::gazebo::gui::events::Render::kType)
+  if (_event->type() == ignition::gui::events::Render::kType)
   {
     if (!scene_ptr)
     {

@@ -2,12 +2,12 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
 #include <ignition/gazebo/components/Static.hh>
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointVelocity.hh>
 #include <ignition/gazebo/components/JointVelocityCmd.hh>
@@ -22,10 +22,7 @@
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/lift_common.hpp>
 
-// TODO remove this
-using namespace ignition;
-using namespace gazebo;
-using namespace systems;
+using namespace ignition::gazebo;
 
 using namespace rmf_building_sim_common;
 
@@ -60,38 +57,20 @@ private:
 
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
-    if (!ecm.EntityHasComponentType(entity,
-      components::LinearVelocityCmd().TypeId()))
-      ecm.CreateComponent(entity, components::LinearVelocityCmd({0, 0, 0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::WorldPoseCmd().TypeId()))
-    {
-      auto pos = ecm.Component<components::Pose>(entity);
-      if (pos) // Set Pose cmd to current pose, instead of default location
-      {
-        ecm.CreateComponent(entity, components::WorldPoseCmd(pos->Data()));
-      }
-      else
-      {
-        ecm.CreateComponent(entity, components::WorldPoseCmd());
-      }
-    }
+    enableComponent<components::LinearVelocityCmd>(ecm, entity);
+    enableComponent<components::WorldPoseCmd>(ecm, entity);
+    const auto pos = ecm.Component<components::Pose>(entity);
+    ecm.Component<components::WorldPoseCmd>(entity)->Data() = pos->Data();
   }
 
   void create_joint_components(Entity entity, EntityComponentManager& ecm)
   {
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointPosition().TypeId()))
-      ecm.CreateComponent(entity, components::JointPosition({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointPositionReset().TypeId()))
-      ecm.CreateComponent(entity, components::JointPositionReset({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointVelocity().TypeId()))
-      ecm.CreateComponent(entity, components::JointVelocity({0}));
-    if (!ecm.EntityHasComponentType(entity,
-      components::JointVelocityCmd().TypeId()))
-      ecm.CreateComponent(entity, components::JointVelocityCmd({0}));
+    enableComponent<components::JointPosition>(ecm, entity);
+    enableComponent<components::JointPositionReset>(ecm, entity);
+    ecm.Component<components::JointPositionReset>(entity)->Data() = {0.0};
+    enableComponent<components::JointVelocity>(ecm, entity);
+    enableComponent<components::JointVelocityCmd>(ecm, entity);
+    ecm.Component<components::JointVelocityCmd>(entity)->Data() = {0.0};
   }
 
   void fill_physics_engine(Entity entity, EntityComponentManager& ecm)
@@ -163,7 +142,6 @@ public:
     if (!rclcpp::ok())
       rclcpp::init(0, argv);
     std::string plugin_name("plugin_" + model.Name(ecm));
-    ignwarn << "Initializing plugin with name " << plugin_name << std::endl;
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     RCLCPP_INFO(_ros_node->get_logger(),
@@ -178,11 +156,7 @@ public:
     if (!_lift_common)
       return;
 
-    if (!ecm.EntityHasComponentType(_lift_entity,
-      components::AxisAlignedBox().TypeId()))
-    {
-      ecm.CreateComponent(_lift_entity, components::AxisAlignedBox());
-    }
+    enableComponent<components::AxisAlignedBox>(ecm, _lift_entity);
 
     _cabin_joint = model.JointByName(ecm, _lift_common->get_joint_name());
     if (!_cabin_joint)
@@ -224,6 +198,7 @@ public:
       }
 
       _first_iteration = false;
+      return;
     }
 
     // Optimization: Read and store lift's pose and AABB whenever available, then
@@ -243,8 +218,7 @@ public:
         {
           _initial_aabb = aabb_component->Data();
           _initial_pose = pose_component->Data();
-          ecm.RemoveComponent(_lift_entity,
-            components::AxisAlignedBox().TypeId());
+          enableComponent<components::AxisAlignedBox>(ecm, _lift_entity, false);
           _read_aabb_dimensions = false;
         }
       }
@@ -326,7 +300,6 @@ IGNITION_ADD_PLUGIN(
   LiftPlugin::ISystemConfigure,
   LiftPlugin::ISystemPreUpdate)
 
-// TODO would prefer namespaced
 IGNITION_ADD_PLUGIN_ALIAS(LiftPlugin, "lift")
 
 } // namespace building_sim_ign

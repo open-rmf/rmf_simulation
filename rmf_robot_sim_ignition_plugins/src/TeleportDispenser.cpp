@@ -22,6 +22,7 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
@@ -163,12 +164,7 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
     new_pose += ignition::math::Pose3<double>(0, 0, 0.5, 0, 0, 0);
   }
 
-  auto cmd = ecm.Component<components::WorldPoseCmd>(to_move);
-  if (!cmd)
-  {
-    ecm.CreateComponent(to_move,
-      components::WorldPoseCmd(ignition::math::Pose3<double>()));
-  }
+  enableComponent<components::WorldPoseCmd>(ecm, to_move);
   ecm.Component<components::WorldPoseCmd>(to_move)->Data() = new_pose;
 
   // For Ignition slotcar plugin to know when an item has been dispensed to it

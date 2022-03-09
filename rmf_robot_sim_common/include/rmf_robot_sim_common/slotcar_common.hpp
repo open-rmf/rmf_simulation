@@ -34,8 +34,6 @@
 
 namespace rmf_robot_sim_common {
 
-// TODO migrate ign-math-eigen conversions when upgrading to ign-math5
-
 struct SlotcarTrajectory
 {
   SlotcarTrajectory(const Eigen::Isometry3d& _pose)
@@ -47,62 +45,6 @@ struct SlotcarTrajectory
   // Maximum speed for the lane approaching this waypoint
   std::optional<double> approach_speed_limit;
 };
-
-// Edit reference of parameter for template type deduction
-template<typename IgnQuatT>
-inline void convert(const Eigen::Quaterniond& _q, IgnQuatT& quat)
-{
-  quat.W() = _q.w();
-  quat.X() = _q.x();
-  quat.Y() = _q.y();
-  quat.Z() = _q.z();
-}
-
-template<typename IgnVec3T>
-inline void convert(const Eigen::Vector3d& _v, IgnVec3T& vec)
-{
-  vec.X() = _v[0];
-  vec.Y() = _v[1];
-  vec.Z() = _v[2];
-}
-
-template<typename IgnVec3T>
-inline Eigen::Vector3d convert_vec(const IgnVec3T& _v)
-{
-  return Eigen::Vector3d(_v[0], _v[1], _v[2]);
-}
-
-template<typename IgnQuatT>
-inline Eigen::Quaterniond convert_quat(const IgnQuatT& _q)
-{
-  Eigen::Quaterniond quat;
-  quat.w() = _q.W();
-  quat.x() = _q.X();
-  quat.y() = _q.Y();
-  quat.z() = _q.Z();
-
-  return quat;
-}
-
-template<typename IgnPoseT>
-inline auto convert(const Eigen::Isometry3d& _tf)
-{
-  IgnPoseT pose;
-  convert(Eigen::Vector3d(_tf.translation()), pose.Pos());
-  convert(Eigen::Quaterniond(_tf.linear()), pose.Rot());
-
-  return pose;
-}
-
-template<typename IgnPoseT>
-inline Eigen::Isometry3d convert_pose(const IgnPoseT& _pose)
-{
-  Eigen::Isometry3d tf = Eigen::Isometry3d::Identity();
-  tf.translation() = convert_vec(_pose.Pos());
-  tf.linear() = Eigen::Matrix3d(convert_quat(_pose.Rot()));
-
-  return tf;
-}
 
 // steering type constants
 enum class SteeringType
