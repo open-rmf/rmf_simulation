@@ -15,6 +15,7 @@
 
   <depend>rclcpp</depend>
   <depend>rmf_building_sim_common</depend>
+  <depend>rmf_fleet_msgs</depend>
   <depend>libqt5-core</depend>
   <depend>libqt5-qml</depend>
   <depend>libqt5-quick</depend>
