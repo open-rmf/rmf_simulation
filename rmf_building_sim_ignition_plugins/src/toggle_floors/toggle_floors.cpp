@@ -29,6 +29,7 @@
 #include <ignition/rendering/RenderEngine.hh>
 #include <ignition/rendering/RenderingIface.hh>
 #include <ignition/rendering/Scene.hh>
+#include <ignition/transport.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
@@ -52,11 +53,14 @@ private:
 
   rclcpp::Node::SharedPtr _ros_node;
   rclcpp::Subscription<FleetState>::SharedPtr _fleet_state_sub;
+  tinyxml2::XMLDocument _config_xml;
 
   bool eventFilter(QObject* _obj, QEvent* _event) override;
   void PerformRenderingOperations();
   void FindScene();
   ignition::rendering::ScenePtr scene{nullptr};
+  void get_plugin_config();
+
   QStringList qfloors;
   std::unordered_map<std::string, std::atomic<bool>> _floor_changed_flags;
   std::unordered_map<std::string, std::atomic<bool>> _floor_visibility;
@@ -87,17 +91,59 @@ toggle_floors::~toggle_floors()
     ignition::gui::MainWindow*>()->removeEventFilter(this);
 }
 
+// Get plugin information from ignition transport
+void toggle_floors::get_plugin_config()
+{
+  ignition::transport::Node node;
+  bool executed{false};
+  bool result{false};
+  unsigned int timeout{2000};
+  const std::string WORLD_NAME = "sim_world";
+
+  ignition::msgs::GUI res;
+  std::string service = ignition::transport::TopicUtils::AsValidTopic("/world/" + WORLD_NAME +
+      "/gui/info");
+
+  executed = node.Request(service, timeout, res, result);
+
+  for (int p = 0; p < res.plugin_size(); ++p)
+  {
+    const auto& plugin = res.plugin(p);
+    const auto& fileName = plugin.filename();
+    if (fileName == "toggle_floors")
+    {
+      std::string pluginStr = "<plugin filename='" + fileName + "'>" +
+        plugin.innerxml() + "</plugin>";
+
+      _config_xml.Parse(pluginStr.c_str());
+      break;
+    }
+  }
+  return;
+}
+
 void toggle_floors::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
 {
-  if (!_pluginElem)
-    return;
-
   if (this->title.empty())
     this->title = "Toggle Floors";
 
-  if (_pluginElem)
+  const tinyxml2::XMLElement* plugin_config = [&]
+    {
+      if (_pluginElem->FirstChildElement("floor"))
+      {
+        return _pluginElem;
+      }
+      else
+      {
+        get_plugin_config();
+        const tinyxml2::XMLElement* p = _config_xml.FirstChildElement("plugin");
+        return p;
+      }
+    } ();
+
+  if (plugin_config)
   {
-    for (auto floor_ele = _pluginElem->FirstChildElement("floor");
+    for (auto floor_ele = plugin_config->FirstChildElement("floor");
       floor_ele;
       floor_ele = floor_ele->NextSiblingElement("floor"))
     {

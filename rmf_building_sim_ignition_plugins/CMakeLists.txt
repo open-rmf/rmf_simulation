@@ -162,9 +162,11 @@ add_library(toggle_floors SHARED ${headers_MOC}
 
 ament_target_dependencies(toggle_floors
   ignition-gazebo${IGN_GAZEBO_VER}
-  ignition-plugin${IGN_PLUGIN_VER}
   ignition-gui${IGN_GUI_VER}
+  ignition-msgs${IGN_MSGS_VER}
+  ignition-plugin${IGN_PLUGIN_VER}
   ignition-rendering${IGN_RENDERING_VER}
+  ignition-transport${IGN_TRANSPORT_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick
