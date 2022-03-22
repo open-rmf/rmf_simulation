@@ -95,7 +95,6 @@ toggle_floors::~toggle_floors()
 void toggle_floors::get_plugin_config()
 {
   ignition::transport::Node node;
-  bool executed{false};
   bool result{false};
   unsigned int timeout{2000};
   const std::string WORLD_NAME = "sim_world";
@@ -104,7 +103,7 @@ void toggle_floors::get_plugin_config()
   std::string service = ignition::transport::TopicUtils::AsValidTopic("/world/" + WORLD_NAME +
       "/gui/info");
 
-  executed = node.Request(service, timeout, res, result);
+  node.Request(service, timeout, res, result);
 
   for (int p = 0; p < res.plugin_size(); ++p)
   {
@@ -112,10 +111,7 @@ void toggle_floors::get_plugin_config()
     const auto& fileName = plugin.filename();
     if (fileName == "toggle_floors")
     {
-      std::string pluginStr = "<plugin filename='" + fileName + "'>" +
-        plugin.innerxml() + "</plugin>";
-
-      _config_xml.Parse(pluginStr.c_str());
+      _config_xml.Parse(plugin.innerxml().c_str());
       break;
     }
   }
@@ -131,19 +127,19 @@ void toggle_floors::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
     {
       if (_pluginElem->FirstChildElement("floor"))
       {
-        return _pluginElem;
+        return _pluginElem->FirstChildElement("floor");
       }
       else
       {
         get_plugin_config();
-        const tinyxml2::XMLElement* p = _config_xml.FirstChildElement("plugin");
+        const tinyxml2::XMLElement* p = _config_xml.RootElement();
         return p;
       }
     } ();
 
   if (plugin_config)
   {
-    for (auto floor_ele = plugin_config->FirstChildElement("floor");
+    for (auto floor_ele = plugin_config->ToElement();
       floor_ele;
       floor_ele = floor_ele->NextSiblingElement("floor"))
     {
