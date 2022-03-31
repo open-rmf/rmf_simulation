@@ -162,6 +162,7 @@ void toggle_floors::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
           model_name.c_str());
       }
       _floor_visibility[floor_name] = true;
+      _floor_changed_flags[floor_name] = true;
       _floor_models[floor_name] = models;
     }
   }
