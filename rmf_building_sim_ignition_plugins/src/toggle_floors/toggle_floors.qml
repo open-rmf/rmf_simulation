@@ -25,53 +25,31 @@ import QtQuick.Controls.Styles 1.4
 
 ToolBar {
   Layout.minimumWidth: 280
-  Layout.minimumHeight: 200
+  Layout.minimumHeight: 370
 
   background: Rectangle {
     color: "transparent"
   }
 
-  ButtonGroup {
-    id: group
-  }
-
   GridLayout {
+    id: gridfloors
     anchors.fill: parent
     columns: 1
-    rows: 3
+    rows: 6
     columnSpacing: 5
-    CheckBox {
-      text: qsTr("Allow Charging")
-      Layout.columnSpan: 1
-      Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-      Layout.leftMargin: 2
-      checked: true
-      onClicked: {
-        toggle_charging.OnEnableCharge(checked)
+    Repeater {
+      model: qfloors
+      CheckBox {
+        text: modelData
+        Layout.columnSpan: 1
+        Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+        Layout.leftMargin: 2
+        checked: true
+        onClicked: {
+          toggle_floors.OnFloorChecked(text, checked)
+        }
       }
-    }
 
-    CheckBox {
-      text: qsTr("Instant Charging")
-      Layout.columnSpan: 1
-      Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-      Layout.leftMargin: 2
-      checked: false
-      onClicked: {
-        toggle_charging.OnEnableInstantCharge(checked)
-      }
     }
-
-    CheckBox {
-      text: qsTr("Allow Battery Drain")
-      Layout.columnSpan: 1
-      Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
-      Layout.leftMargin: 2
-      checked: true
-      onClicked: {
-        toggle_charging.OnEnableDrain(checked)
-      }
-    }
-
   }
 }
