@@ -4,8 +4,7 @@
 
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
@@ -15,6 +14,7 @@
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
 
+#include <ignition/math/eigen3.hh>
 #include <ignition/msgs.hh>
 #include <ignition/transport.hh>
 #include <rclcpp/rclcpp.hpp>
@@ -70,7 +70,9 @@ private:
     const std::pair<double, double>& displacements,
     const std::unordered_set<Entity> payloads,
     const double dt,
-    const double target_linear_velocity = 0.0);
+    const double target_linear_speed_now,
+    const double target_linear_speed_destination,
+    const std::optional<double>& max_linear_velocity);
   void init_infrastructure(EntityComponentManager& ecm);
   void item_dispensed_cb(const ignition::msgs::UInt64_V& msg);
   void item_ingested_cb(const ignition::msgs::Entity& msg);
@@ -78,6 +80,13 @@ private:
     ignition::msgs::Double& rep);
   std::vector<Eigen::Vector3d> get_obstacle_positions(
     EntityComponentManager& ecm);
+
+  void path_request_marker_update(
+    const rmf_fleet_msgs::msg::PathRequest::SharedPtr);
+
+  void draw_lookahead_marker();
+
+  ignition::msgs::Marker_V _trajectory_marker_msg;
 };
 
 SlotcarPlugin::SlotcarPlugin()
@@ -119,19 +128,12 @@ void SlotcarPlugin::Configure(const Entity& entity,
   dataPtr->init_ros_node(_ros_node);
 
   // Initialize Pose3d component
-  if (!ecm.EntityHasComponentType(entity, components::Pose().TypeId()))
-    ecm.CreateComponent(entity, components::Pose());
+  enableComponent<components::Pose>(ecm, entity);
   // Initialize Bounding Box component
-  if (!ecm.EntityHasComponentType(entity,
-    components::AxisAlignedBox().TypeId()))
-    ecm.CreateComponent(entity, components::AxisAlignedBox());
+  enableComponent<components::AxisAlignedBox>(ecm, entity);
   // Initialize Linear/AngularVelocityCmd components to drive slotcar
-  if (!ecm.EntityHasComponentType(_entity,
-    components::LinearVelocityCmd().TypeId()))
-    ecm.CreateComponent(_entity, components::LinearVelocityCmd());
-  if (!ecm.EntityHasComponentType(_entity,
-    components::AngularVelocityCmd().TypeId()))
-    ecm.CreateComponent(_entity, components::AngularVelocityCmd());
+  enableComponent<components::LinearVelocityCmd>(ecm, entity);
+  enableComponent<components::AngularVelocityCmd>(ecm, entity);
 
   // Keep track of when a payload is dispensed onto/ingested from slotcar
   // Needed for TPE Plugin to know when to manually move payload via this plugin
@@ -154,13 +156,21 @@ void SlotcarPlugin::Configure(const Entity& entity,
     std::cerr << "Error subscribing to topic [/slotcar_height]" << std::endl;
   }
 
+  if (dataPtr->display_markers)
+  {
+    dataPtr->set_path_request_callback(std::bind(&SlotcarPlugin::
+      path_request_marker_update,
+      this, std::placeholders::_1));
+  }
 }
 
 void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   const std::pair<double, double>& displacements,
   const std::unordered_set<Entity> payloads,
   const double dt,
-  const double target_linear_velocity)
+  const double target_linear_speed_now,
+  const double target_linear_speed_destination,
+  const std::optional<double>& max_linear_velocity)
 {
   auto lin_vel_cmd =
     ecm.Component<components::LinearVelocityCmd>(_entity);
@@ -172,7 +182,8 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   double w_robot = _prev_w_command;
   std::array<double, 2> target_vels;
   target_vels = dataPtr->calculate_control_signals({v_robot, w_robot},
-      displacements, dt, target_linear_velocity);
+      displacements, dt, target_linear_speed_now,
+      target_linear_speed_destination, max_linear_velocity);
 
   lin_vel_cmd->Data()[0] = target_vels[0];
   ang_vel_cmd->Data()[2] = target_vels[1];
@@ -185,18 +196,8 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   {
     for (const Entity& payload : payloads)
     {
-      if (!ecm.EntityHasComponentType(payload,
-        components::LinearVelocityCmd().TypeId()))
-      {
-        ecm.CreateComponent(payload,
-          components::LinearVelocityCmd({0, 0, 0}));
-      }
-      if (!ecm.EntityHasComponentType(payload,
-        components::AngularVelocityCmd().TypeId()))
-      {
-        ecm.CreateComponent(payload,
-          components::AngularVelocityCmd({0, 0, 0}));
-      }
+      enableComponent<components::LinearVelocityCmd>(ecm, payload);
+      enableComponent<components::AngularVelocityCmd>(ecm, payload);
 
       ecm.Component<components::LinearVelocityCmd>(payload)->Data() =
         lin_vel_cmd->Data();
@@ -301,6 +302,115 @@ bool SlotcarPlugin::get_slotcar_height(const ignition::msgs::Entity& req,
   return false;
 }
 
+void SlotcarPlugin::path_request_marker_update(
+  const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
+{
+  ignition::msgs::Boolean res;
+  bool result;
+  for (int i = 0; i < _trajectory_marker_msg.marker_size(); ++i)
+  {
+    auto marker = _trajectory_marker_msg.mutable_marker(i);
+    marker->set_action(ignition::msgs::Marker::DELETE_ALL);
+  }
+  _ign_node.Request(
+    "/marker_array", _trajectory_marker_msg, 5000, res, result);
+  _trajectory_marker_msg.clear_marker();
+  auto line_marker = _trajectory_marker_msg.add_marker();
+  line_marker->set_ns(dataPtr->model_name() + "_line");
+  line_marker->set_id(1);
+  line_marker->set_action(ignition::msgs::Marker::ADD_MODIFY);
+  line_marker->set_type(ignition::msgs::Marker::LINE_STRIP);
+  line_marker->set_visibility(ignition::msgs::Marker::GUI);
+  ignition::msgs::Set(
+    line_marker->mutable_material()->mutable_ambient(),
+    ignition::math::Color(1, 0, 0, 1));
+  ignition::msgs::Set(
+    line_marker->mutable_material()->mutable_diffuse(),
+    ignition::math::Color(1, 0, 0, 1));
+
+  auto marker_headings = _trajectory_marker_msg.add_marker();
+  marker_headings->set_id(1);
+  marker_headings->set_ns(dataPtr->model_name() + "_waypoint_headings");
+  marker_headings->set_action(ignition::msgs::Marker::ADD_MODIFY);
+  marker_headings->set_type(ignition::msgs::Marker::LINE_LIST);
+  marker_headings->set_visibility(ignition::msgs::Marker::GUI);
+  ignition::msgs::Set(marker_headings->mutable_material()->mutable_ambient(),
+    ignition::math::Color(0, 1, 0, 1));
+  ignition::msgs::Set(marker_headings->mutable_material()->mutable_diffuse(),
+    ignition::math::Color(0, 1, 0, 1));
+
+  auto& locations = msg->path;
+  double elevation = 0.5;
+  for (size_t i = 0; i < locations.size(); ++i)
+  {
+    auto loc = locations[i];
+
+    // Add points to the trajectory line, slightly elevated for visibility.
+    ignition::msgs::Set(line_marker->add_point(),
+      ignition::math::Vector3d(loc.x, loc.y, elevation)
+    );
+
+    // Draw waypoints
+    ignition::math::Color waypoint_color(0.0, 1.0, 0.0, 1.0);
+    auto waypoint_marker = _trajectory_marker_msg.add_marker();
+    waypoint_marker->set_ns(dataPtr->model_name() + "_waypoints");
+    waypoint_marker->set_id(i+1);
+    waypoint_marker->set_action(ignition::msgs::Marker::ADD_MODIFY);
+    waypoint_marker->set_type(ignition::msgs::Marker::SPHERE);
+    waypoint_marker->set_visibility(ignition::msgs::Marker::GUI);
+    ignition::msgs::Set(waypoint_marker->mutable_scale(),
+      ignition::math::Vector3d(1.5, 1.5, 1.5));
+    ignition::msgs::Set(
+      waypoint_marker->mutable_material()->mutable_ambient(),
+      waypoint_color);
+    ignition::msgs::Set(
+      waypoint_marker->mutable_material()->mutable_diffuse(),
+      waypoint_color);
+    ignition::msgs::Set(waypoint_marker->mutable_pose(),
+      ignition::math::Pose3d(loc.x, loc.y, elevation, 0, 0, 0));
+
+    Eigen::Vector2d dir(cos(loc.yaw), sin(loc.yaw));
+    double length = 2.0;
+    ignition::msgs::Set(marker_headings->add_point(),
+      ignition::math::Vector3d(loc.x, loc.y, elevation));
+    ignition::msgs::Set(marker_headings->add_point(),
+      ignition::math::Vector3d(loc.x + length * dir.x(),
+      loc.y + length * dir.y(),
+      elevation+0.5));
+  }
+
+  _ign_node.Request(
+    "/marker_array", _trajectory_marker_msg, 5000, res, result);
+}
+
+void SlotcarPlugin::draw_lookahead_marker()
+{
+  auto lookahead_point = dataPtr->get_lookahead_point();
+
+  // Lookahead point
+  ignition::msgs::Marker marker_msg;
+  marker_msg.set_ns(dataPtr->model_name() + "_lookahead_point");
+  marker_msg.set_id(1);
+  marker_msg.set_action(ignition::msgs::Marker::ADD_MODIFY);
+  marker_msg.set_type(ignition::msgs::Marker::CYLINDER);
+  marker_msg.set_visibility(ignition::msgs::Marker::GUI);
+
+  ignition::msgs::Set(marker_msg.mutable_pose(),
+    ignition::math::Pose3d(
+      lookahead_point(0),
+      lookahead_point(1),
+      lookahead_point(2),
+      0, 0, 0));
+  const double scale = 1.5;
+  ignition::msgs::Set(marker_msg.mutable_scale(),
+    ignition::math::Vector3d(scale, scale, scale));
+  ignition::msgs::Set(marker_msg.mutable_material()->mutable_ambient(),
+    ignition::math::Color(0, 0, 1, 1));
+  ignition::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(),
+    ignition::math::Color(0, 0, 1, 1));
+  _ign_node.Request("/marker", marker_msg);
+}
+
 void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
@@ -339,7 +449,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
       if (volume > 0 && volume != std::numeric_limits<double>::infinity())
       {
         _height = aabb_component->Data().ZLength();
-        ecm.RemoveComponent(_entity, components::AxisAlignedBox().TypeId());
+        enableComponent<components::AxisAlignedBox>(ecm, _entity, false);
         _read_aabb_dimensions = false;
       }
     }
@@ -369,8 +479,16 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
       obstacle_positions, time);
 
   send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
-    update_result.speed);
+    update_result.target_linear_speed_now,
+    update_result.target_linear_speed_destination,
+    update_result.max_speed);
+
+  if (dataPtr->display_markers)
+  {
+    draw_lookahead_marker();
+  }
 }
+
 
 IGNITION_ADD_PLUGIN(
   SlotcarPlugin,
