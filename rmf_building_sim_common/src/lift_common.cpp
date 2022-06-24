@@ -140,7 +140,7 @@ uint32_t LiftCommon::get_door_state(
   const auto doors = floor_to_door_map.find(
     _lift_state.current_floor)->second;
   const std::size_t num = doors.size();
-  for (const std::string door : doors)
+  for (const std::string& door : doors)
   {
     const auto& door_state = door_states.find(door)->second;
     if ((door_state) &&
