@@ -159,6 +159,9 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
 void SlotcarPlugin::OnUpdate()
 {
   const auto& world = _model->GetWorld();
+
+  // After initialization once, this set will have at least one exclusion, which
+  // is the itself.
   if (obstacle_exclusions.empty())
     init_obstacle_exclusions();
 

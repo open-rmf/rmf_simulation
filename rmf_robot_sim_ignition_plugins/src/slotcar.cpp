@@ -458,6 +458,9 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 
   // TODO parallel thread executor?
   rclcpp::spin_some(_ros_node);
+
+  // After initialization once, this set will have at least one exclusion, which
+  // is the itself.
   if (_obstacle_exclusions.empty())
     init_obstacle_exclusions(ecm);
 
