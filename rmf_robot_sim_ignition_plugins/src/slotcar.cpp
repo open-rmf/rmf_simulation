@@ -51,7 +51,7 @@ private:
 
   Entity _entity;
   std::unordered_set<Entity> _payloads;
-  std::unordered_set<Entity> _infrastructure;
+  std::unordered_set<Entity> _obstacle_exclusions;
   double _height = 0;
 
   PhysEnginePlugin phys_plugin = PhysEnginePlugin::DEFAULT;
@@ -73,7 +73,7 @@ private:
     const double target_linear_speed_now,
     const double target_linear_speed_destination,
     const std::optional<double>& max_linear_velocity);
-  void init_infrastructure(EntityComponentManager& ecm);
+  void init_obstacle_exclusions(EntityComponentManager& ecm);
   void item_dispensed_cb(const ignition::msgs::UInt64_V& msg);
   void item_ingested_cb(const ignition::msgs::Entity& msg);
   bool get_slotcar_height(const ignition::msgs::Entity& req,
@@ -207,7 +207,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   }
 }
 
-void SlotcarPlugin::init_infrastructure(EntityComponentManager& ecm)
+void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
 {
   // Cycle through all the static entities with Model and Name components
   ecm.Each<components::Model, components::Name, components::Pose,
@@ -227,13 +227,14 @@ void SlotcarPlugin::init_infrastructure(EntityComponentManager& ecm)
           c = ::tolower(c);
         });
         if (n.find("door") != std::string::npos ||
-        n.find("lift") != std::string::npos)
-          _infrastructure.insert(entity);
+        n.find("lift") != std::string::npos ||
+        n.find("dispensable") != std::string::npos)
+          _obstacle_exclusions.insert(entity);
       }
       return true;
     });
   // Also add itself
-  _infrastructure.insert(_entity);
+  _obstacle_exclusions.insert(_entity);
 }
 
 std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
@@ -250,11 +251,11 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
     ) -> bool
     {
       // Object should not be static
-      // It should not be part of infrastructure (doors / lifts)
+      // It should not be part of obstacle exclusions (doors/lifts/dispensables)
       // And it should be closer than the "stop" range (checked by common)
       const auto obstacle_position = pose->Data().Pos();
       if (is_static->Data() == false &&
-      _infrastructure.find(entity) == _infrastructure.end())
+      _obstacle_exclusions.find(entity) == _obstacle_exclusions.end())
       {
         obstacle_positions.push_back(rmf_plugins_utils::convert_vec(
           obstacle_position));
@@ -457,8 +458,11 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 
   // TODO parallel thread executor?
   rclcpp::spin_some(_ros_node);
-  if (_infrastructure.empty())
-    init_infrastructure(ecm);
+
+  // After initialization once, this set will have at least one exclusion, which
+  // is the itself.
+  if (_obstacle_exclusions.empty())
+    init_obstacle_exclusions(ecm);
 
   // Don't update the pose if the simulation is paused
   if (info.paused)

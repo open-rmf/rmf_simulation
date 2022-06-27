@@ -30,12 +30,12 @@ private:
 
   std::array<gazebo::physics::JointPtr, 2> joints;
 
-  std::unordered_set<gazebo::physics::Model*> infrastructure;
+  std::unordered_set<gazebo::physics::Model*> obstacle_exclusions;
 
   // Book keeping
   double last_update_time = 0.0;
 
-  void init_infrastructure();
+  void init_obstacle_exclusions();
 
   std::vector<Eigen::Vector3d> get_obstacle_positions(
     const gazebo::physics::WorldPtr& world);
@@ -115,14 +115,14 @@ void SlotcarPlugin::charge_state_cb(ConstSelectionPtr& msg)
   dataPtr->charge_state_cb(msg->name(), msg->selected());
 }
 
-void SlotcarPlugin::init_infrastructure()
+void SlotcarPlugin::init_obstacle_exclusions()
 {
   const auto& world = _model->GetWorld();
-  infrastructure.insert(_model.get());
+  obstacle_exclusions.insert(_model.get());
   const auto& all_models = world->Models();
   for (const auto& m : all_models)
   {
-    // Object should not be static and part of infrastructure
+    // Object should not be static, be part of infrastructure, or dispensable
     if (!m->IsStatic())
     {
       std::string name = m->GetName();
@@ -131,8 +131,9 @@ void SlotcarPlugin::init_infrastructure()
           c = ::tolower(c);
         });
       if (name.find("door") != std::string::npos ||
-        name.find("lift") != std::string::npos)
-        infrastructure.insert(m.get());
+        name.find("lift") != std::string::npos ||
+        name.find("dispensable") != std::string::npos)
+        obstacle_exclusions.insert(m.get());
     }
   }
 }
@@ -144,11 +145,11 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
 
   for (const auto& m : world->Models())
   {
-    // Object should not be static, not part of infrastructure
+    // Object should not be static, not part of obstacle_exclusions,
     // and close than a threshold (checked by common function)
     const auto p_obstacle = m->WorldPose().Pos();
     if (m->IsStatic() == false &&
-      infrastructure.find(m.get()) == infrastructure.end())
+      obstacle_exclusions.find(m.get()) == obstacle_exclusions.end())
       obstacle_positions.push_back(rmf_plugins_utils::convert_vec(p_obstacle));
   }
 
@@ -158,8 +159,11 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
 void SlotcarPlugin::OnUpdate()
 {
   const auto& world = _model->GetWorld();
-  if (infrastructure.empty())
-    init_infrastructure();
+
+  // After initialization once, this set will have at least one exclusion, which
+  // is the itself.
+  if (obstacle_exclusions.empty())
+    init_obstacle_exclusions();
 
   const double time = world->SimTime().Double();
   const double dt = time - last_update_time;
