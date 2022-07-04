@@ -698,6 +698,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     _old_lin_vel = lin_vel;
     _old_ang_vel = ang_vel;
   }
+  else
+  {
+    _lookahead_point = {_pose.translation()(0), _pose.translation()(1), _pose.translation()(2)};;
+  }
   _old_pose = _pose;
   _initialized_pose = true;
 
