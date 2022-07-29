@@ -1,0 +1,10 @@
+<!DOCTYPE RCC><RCC version="1.0">
+  <qresource prefix="multiview/">
+    <file>multiview.qml</file>
+    <file>MultiviewRendering.qml</file>
+    <file>MultiviewRenderingTest.qml</file>
+    <file>FrontView.qml</file>
+    <file>LeftView.qml</file>
+    <file>RightView.qml</file>
+  </qresource>
+</RCC>
