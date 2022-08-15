@@ -32,7 +32,8 @@ public:
 
   void Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf) override
   {
-    auto _ros_node = gazebo_ros::Node::Get(sdf);
+    const std::string& node_name = model->GetName() + "_node";
+    auto _ros_node = gazebo_ros::Node::Get(sdf, node_name);
     _model = model;
 
     RCLCPP_INFO(

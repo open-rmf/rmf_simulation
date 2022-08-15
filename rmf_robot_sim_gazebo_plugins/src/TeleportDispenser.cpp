@@ -195,8 +195,10 @@ void TeleportDispenserPlugin::Load(gazebo::physics::ModelPtr _parent,
   _model = _parent;
   _world = _model->GetWorld();
   _dispenser_common->guid = _model->GetName();
+  const std::string& node_name = _model->GetName();
 
-  _dispenser_common->init_ros_node(gazebo_ros::Node::Get(_sdf));
+  _dispenser_common->init_ros_node(
+    gazebo_ros::Node::Get(_sdf, node_name));
   RCLCPP_INFO(
     _dispenser_common->ros_node->get_logger(),
     "Started TeleportDispenserPlugin node...");

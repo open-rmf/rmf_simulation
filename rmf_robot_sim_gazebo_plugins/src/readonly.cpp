@@ -59,7 +59,8 @@ void ReadonlyPlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
   _model = model;
   _readonly_common->set_name(_model->GetName());
   _readonly_common->read_sdf(sdf);
-  _readonly_common->init(gazebo_ros::Node::Get(sdf));
+  const std::string& node_name = _model->GetName() + "_node";
+  _readonly_common->init(gazebo_ros::Node::Get(sdf, node_name));
 
   _update_connection = gazebo::event::Events::ConnectWorldUpdateBegin(
     std::bind(&ReadonlyPlugin::OnUpdate, this));

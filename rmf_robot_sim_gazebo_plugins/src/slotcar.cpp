@@ -82,7 +82,8 @@ void SlotcarPlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
   _model = model;
   dataPtr->set_model_name(_model->GetName());
   dataPtr->read_sdf(sdf);
-  gazebo_ros::Node::SharedPtr _ros_node = gazebo_ros::Node::Get(sdf);
+  const std::string& node_name = _model->GetName() + "_node";
+  gazebo_ros::Node::SharedPtr _ros_node = gazebo_ros::Node::Get(sdf, node_name);
   dataPtr->init_ros_node(_ros_node);
 
   RCLCPP_INFO(

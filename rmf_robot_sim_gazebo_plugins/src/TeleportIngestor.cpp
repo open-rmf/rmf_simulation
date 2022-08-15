@@ -207,7 +207,8 @@ void TeleportIngestorPlugin::Load(gazebo::physics::ModelPtr _parent,
   _ingested_model = nullptr;
 
   _ingestor_common->_guid = _model->GetName();
-  _ingestor_common->init_ros_node(gazebo_ros::Node::Get(_sdf));
+  const std::string& node_name = _model->GetName() + "_node";
+  _ingestor_common->init_ros_node(gazebo_ros::Node::Get(_sdf, node_name));
   RCLCPP_INFO(_ingestor_common->ros_node->get_logger(),
     "Started TeleportIngestorPlugin node...");
 
