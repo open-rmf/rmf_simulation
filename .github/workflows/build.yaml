@@ -14,7 +14,6 @@ jobs:
         ros_distribution:
           - foxy
           - galactic
-          - humble
     steps:
       - name: deps
         uses: ros-tooling/setup-ros@v0.2
