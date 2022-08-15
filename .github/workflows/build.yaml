@@ -1,5 +1,5 @@
-name: build 
-on: 
+name: build
+on:
   push:
   pull_request:
   schedule:
@@ -14,6 +14,7 @@ jobs:
         ros_distribution:
           - foxy
           - galactic
+          - humble
     steps:
       - name: deps
         uses: ros-tooling/setup-ros@v0.2
