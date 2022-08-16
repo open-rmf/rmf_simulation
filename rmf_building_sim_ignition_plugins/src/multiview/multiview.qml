@@ -19,6 +19,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
+import QtQuick.Controls.Material 2.1
 
 ToolBar {
     Layout.minimumWidth: 280
@@ -29,101 +30,203 @@ ToolBar {
         color: "transparent"
     }
 
-    GridLayout {
-        anchors.fill: parent
-        columns: 2
-        rows: 3
-        columnSpacing: 5
+    property int tooltipDelay: 500
+    property int tooptipTimeout: 1000
 
-        Button {
-            text: qsTr("2x2 Multiview")
-            Layout.column: 0
-            Layout.row: 0
+    ColumnLayout {
+        id: mainColumn
+        spacing: 10
 
-            onClicked: {
-                var component = Qt.createComponent("MultiviewRendering.qml")
-                if (component.status != Component.Ready) {
-                    if (component.status == Component.Error) {
-                        console.debug("Error: " + component.errorString());
-                        return;
+        ColumnLayout {
+            id: singleViewColumn
+            spacing: 5
+
+            RowLayout {
+
+                // Padding for title
+                Rectangle {
+                    width: 5
+                    height: 40
+                    color: "transparent"
+                }
+
+                Label {
+                    text: "Single View"
+                    horizontalAlignment: Qt.AlignHLeft
+                    verticalAlignment: Qt.AlignVCenter
+                    Layout.fillWidth: true
+                }
+
+                Button {
+                    id: singleView
+                    text: qsTr("Open")
+
+                    onClicked: {
+                        var component = Qt.createComponent("SingleView.qml")
+                        if (component.status != Component.Ready) {
+                            if (component.status == Component.Error) {
+                                console.debug("Error: " + component.errorString());
+                                return;
+                            }
+                        }
+                        var multiview = component.createObject(main, {"cameraView": combo.currentText});
+                        multiview.show();
                     }
                 }
-                var multiview = component.createObject(main);
-                multiview.show();
+            }
+
+            ComboBox {
+                id: combo
+                Layout.column: 0
+                Layout.row: 0
+                Layout.fillWidth: true
+                model: multiview.topicList
+                ToolTip.visible: hovered
+                ToolTip.delay: main.tooltipDelay
+                ToolTip.timeout: main.tooltipTimeout
+                ToolTip.text: qsTr("List of topics streaming camera images")
             }
         }
 
-        Button {
-            text: qsTr("1-3 Multiview")
-            Layout.column: 1
-            Layout.row: 0
+        ColumnLayout {
+            id: twoByTwoColumn
+            spacing: 5
 
-            onClicked: {
-                var component = Qt.createComponent("MultiviewRenderingTest.qml")
-                if (component.status != Component.Ready) {
-                    if (component.status == Component.Error) {
-                        console.debug("Error: " + component.errorString());
-                        return;
+            RowLayout {
+
+                // Padding for title
+                Rectangle {
+                    width: 5
+                    height: 40
+                    color: "transparent"
+                }
+
+                Label {
+                    text: "Multiview (2x2)"
+                    horizontalAlignment: Qt.AlignHLeft
+                    verticalAlignment: Qt.AlignVCenter
+                    Layout.fillWidth: true
+                }
+
+                Button {
+                    id: twoByTwoButton
+                    text: qsTr("Open")
+
+                    onClicked: {
+                        var component = Qt.createComponent("MultiviewRendering.qml")
+                        if (component.status != Component.Ready) {
+                            if (component.status == Component.Error) {
+                                console.debug("Error: " + component.errorString());
+                                return;
+                            }
+                        }
+                        var multiview = component.createObject(main, {"topLeftView": topLeftCombo.currentText,
+                                                                    "bottomLeftView": bottomLeftCombo.currentText,
+                                                                    "topRightView": topRightCombo.currentText,
+                                                                    "bottomRightView": bottomRightCombo.currentText});
+                        multiview.show();
                     }
                 }
-                var multiviewTest = component.createObject(main);
-                multiviewTest.show();
+            }
+
+            GridLayout {
+                columns: 2
+                rows: 3
+                columnSpacing: 5
+
+                ComboBox {
+                    id: topLeftCombo
+                    Layout.column: 0
+                    Layout.row: 0
+                    Layout.fillWidth: true
+                    model: multiview.topicList
+                    ToolTip.visible: hovered
+                    ToolTip.delay: main.tooltipDelay
+                    ToolTip.timeout: main.tooltipTimeout
+                    ToolTip.text: qsTr(topLeftCombo.currentText)
+                }
+
+                ComboBox {
+                    id: bottomLeftCombo
+                    Layout.column: 0
+                    Layout.row: 1
+                    Layout.fillWidth: true
+                    model: multiview.topicList
+                    ToolTip.visible: hovered
+                    ToolTip.delay: main.tooltipDelay
+                    ToolTip.timeout: main.tooltipTimeout
+                    ToolTip.text: qsTr(bottomLeftCombo.currentText)
+                }
+
+                ComboBox {
+                    id: topRightCombo
+                    Layout.column: 1
+                    Layout.row: 0
+                    Layout.fillWidth: true
+                    model: multiview.topicList
+                    ToolTip.visible: hovered
+                    ToolTip.delay: main.tooltipDelay
+                    ToolTip.timeout: main.tooltipTimeout
+                    ToolTip.text: qsTr(topRightCombo.currentText)
+                }
+
+                ComboBox {
+                    id: bottomRightCombo
+                    Layout.column: 1
+                    Layout.row: 1
+                    Layout.fillWidth: true
+                    model: multiview.topicList
+                    ToolTip.visible: hovered
+                    ToolTip.delay: main.tooltipDelay
+                    ToolTip.timeout: main.tooltipTimeout
+                    ToolTip.text: qsTr(bottomRightCombo.currentText)
+                }
             }
         }
 
+        RowLayout {
 
-        Button {
-            text: qsTr("Front view")
-            Layout.column: 0
-            Layout.row: 1
+            // Padding for title
+            Rectangle {
+                width: 5
+                height: 40
+                color: "transparent"
+            }
 
-            onClicked: {
-                var component = Qt.createComponent("FrontView.qml")
-                if (component.status != Component.Ready) {
-                    if (component.status == Component.Error) {
-                        console.debug("Error: " + component.errorString());
-                        return;
+            Label {
+                text: "Full View (3x3)"
+                horizontalAlignment: Qt.AlignHLeft
+                verticalAlignment: Qt.AlignVCenter
+                Layout.fillWidth: true
+            }
+
+            Button {
+                id: fullView
+                text: qsTr("Open")
+
+                onClicked: {
+                    var component = Qt.createComponent("FullView.qml")
+                    if (component.status != Component.Ready) {
+                        if (component.status == Component.Error) {
+                            console.debug("Error: " + component.errorString());
+                            return;
+                        }
                     }
+                    var multiview = component.createObject(main);
+                    multiview.show();
                 }
-                var multiview = component.createObject(main);
-                multiview.show();
             }
         }
-
-        Button {
-            text: qsTr("Left view")
-            Layout.column: 1
-            Layout.row: 1
-
-            onClicked: {
-                var component = Qt.createComponent("LeftView.qml")
-                if (component.status != Component.Ready) {
-                    if (component.status == Component.Error) {
-                        console.debug("Error: " + component.errorString());
-                        return;
-                    }
-                }
-                var multiview = component.createObject(main);
-                multiview.show();
-            }
-        }
-
-        Button {
-            text: qsTr("Right view")
-            Layout.column: 2
-            Layout.row: 0
-
-            onClicked: {
-                var component = Qt.createComponent("RightView.qml")
-                if (component.status != Component.Ready) {
-                    if (component.status == Component.Error) {
-                        console.debug("Error: " + component.errorString());
-                        return;
-                    }
-                }
-                var multiview = component.createObject(main);
-                multiview.show();
-            }
+        
+        ScrollBar {
+            id: scroll
+            hoverEnabled: true
+            active: hovered || pressed
+            orientation: Qt.Vertical
+            size: 2
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
         }
     }
 }

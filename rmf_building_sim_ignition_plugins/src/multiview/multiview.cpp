@@ -65,15 +65,23 @@ struct CameraView
   ignition::msgs::Image _image_msg;
   ImageProvider *provider{nullptr};
   QString provider_name;
+  QImage image;
 };
 
 class multiview : public ignition::gui::Plugin
 {
   Q_OBJECT
 
+  Q_PROPERTY(
+    QStringList topicList
+    READ TopicList
+    NOTIFY TopicListChanged
+  )
+
 private:
   ignition::transport::Node _node;
   std::unordered_map<std::string, CameraView> _camera_views;
+  QStringList topicList;
 
 public:
   multiview();
@@ -82,14 +90,14 @@ public:
   virtual void LoadConfig(const tinyxml2::XMLElement* _pluginElem)
   override;
 
+public: Q_INVOKABLE QStringList TopicList() const;
+
 protected:
   void receive_image_cb(const ignition::msgs::Image& _msg,
                         const ignition::transport::MessageInfo &_info);
 signals:
-  void newFrontImage();
-  void newLeftImage();
-  void newRightImage();
-  void newTopImage();
+  void TopicListChanged();
+  void newImage(QString selected_topic);
 };
 
 multiview::multiview() {}
@@ -123,7 +131,11 @@ void multiview::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
     };
     ignition::gui::App()->Engine()->addImageProvider(new_view.provider_name, new_view.provider);
     _camera_views.insert({topic_name, new_view});
+
+    topicList.push_back(QString::fromUtf8(topic_name.c_str()));
   }
+
+  this->TopicListChanged();
 }
 
 void multiview::receive_image_cb(const ignition::msgs::Image& _msg,
@@ -147,7 +159,7 @@ void multiview::receive_image_cb(const ignition::msgs::Image& _msg,
 
   QImage image = QImage(width, height, qFormat);
 
-  ignition::common::Image output;
+  // ignition::common::Image output;
   switch (_msg.pixel_format_type())
   {
     case ignition::msgs::PixelFormatType::RGB_INT8:
@@ -171,23 +183,15 @@ void multiview::receive_image_cb(const ignition::msgs::Image& _msg,
   }
 
   cam->second.provider->SetImage(image);
+  QString qstring_topic_name = QString::fromUtf8(topic_name.c_str());
+  this->newImage(qstring_topic_name);
 
-  if (topic_name == "front_view")
-  {
-    this->newFrontImage();
-  }
-  else if (topic_name == "left_view")
-  {
-    this->newLeftImage();
-  }
-  else if (topic_name == "right_view")
-  {
-    this->newRightImage();
-  }
-  else if (topic_name == "top_view")
-  {
-    this->newTopImage();
-  }
+}
+
+
+QStringList multiview::TopicList() const
+{
+  return topicList;
 }
 
 

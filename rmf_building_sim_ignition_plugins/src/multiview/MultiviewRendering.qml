@@ -6,9 +6,7 @@ import QtQuick.Window 2.2
 
 Window {
     title: qsTr("Multi-view display")
-    id: twobytwo
-    x: 100
-    y: 100
+    id: twoByTwo
     readonly property int defaultWidth: 1600
     readonly property int defaultHeight: 900
     width: defaultWidth
@@ -16,10 +14,14 @@ Window {
     minimumWidth: 640
     minimumHeight: 360
     visible: true
+    property string topLeftView: ""
+    property string bottomLeftView: ""
+    property string topRightView: ""
+    property string bottomRightView: ""
 
     Shortcut {
-    sequence: "Ctrl+F"
-    onActivated: showFullScreen()
+        sequence: "Ctrl+F"
+        onActivated: showFullScreen()
     }
 
     Shortcut {
@@ -29,29 +31,18 @@ Window {
 
     Connections {
       target: multiview
-      function onNewFrontImage() {
-        front.reload();
-      }
-    }
-
-    Connections {
-      target: multiview
-      function onNewLeftImage() {
-        left.reload();
-      }
-    }
-
-    Connections {
-      target: multiview
-      function onNewRightImage() {
-        right.reload();
-      }
-    }
-
-    Connections {
-      target: multiview
-      function onNewTopImage() {
-        top.reload();
+      function onNewImage(topicName) {
+          if (topicName == twoByTwo.topLeftView) {
+              topLeftImage.reload(topicName);
+          } else if (topicName == twoByTwo.bottomLeftView) {
+              bottomLeftImage.reload(topicName);
+          } else if (topicName == twoByTwo.topRightView) {
+              topRightImage.reload(topicName);
+          } else if (topicName == twoByTwo.bottomRightView) {
+              bottomRightImage.reload(topicName);
+          } else {
+              return;
+          }
       }
     }
 
@@ -63,50 +54,50 @@ Window {
         rowSpacing: 0
 
         Image {
-            id: front
+            id: topLeftImage
             fillMode: Image.PreserveAspectFit
             Layout.column: 0
             Layout.row: 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            function reload() {
-              source = "image://front_view/" + Math.random().toString(36).substr(2, 5);
+            function reload(topicName) {
+                source = "image://" + topicName + "/" + Math.random().toString(36).substr(2, 5);
             }
         }
 
         Image {
-            id: left
+            id: bottomLeftImage
             fillMode: Image.PreserveAspectFit
             Layout.column: 0
             Layout.row: 1
             Layout.fillWidth: true
             Layout.fillHeight: true
-            function reload() {
-              source = "image://left_view/" + Math.random().toString(36).substr(2, 5);
+            function reload(topicName) {
+                source = "image://" + topicName + "/" + Math.random().toString(36).substr(2, 5);
             }
         }
 
         Image {
-            id: right
+            id: topRightImage
             fillMode: Image.PreserveAspectFit
             Layout.column: 1
             Layout.row: 0
             Layout.fillWidth: true
             Layout.fillHeight: true
-            function reload() {
-              source = "image://right_view/" + Math.random().toString(36).substr(2, 5);
+            function reload(topicName) {
+                source = "image://" + topicName + "/" + Math.random().toString(36).substr(2, 5);
             }
         }
 
         Image {
-            id: top
+            id: bottomRightImage
             fillMode: Image.PreserveAspectFit
             Layout.column: 1
             Layout.row: 1
             Layout.fillWidth: true
             Layout.fillHeight: true
-            function reload() {
-              source = "image://top_view/" + Math.random().toString(36).substr(2, 5);
+            function reload(topicName) {
+                source = "image://" + topicName + "/" + Math.random().toString(36).substr(2, 5);
             }
         }
     }

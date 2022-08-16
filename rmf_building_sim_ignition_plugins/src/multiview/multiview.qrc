@@ -2,9 +2,7 @@
   <qresource prefix="multiview/">
     <file>multiview.qml</file>
     <file>MultiviewRendering.qml</file>
-    <file>MultiviewRenderingTest.qml</file>
-    <file>FrontView.qml</file>
-    <file>LeftView.qml</file>
-    <file>RightView.qml</file>
+    <file>SingleView.qml</file>
+    <file>FullView.qml</file>
   </qresource>
 </RCC>
