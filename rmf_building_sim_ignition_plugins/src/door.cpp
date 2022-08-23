@@ -81,9 +81,11 @@ private:
     }
 
     std::unordered_set<std::string> joint_names;
-    if (!left_door_joint_name.empty() && left_door_joint_name != "empty_joint")
+    if (!left_door_joint_name.empty()
+      && left_door_joint_name != "empty_joint")
       joint_names.insert(left_door_joint_name);
-    if (!right_door_joint_name.empty() && right_door_joint_name != "empty_joint")
+    if (!right_door_joint_name.empty()
+      && right_door_joint_name != "empty_joint")
       joint_names.insert(right_door_joint_name);
 
     DoorCommon::Doors doors;
