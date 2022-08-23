@@ -228,6 +228,11 @@ void toggle_floors::PerformRenderingOperations()
   for (auto& robots_itr : _robot_floor)
   {
     auto target_node = this->scene->NodeByName(robots_itr.first);
+    if (target_node == NULL)
+    {
+      ignwarn << "Node for " << model << "was not found" <<std::endl;
+      continue;
+    }
     auto target_vis = std::dynamic_pointer_cast<ignition::rendering::Visual>(
       target_node);
     target_vis->SetVisible(_floor_visibility[robots_itr.second]);
