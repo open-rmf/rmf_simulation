@@ -230,7 +230,7 @@ void toggle_floors::PerformRenderingOperations()
     auto target_node = this->scene->NodeByName(robots_itr.first);
     if (target_node == NULL)
     {
-      ignwarn << "Node for " << model << "was not found" <<std::endl;
+      ignwarn << "Node for " << robots_itr.first << "was not found" <<std::endl;
       continue;
     }
     auto target_vis = std::dynamic_pointer_cast<ignition::rendering::Visual>(
