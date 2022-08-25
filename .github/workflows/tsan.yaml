@@ -9,7 +9,7 @@ jobs:
     name: tsan
     runs-on: ubuntu-latest
     container:
-      image: rostooling/setup-ros-docker:ubuntu-focal-latest
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
     steps:
       - name: deps
         uses: ros-tooling/setup-ros@v0.3
