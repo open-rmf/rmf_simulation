@@ -8,11 +8,15 @@ jobs:
   tsan:
     name: tsan
     runs-on: ubuntu-20.04
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-focal-latest
     steps:
       - name: deps
-        uses: ros-tooling/setup-ros@v0.2
+        uses: ros-tooling/setup-ros@v0.3
         with:
           required-ros-distributions: galactic
+      - name: install_clang
+        run: sudo apt update && sudo apt install -y clang clang-tools lld
       - name: tsan_build_test
         uses: ros-tooling/action-ros-ci@v0.2
         id: tsan_build_test
@@ -34,7 +38,7 @@ jobs:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["tsan"],
+                "mixin": ["tsan", "lld"],
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Debug"]
               }
             }
@@ -45,4 +49,3 @@ jobs:
           name: colcon-test-logs
           path: ${{ steps.tsan_build_test.outputs.ros-workspace-directory-name }}/log
         if: always()
-
