@@ -19,10 +19,13 @@ jobs:
     steps:
       - name: deps
         uses: ros-tooling/setup-ros@v0.3
+        env:
+          CC: clang
+          CXX: clang++
         with:
           required-ros-distributions: ${{ matrix.ros_distribution }}
       - name: install_clang
-        run: sudo apt update && sudo apt install -y clang clang-tools lld lldb
+        run: sudo apt update && sudo apt install -y clang clang-tools lld
       - name: build
         uses: ros-tooling/action-ros-ci@v0.2
         with:
