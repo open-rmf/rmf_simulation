@@ -297,7 +297,8 @@ int LightsModel::rowCount(const QModelIndex& parent) const
 QVariant LightsModel::data(const QModelIndex& index, int role) const
 {
   if (!hasIndex(index.row(), index.column(), index.parent()))
-    return {};
+    return {}
+  ;
 
   const sdf::Light& light = _lights.at(index.row());
   // Returns displayable value corresponding to the light property requested

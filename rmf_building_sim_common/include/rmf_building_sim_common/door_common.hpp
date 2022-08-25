@@ -218,9 +218,11 @@ std::shared_ptr<DoorCommon> DoorCommon::make(
         DoorCommon::DoorElement door_element;
         if (joint_name == right_door_joint_name)
           door_element =
-            DoorCommon::DoorElement{lower_limit, upper_limit, true};
+            DoorCommon::DoorElement{lower_limit, upper_limit, true}
+        ;
         else if (joint_name == left_door_joint_name)
-          door_element = DoorCommon::DoorElement{lower_limit, upper_limit};
+          door_element = DoorCommon::DoorElement{lower_limit, upper_limit}
+        ;
         doors.insert({joint_name, door_element});
       }
     };
