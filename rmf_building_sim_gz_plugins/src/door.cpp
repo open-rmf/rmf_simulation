@@ -96,12 +96,12 @@ private:
       {
         continue;
       }
-      const auto *joint_axis =
+      const auto* joint_axis =
         ecm.Component<components::JointAxis>(joint_entity);
 
       double lower_limit = -1.57;
       double upper_limit = 0.0;
-      if(joint_axis != nullptr)
+      if (joint_axis != nullptr)
       {
         lower_limit = joint_axis->Data().Lower();
         upper_limit = joint_axis->Data().Upper();
@@ -109,10 +109,22 @@ private:
 
       DoorCommon::DoorElement door_element;
       if (joint_name == right_door_joint_name)
-        door_element =
-          DoorCommon::DoorElement{lower_limit, upper_limit, true};
+      {
+        door_element = DoorCommon::DoorElement{lower_limit, upper_limit, true};
+      }
       else if (joint_name == left_door_joint_name)
+      {
         door_element = DoorCommon::DoorElement{lower_limit, upper_limit};
+      }
+      else
+      {
+        RCLCPP_WARN(
+          _ros_node->get_logger(),
+          "Unsupported joint_name %s. Ignoring...", joint_name.c_str()
+        );
+        continue;
+      }
+
       doors.insert({joint_name, door_element});
     }
     return doors;
