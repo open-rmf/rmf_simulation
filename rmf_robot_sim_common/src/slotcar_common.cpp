@@ -554,9 +554,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       pause_request.type == pause_request.TYPE_PAUSE_IMMEDIATELY;
     const bool pause = checkpoint_pause || immediate_pause;
 
-    const bool hold = now < hold_time;
-
-    const bool rotate_towards_next_target = close_enough && (hold || pause);
+    const bool rotate_towards_next_target = close_enough && pause;
     _was_rotating = rotate_towards_next_target;
 
     if (rotate_towards_next_target)
@@ -642,9 +640,14 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   const bool immediate_pause =
     pause_request.type == pause_request.TYPE_PAUSE_IMMEDIATELY;
 
-  const bool stop =
-    immediate_pause || emergency_stop(obstacle_positions, current_heading);
+  const bool e_stop = [&]() -> bool {
+    if (result.target_linear_speed_now > 0.0)
+      return emergency_stop(obstacle_positions, current_heading);
 
+    return false;
+  }();
+
+  const bool stop = immediate_pause || e_stop;
   if (immediate_pause)
   {
     // If we are required to immediately pause, report that we are in paused
