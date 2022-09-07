@@ -240,16 +240,19 @@ bool SlotcarCommon::path_request_valid(
   if (msg->task_id == _current_task_id)
   {
     RCLCPP_INFO(
-      logger(), "%s already received task [%s] -- continuing as normal",
-      _current_task_id.c_str(), _model_name.c_str());
+      logger(), "[%s] already received request [%s] -- continuing as normal",
+      _model_name.c_str(), _current_task_id.c_str());
     return false;
   }
 
   // Empty task request
   if (msg->path.size() == 0)
   {
-    RCLCPP_WARN(logger(), "%s received a path with no waypoints",
-      _model_name.c_str());
+    RCLCPP_WARN(
+      logger(),
+      "[%s] received a path [%s] with no waypoints",
+      _model_name.c_str(),
+      msg->task_id.c_str());
     return false;
   }
   return true;
@@ -266,8 +269,8 @@ void SlotcarCommon::path_request_cb(
 
   RCLCPP_INFO(
     logger(),
-    "%s received a path request with %d waypoints",
-    _model_name.c_str(), (int)msg->path.size());
+    "[%s] received a path request [%s] with %d waypoints",
+    _model_name.c_str(), msg->task_id.c_str(), (int)msg->path.size());
 
   // Reset this if we aren't at the final waypoint
   trajectory.resize(msg->path.size());
