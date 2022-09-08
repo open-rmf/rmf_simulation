@@ -643,12 +643,13 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
   const bool immediate_pause =
     pause_request.type == pause_request.TYPE_PAUSE_IMMEDIATELY;
 
-  const bool e_stop = [&]() -> bool {
-    if (result.target_linear_speed_now > 0.0)
-      return emergency_stop(obstacle_positions, current_heading);
+  const bool e_stop = [&]() -> bool
+    {
+      if (result.target_linear_speed_now > 0.0)
+        return emergency_stop(obstacle_positions, current_heading);
 
-    return false;
-  }();
+      return false;
+    } ();
 
   const bool stop = immediate_pause || e_stop;
   if (immediate_pause)
