@@ -40,13 +40,13 @@
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
 #include <rmf_robot_sim_common/ingestor_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 using namespace rmf_ingestor_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
 
-class IGNITION_GAZEBO_VISIBLE TeleportIngestorPlugin
+class TeleportIngestorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -225,7 +225,7 @@ void TeleportIngestorPlugin::send_ingested_item_home(
           components::WorldPoseCmd(ignition::math::Pose3<double>()));
       }
       ecm.Component<components::WorldPoseCmd>(_ingested_entity)->Data() =
-        convert_to_pose<ignition::math::v6::Pose3d>(it->second);
+        convert_to_pose<ignition::math::Pose3d>(it->second);
     }
     _ingestor_common->ingestor_filled = false;
   }

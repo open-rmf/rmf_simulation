@@ -13,7 +13,7 @@
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/door_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 using namespace rmf_building_sim_common;
 
@@ -21,7 +21,7 @@ namespace rmf_building_sim_gz_plugins {
 
 //==============================================================================
 
-class IGNITION_GAZEBO_VISIBLE DoorPlugin
+class DoorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate

@@ -36,11 +36,11 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/readonly_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 namespace rmf_robot_sim_gz_plugins {
 
-class IGNITION_GAZEBO_VISIBLE ReadonlyPlugin
+class ReadonlyPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate

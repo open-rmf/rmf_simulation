@@ -41,13 +41,13 @@
 #include <rmf_robot_sim_common/dispenser_common.hpp>
 #include <rmf_robot_sim_common/utils.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
 
-class IGNITION_GAZEBO_VISIBLE TeleportDispenserPlugin
+class TeleportDispenserPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate

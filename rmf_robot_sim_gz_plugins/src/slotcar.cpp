@@ -24,13 +24,13 @@
 
 #include <rmf_fleet_msgs/msg/location.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
 std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
   {"ignition-physics-tpe-plugin", PhysEnginePlugin::TPE}};
 
-class IGNITION_GAZEBO_VISIBLE SlotcarPlugin
+class SlotcarPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate

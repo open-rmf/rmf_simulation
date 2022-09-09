@@ -31,7 +31,7 @@
 
 #include "crowd_simulator.hpp"
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 namespace crowd_simulation_ign {
 

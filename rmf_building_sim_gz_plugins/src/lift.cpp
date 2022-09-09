@@ -22,7 +22,7 @@
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/lift_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 using namespace rmf_building_sim_common;
 
@@ -34,7 +34,7 @@ std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
 
 //==============================================================================
 
-class IGNITION_GAZEBO_VISIBLE LiftPlugin
+class LiftPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate

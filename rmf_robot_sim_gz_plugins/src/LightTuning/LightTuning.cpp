@@ -258,7 +258,7 @@ public:
   const QVector<sdf::Light>& get_lights() const;
 
   // Fill _existing_names with names from the ecm
-  void populate_names(ignition::gazebo::EntityComponentManager& ecm);
+  void populate_names(gz::sim::EntityComponentManager& ecm);
 
 private:
   // Collection of lights, each with a unique name (enforced by
@@ -420,11 +420,11 @@ const QVector<sdf::Light>& LightsModel::get_lights() const
   return _lights;
 }
 
-void LightsModel::populate_names(ignition::gazebo::EntityComponentManager& ecm)
+void LightsModel::populate_names(gz::sim::EntityComponentManager& ecm)
 {
-  ecm.Each<ignition::gazebo::components::Name>(
-    [&](const ignition::gazebo::Entity&,
-    const ignition::gazebo::components::Name* name)
+  ecm.Each<gz::sim::components::Name>(
+    [&](const gz::sim::Entity&,
+    const gz::sim::components::Name* name)
     -> bool
     {
       _pre_existing_names.insert(name->Data());
@@ -434,7 +434,7 @@ void LightsModel::populate_names(ignition::gazebo::EntityComponentManager& ecm)
 
 // Class that handles all GUI interactions and their associated
 // light creations/deletions
-class LightTuning : public ignition::gazebo::GuiSystem
+class LightTuning : public gz::sim::GuiSystem
 {
   Q_OBJECT
 
@@ -442,8 +442,8 @@ public:
   virtual void LoadConfig(const tinyxml2::XMLElement* _pluginElem)
   override;
 
-  void Update(const ignition::gazebo::UpdateInfo& _info,
-    ignition::gazebo::EntityComponentManager& _ecm) override;
+  void Update(const gz::sim::UpdateInfo& _info,
+    gz::sim::EntityComponentManager& _ecm) override;
 
 signals:
   void poseChanged(QString nm, QString new_pose);
@@ -486,7 +486,7 @@ private:
   struct LightMarker
   {
     std::string name; // Name of the LightMarker
-    ignition::gazebo::Entity en;
+    gz::sim::Entity en;
     ignition::math::Pose3d last_set_pose;
   };
   // List of pairs of light name and corresponding marker name being spawned
@@ -535,19 +535,19 @@ void LightTuning::LoadConfig(const tinyxml2::XMLElement*)
     "LightsModel", &this->_model);
 }
 
-void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
-  ignition::gazebo::EntityComponentManager& ecm)
+void LightTuning::Update(const gz::sim::UpdateInfo&,
+  gz::sim::EntityComponentManager& ecm)
 {
 
   if (first_update_call)
   {
     // Get world name for sending create/remove requests later.
     // Assumes there is only 1 world in the simulation
-    ecm.Each<ignition::gazebo::components::World,
-      ignition::gazebo::components::Name>(
-      [&](const ignition::gazebo::Entity&,
-      const ignition::gazebo::components::World*,
-      const ignition::gazebo::components::Name* name)
+    ecm.Each<gz::sim::components::World,
+      gz::sim::components::Name>(
+      [&](const gz::sim::Entity&,
+      const gz::sim::components::World*,
+      const gz::sim::components::Name* name)
       -> bool
       {
         _world_name = name->Data();
@@ -568,12 +568,12 @@ void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
     std::string& marker_name = _new_markers_it->second;
 
     auto marker_en = ecm.EntityByComponents(
-      ignition::gazebo::components::Name(marker_name),
-      ignition::gazebo::components::Model());
-    if (marker_en != ignition::gazebo::kNullEntity)
+      gz::sim::components::Name(marker_name),
+      gz::sim::components::Model());
+    if (marker_en != gz::sim::kNullEntity)
     {
       auto pose_component =
-        ecm.Component<ignition::gazebo::components::Pose>(marker_en);
+        ecm.Component<gz::sim::components::Pose>(marker_en);
       auto pose =
         pose_component ? pose_component->Data() : ignition::math::Pose3d();
       _markers[light_name] = LightMarker {marker_name, marker_en, pose};
@@ -599,13 +599,13 @@ bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
     render_lights();
   }
   else if (_event->type() ==
-    ignition::gazebo::gui::events::EntitiesSelected::kType)
+    gz::sim::gui::events::EntitiesSelected::kType)
   {
     auto event =
-      reinterpret_cast<ignition::gazebo::gui::events::EntitiesSelected*>(_event);
+      reinterpret_cast<gz::sim::gui::events::EntitiesSelected*>(_event);
     if (event && !event->Data().empty())
     {
-      const ignition::gazebo::Entity en = *event->Data().begin();
+      const gz::sim::Entity en = *event->Data().begin();
       auto it = std::find_if(_markers.begin(), _markers.end(),
           [&en](const std::pair<std::string, LightMarker>& marker)
           {
