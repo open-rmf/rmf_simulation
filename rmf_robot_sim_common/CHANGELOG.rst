@@ -2,6 +2,10 @@
 Changelog for package rmf_robot_sim_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.0 (2022-XX-XX)
+------------------
+* Fix spurious emergency stop behavior when robot is moving backwards (`https://github.com/open-rmf/rmf_simulation/pull/82`)
+
 1.3.0 (2021-09-01)
 ------------------
 * support reversible slotcar (`#38 <https://github.com/open-rmf/rmf_simulation/issues/38>`_)
