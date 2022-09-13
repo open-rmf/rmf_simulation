@@ -274,7 +274,6 @@ void SlotcarCommon::path_request_cb(
 
   // Reset this if we aren't at the final waypoint
   trajectory.resize(msg->path.size());
-  _hold_times.resize(msg->path.size());
   for (size_t i = 0; i < msg->path.size(); ++i)
   {
     Eigen::Vector3d v3(
@@ -297,7 +296,6 @@ void SlotcarCommon::path_request_cb(
       trajectory.at(i).approach_speed_limit = msg->path[i].approach_speed_limit;
     }
 
-    _hold_times.at(i) = msg->path[i].t;
   }
   _remaining_path = msg->path;
   _traj_wp_idx = 0;
@@ -314,9 +312,6 @@ void SlotcarCommon::path_request_cb(
     trajectory.clear();
     trajectory.push_back(_pose);
 
-    _hold_times.clear();
-    _hold_times.push_back(rclcpp::Time((int64_t)0, RCL_ROS_TIME));
-
     // We'll stick with the old path when an adapter error happens so that the
     // fleet adapter knows where the robot currently is along its previous path.
     _remaining_path = old_path;
@@ -326,7 +321,6 @@ void SlotcarCommon::path_request_cb(
   else
   {
     trajectory.erase(trajectory.begin());
-    _hold_times.erase(_hold_times.begin());
     _remaining_path.erase(_remaining_path.begin());
   }
 
@@ -530,21 +524,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     const Eigen::Vector3d dpos = compute_dpos(
       trajectory.at(_traj_wp_idx).pose, _pose);
 
-    if (_hold_times.size() != trajectory.size())
-    {
-      throw std::runtime_error(
-              "Mismatch between trajectory size ["
-              + std::to_string(trajectory.size()) + "] and holding time size ["
-              + std::to_string(_hold_times.size()) + "]");
-    }
-
     auto dpos_mag = dpos.norm();
-    // TODO(MXG): Some kind of crazy nonsense bug is somehow altering the
-    // clock type value for the _hold_times. I don't know where this could
-    // possibly be happening, but I suspect it must be caused by undefined
-    // behavior. For now we deal with this by explicitly setting the clock type.
-    const auto hold_time =
-      rclcpp::Time(_hold_times.at(_traj_wp_idx), RCL_ROS_TIME);
 
     bool close_enough = (dpos_mag < 0.02);
     if (_was_rotating) // Accomodate slight drift when rotating on the spot

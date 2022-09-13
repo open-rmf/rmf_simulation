@@ -157,8 +157,6 @@ private:
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
-  std::vector<rclcpp::Time> _hold_times;
-
   std::mutex _mutex;
 
   std::string _model_name;
