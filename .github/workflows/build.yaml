@@ -1,49 +1,57 @@
-name: build 
-on: 
+name: build
+on:
   push:
+    branches: [ main ]
   pull_request:
   schedule:
     - cron: '0 0 * * *'
 
 jobs:
   build_and_test:
-    name: build_and_test
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        ros_distribution:
-          - foxy
-          - galactic
+    name: Build and test
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
     steps:
       - name: deps
-        uses: ros-tooling/setup-ros@v0.2
+        uses: ros-tooling/setup-ros@v0.4
         with:
-          required-ros-distributions: ${{ matrix.ros_distribution }}
-      - name: build_and_test
+          required-ros-distributions: humble
+      - name: install_clang
+        run: sudo apt update && sudo apt install -y clang clang-tools lld
+      - name: build
         uses: ros-tooling/action-ros-ci@v0.2
+        env:
+          CC: clang
+          CXX: clang++
         with:
-          target-ros2-distro: ${{ matrix.ros_distribution }}
+          target-ros2-distro: humble
           # build all packages listed in the meta package
           package-name: |
             rmf_building_sim_common
-            rmf_building_sim_gazebo_plugins
-            rmf_building_sim_ignition_plugins
+            rmf_building_sim_gz_classic_plugins
+            rmf_building_sim_gz_plugins
             rmf_robot_sim_common
-            rmf_robot_sim_gazebo_plugins
-            rmf_robot_sim_ignition_plugins
+            rmf_robot_sim_gz_classic_plugins
+            rmf_robot_sim_gz_plugins
           vcs-repo-file-url: |
             https://raw.githubusercontent.com/open-rmf/rmf/main/rmf.repos
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["coverage-gcc"]
+                "mixin": ["coverage-gcc", "lld"]
               }
             }
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/master/index.yaml
+      - name: Upload failed test results
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test-results
+          path: ros_ws/build/*/test_results/*/*.catch2.xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           files: ros_ws/lcov/total_coverage.info
           flags: tests
           name: lean_and_mean_codecov_bot
-

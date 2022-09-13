@@ -267,7 +267,7 @@ void SlotcarCommon::path_request_cb(
 
   const auto old_path = _remaining_path;
 
-  RCLCPP_INFO(
+  RCLCPP_DEBUG(
     logger(),
     "[%s] received a path request [%s] with %d waypoints",
     _model_name.c_str(), msg->task_id.c_str(), (int)msg->path.size());
@@ -594,14 +594,14 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
         return result;
 
       _remaining_path.erase(_remaining_path.begin());
-      RCLCPP_INFO(logger(),
+      RCLCPP_DEBUG(logger(),
         "%s reached waypoint %ld/%d",
         _model_name.c_str(),
         _traj_wp_idx,
         (int)trajectory.size());
       if (_traj_wp_idx == trajectory.size())
       {
-        RCLCPP_INFO(
+        RCLCPP_DEBUG(
           logger(),
           "%s reached goal -- rotating to face target",
           _model_name.c_str());
@@ -742,14 +742,14 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
       _traj_wp_idx++;
 
       _remaining_path.erase(_remaining_path.begin());
-      RCLCPP_INFO(logger(),
+      RCLCPP_DEBUG(logger(),
         "%s reached waypoint %ld/%d",
         _model_name.c_str(),
         _traj_wp_idx,
         (int)trajectory.size());
       if (_traj_wp_idx == trajectory.size())
       {
-        RCLCPP_INFO(
+        RCLCPP_DEBUG(
           logger(),
           "%s reached goal",
           _model_name.c_str());

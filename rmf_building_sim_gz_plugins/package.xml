@@ -1,10 +1,12 @@
 <package format="3">
-  <name>rmf_robot_sim_common</name>
+  <name>rmf_building_sim_gz_plugins</name>
   <version>1.3.1</version>
   <description>
-    Common utility functions for Gazebo-classic and Gazebo RMF plugins
+    Gazebo plugins for building infrastructure simulation
   </description>
-  <author>Aaron Chong</author>
+  <author>Luca Della Vedova</author>
+  <author>Yadunund</author>
+  <author>Kevin Ma</author>
   <author>Rushyendra Maganty</author>
   <maintainer email="luca@openrobotics.org">Luca Della Vedova</maintainer>
   <maintainer email="marco@openrobotics.org">Marco A. Gutiérrez</maintainer>
@@ -12,15 +14,14 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>eigen</depend>
   <depend>rclcpp</depend>
-  <depend>geometry_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2_ros</depend>
+  <depend>rmf_building_sim_common</depend>
   <depend>rmf_fleet_msgs</depend>
-  <depend>rmf_dispenser_msgs</depend>
-  <depend>rmf_ingestor_msgs</depend>
-  <depend>rmf_building_map_msgs</depend>
+  <depend>libqt5-core</depend>
+  <depend>libqt5-qml</depend>
+  <depend>libqt5-quick</depend>
+  <depend>menge_vendor</depend>
+  <depend>ignition-fortress</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

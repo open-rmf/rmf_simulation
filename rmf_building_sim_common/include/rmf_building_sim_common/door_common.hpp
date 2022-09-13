@@ -72,7 +72,6 @@ public:
   std::vector<DoorUpdateResult> update(const double time,
     const std::vector<DoorUpdateRequest>& request);
 
-private:
 
   struct DoorElement
   {
@@ -106,6 +105,14 @@ private:
   // Map joint name to its DoorElement
   using Doors = std::unordered_map<std::string, DoorElement>;
 
+  template<typename SdfPtrT>
+  static std::shared_ptr<DoorCommon> make(
+    const std::string& door_name,
+    rclcpp::Node::SharedPtr node,
+    SdfPtrT& sdf,
+    Doors& doors);
+
+private:
   DoorMode requested_mode() const;
 
   void publish_state(const uint32_t door_value, const rclcpp::Time& time);
@@ -218,9 +225,11 @@ std::shared_ptr<DoorCommon> DoorCommon::make(
         DoorCommon::DoorElement door_element;
         if (joint_name == right_door_joint_name)
           door_element =
-            DoorCommon::DoorElement{lower_limit, upper_limit, true};
+            DoorCommon::DoorElement{lower_limit, upper_limit, true}
+        ;
         else if (joint_name == left_door_joint_name)
-          door_element = DoorCommon::DoorElement{lower_limit, upper_limit};
+          door_element = DoorCommon::DoorElement{lower_limit, upper_limit}
+        ;
         doors.insert({joint_name, door_element});
       }
     };
@@ -258,6 +267,33 @@ std::shared_ptr<DoorCommon> DoorCommon::make(
 
   return door_common;
 
+}
+
+template<typename SdfPtrT>
+std::shared_ptr<DoorCommon> DoorCommon::make(
+  const std::string& door_name,
+  rclcpp::Node::SharedPtr node,
+  SdfPtrT& sdf,
+  Doors& doors)
+{
+  // We work with a clone to avoid const correctness issues with
+  // get_sdf_param functions in utils.hpp
+  auto sdf_clone = sdf->Clone();
+
+  MotionParams params;
+  get_sdf_param_if_available<double>(sdf_clone, "v_max_door", params.v_max);
+  get_sdf_param_if_available<double>(sdf_clone, "a_max_door", params.a_max);
+  get_sdf_param_if_available<double>(sdf_clone, "a_nom_door", params.a_nom);
+  get_sdf_param_if_available<double>(sdf_clone, "dx_min_door", params.dx_min);
+  get_sdf_param_if_available<double>(sdf_clone, "f_max_door", params.f_max);
+
+  std::shared_ptr<DoorCommon> door_common(new DoorCommon(
+      door_name,
+      node,
+      params,
+      doors));
+
+  return door_common;
 }
 
 } // namespace rmf_building_sim_common
