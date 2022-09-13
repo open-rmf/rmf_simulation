@@ -12,7 +12,7 @@ jobs:
       image: rostooling/setup-ros-docker:ubuntu-jammy-latest
     steps:
       - name: deps
-        uses: ros-tooling/setup-ros@v0.3
+        uses: ros-tooling/setup-ros@v0.4
         with:
           required-ros-distributions: humble
       - name: install_clang
