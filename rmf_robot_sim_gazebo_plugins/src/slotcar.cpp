@@ -93,20 +93,24 @@ void SlotcarPlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
   _update_connection = gazebo::event::Events::ConnectWorldUpdateBegin(
     std::bind(&SlotcarPlugin::OnUpdate, this));
 
-  joints[0] = _model->GetJoint("joint_tire_left");
+
+  std::string left_tire_name = model->GetName() +"/"+ "joint_tire_left";
+  std::string right_tire_name =model->GetName() +"/"+ "joint_tire_right";
+
+  joints[0] = _model->GetJoint(left_tire_name);
   if (!joints[0])
   {
     RCLCPP_ERROR(
       dataPtr->logger(),
-      "Could not find tire for [joint_tire_left]");
+      "Could not find tire for [%s]", left_tire_name.c_str());
   }
 
-  joints[1] = _model->GetJoint("joint_tire_right");
+  joints[1] = _model->GetJoint(right_tire_name);
   if (!joints[1])
   {
     RCLCPP_ERROR(
       dataPtr->logger(),
-      "Could not find tire for [joint_tire_right]");
+      "Could not find tire for [%s]", right_tire_name.c_str());
   }
 }
 
