@@ -1,6 +1,7 @@
 name: build
 on:
   push:
+    branches: [ main ]
   pull_request:
   schedule:
     - cron: '0 0 * * *'
@@ -8,36 +9,31 @@ on:
 jobs:
   build_and_test:
     name: Build and test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
-      image: rostooling/setup-ros-docker:ubuntu-focal-latest
-    strategy:
-      matrix:
-        ros_distribution:
-          - foxy
-          - galactic
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
     steps:
       - name: deps
-        uses: ros-tooling/setup-ros@v0.3
-        env:
-          CC: clang
-          CXX: clang++
+        uses: ros-tooling/setup-ros@v0.4
         with:
-          required-ros-distributions: ${{ matrix.ros_distribution }}
+          required-ros-distributions: humble
       - name: install_clang
         run: sudo apt update && sudo apt install -y clang clang-tools lld
       - name: build
         uses: ros-tooling/action-ros-ci@v0.2
+        env:
+          CC: clang
+          CXX: clang++
         with:
-          target-ros2-distro: ${{ matrix.ros_distribution }}
+          target-ros2-distro: humble
           # build all packages listed in the meta package
           package-name: |
             rmf_building_sim_common
-            rmf_building_sim_gazebo_plugins
-            rmf_building_sim_ignition_plugins
+            rmf_building_sim_gz_classic_plugins
+            rmf_building_sim_gz_plugins
             rmf_robot_sim_common
-            rmf_robot_sim_gazebo_plugins
-            rmf_robot_sim_ignition_plugins
+            rmf_robot_sim_gz_classic_plugins
+            rmf_robot_sim_gz_plugins
           vcs-repo-file-url: |
             https://raw.githubusercontent.com/open-rmf/rmf/main/rmf.repos
           colcon-defaults: |
