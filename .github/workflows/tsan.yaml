@@ -34,7 +34,7 @@ jobs:
             rmf_robot_sim_gz_classic_plugins
             rmf_robot_sim_gz_plugins
           vcs-repo-file-url: |
-            https://raw.githubusercontent.com/open-rmf/rmf/humble-image/rmf.repos
+            https://raw.githubusercontent.com/open-rmf/rmf/main/rmf.repos
           colcon-defaults: |
             {
               "build": {
