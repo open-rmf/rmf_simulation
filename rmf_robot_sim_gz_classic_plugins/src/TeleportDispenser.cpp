@@ -126,26 +126,52 @@ void TeleportDispenserPlugin::fill_dispenser()
       continue;
 
     const double dist = m->WorldPose().Pos().Distance(dispenser_pos);
-    if (dist < nearest_dist &&
-      _dispenser_vicinity_box.Intersects(m->BoundingBox()))
+
+    // Added verbose to have better info about Ingestor system
+    RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),
+    "======= item: [%s], distance=%f, nerest_dist=%f", m->GetName().c_str(), dist, nearest_dist);
+
+    // We check both conditions
+    bool object_close_enough = dist < nearest_dist;
+    bool object_inside_intersect_box = _dispenser_vicinity_box.Intersects(m->BoundingBox());
+
+    if ( object_close_enough)
     {
-      _item_model = m;
-      nearest_dist = dist;
-      _dispenser_common->dispenser_filled = true;
-      _dispenser_common->item_en_found = true;
+      RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),"======= object_close_enough OK ");
+      if (object_inside_intersect_box){
+        RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),"======= object_inside_intersect_box OK ");
+        _item_model = m;
+        nearest_dist = dist;
+        _dispenser_common->dispenser_filled = true;
+        _dispenser_common->item_en_found = true;
+
+      }else{
+          RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),"======= object_inside_intersect_box ERROR ");
+      }
+
+    }else{
+      RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),"======= object_close_enough ERROR ");
     }
+
+
   }
 }
 
 void TeleportDispenserPlugin::create_dispenser_bounding_box()
 {
   const auto dispenser_pos = _model->WorldPose().Pos();
-  ignition::math::Vector3d corner_1(dispenser_pos.X() - 0.05,
-    dispenser_pos.Y() - 0.05, dispenser_pos.Z() - 0.05);
-  ignition::math::Vector3d corner_2(dispenser_pos.X() + 0.05,
-    dispenser_pos.Y() + 0.05, dispenser_pos.Z() + 0.05);
+
+  // Use of the bounding box of the model to be able to use any Mesh direcctly
+  ignition::math::AxisAlignedBox my_bb = _model->BoundingBox();
+  ignition::math::Vector3d max_corner = my_bb.Max();
+  ignition::math::Vector3d min_corner = my_bb.Min();
+
+  ignition::math::Vector3d corner_1(min_corner.X() - 0.05,
+    min_corner.Y() - 0.05, min_corner.Z() - 0.05);
+  ignition::math::Vector3d corner_2(max_corner.X() + 0.05,
+    max_corner.Y() + 0.05, max_corner.Z() + 0.05);
   #if GAZEBO_MAJOR_VERSION <= 9
-  _dispenser_vicinity_box = ignition::math::Box(corner_1, corner_2);
+    _dispenser_vicinity_box = ignition::math::Box(corner_1, corner_2);
   #else
   _dispenser_vicinity_box =
     ignition::math::AxisAlignedBox(corner_1, corner_2);
