@@ -1,5 +1,11 @@
 ## Changelog for package rmf\_building\_sim\_common
 
+2.0.0 (2022-XX-XX)
+------------------
+* Use ECM instead of traversing sdformat parent for Gazebo doors ([#80](https://github.com/open-rmf/rmf_simulation/pull/80))
+* Change default lift current mode to AGV ([#52](https://github.com/open-rmf/rmf_simulation/pull/52))
+* Contributors: Arjo Chakravarty, Charayaphan Nakorn Boon Han, Luca Della Vedova
+
 1.3.0 (2021-09-01)
 ------------------
 * Fix dependencies ([#26](https://github.com/open-rmf/rmf_simulation/issues/26))

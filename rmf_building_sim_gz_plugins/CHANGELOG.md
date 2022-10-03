@@ -2,11 +2,16 @@
 
 2.0.0 (2022-XX-XX)
 ------------------
-* Renamed to rmf\_building\_sim\_gz\_plugins
+* Use ECM instead of traversing sdformat parent for Gazebo doors ([#80](https://github.com/open-rmf/rmf_simulation/pull/80))
+* Fix potential segfault in toggle\_floors plugin ([#79](https://github.com/open-rmf/rmf_simulation/pull/79))
+* Fix a segfault in toggle floor plugin which causes ignition to crash when scene is not ready ([#78](https://github.com/open-rmf/rmf_simulation/pull/78))
+* Renamed to rmf\_building\_sim\_gz\_plugins and Humble migration ([#77](https://github.com/open-rmf/rmf_simulation/pull/77))
+* Add an Ignition GUI plugin to toggle floors visibility ([#72](https://github.com/open-rmf/rmf_simulation/pull/72))
+* Contributors: Arjo Chakravarty, Luca Della Vedova, Yadunund, chianfern
 
 1.3.1 (2021-30-11)
 ------------------
-* Making install location package specific to fix [\#100](https://github.com/open-rmf/rmf/issues/100). [#60](https://github.com/open-rmf/rmf_simulation/pull/60)
+* Making install location package specific to fix [#100](https://github.com/open-rmf/rmf/issues/100). [#60](https://github.com/open-rmf/rmf_simulation/pull/60)
 * Contributors: Marco A. Gutierrez
 
 1.3.0 (2021-09-01)
@@ -20,7 +25,7 @@
 * Crowd step size fix for large physics step sizes ([#10](https://github.com/open-rmf/rmf_simulation/issues/10))
 * Update to Ignition Edifice ([#8](https://github.com/open-rmf/rmf_simulation/issues/8))
 * Slotcar plugin package move and utils cleanup ([#5](https://github.com/open-rmf/rmf_simulation/issues/5))
-* account for renaming from building\_map\_msgs to rmf\_building\_map\_msgs ([\#3](https://github.com/open-rmf/rmf_simulation/issues/3))
+* account for renaming from building\_map\_msgs to rmf\_building\_map\_msgs ([#3](https://github.com/open-rmf/rmf_simulation/issues/3))
 * Contributors: Charayaphan Nakorn Boon Han, Geoffrey Biggs, Luca Della Vedova, Marco A. Gutiérrez
 
 1.2.0 (2021-01-06)

@@ -2,7 +2,13 @@
 
 2.0.0 (2022-XX-XX)
 ------------------
-* Fix spurious emergency stop behavior when robot is moving backwards [#82](https://github.com/open-rmf/rmf\_simulation/pull/82)
+* Fix spurious emergency stop behavior when robot is moving backwards ([#82](https://github.com/open-rmf/rmf\_simulation/pull/82))
+* Reduce terminal printouts from slotcar ([#73](https://github.com/open-rmf/rmf_simulation/pull/73))
+* Change to use a pure pursuit controller for ackermann vehicles ([#71](https://github.com/open-rmf/rmf_simulation/pull/71))
+* Update robot's current level only after the lift has finished moving ([#64](https://github.com/open-rmf/rmf_simulation/pull/64))
+* Make ackermann vehicles standardized with RMF stack ([#49](https://github.com/open-rmf/rmf_simulation/pull/49))
+* Change parameter tag from holonomic to steering ([#46](https://github.com/open-rmf/rmf_simulation/pull/46))
+* Contributors: Grey, Luca Della Vedova, Marco A. Gutiérrez, Morgan Quigley, Yadunund, chianfern, ddengster
 
 1.3.0 (2021-09-01)
 ------------------

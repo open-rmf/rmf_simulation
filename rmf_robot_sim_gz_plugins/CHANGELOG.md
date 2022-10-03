@@ -2,7 +2,11 @@
 
 2.0.0 (2022-XX-XX)
 ------------------
-* Renamed to rmf\_robot\_sim\_gz\_plugins
+* Renamed to rmf\_robot\_sim\_gz\_plugins and Humble migration ([#77](https://github.com/open-rmf/rmf_simulation/pull/77))
+* Checking for models with dispensable in names to not be considered an obstacle by slotcar ([#74](https://github.com/open-rmf/rmf_simulation/pull/74))
+* Change to use a pure pursuit controller for ackermann vehicles ([#71](https://github.com/open-rmf/rmf_simulation/pull/71))
+* Upgrade to Ignition Fortress ([#70](https://github.com/open-rmf/rmf_simulation/pull/70))
+* Contributors: Aaron Chong, Luca Della Vedova, Morgan Quigley, Yadunund, chianfern, ddengster
 
 1.3.1 (2021-30-11)
 ------------------
