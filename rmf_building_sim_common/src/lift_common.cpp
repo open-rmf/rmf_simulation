@@ -184,7 +184,8 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
     std::string, std::vector<std::string>> floor_name_to_cabin_door_name,
   std::unordered_map<std::string, DoorState::SharedPtr> shaft_door_states,
   std::unordered_map<std::string, DoorState::SharedPtr> cabin_door_states,
-  std::string initial_floor_name)
+  std::string initial_floor_name,
+  const std::string& lift_namespace)
 : _ros_node(node),
   _lift_name(lift_name),
   _cabin_joint_name(joint_name),
@@ -202,15 +203,19 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
   for (const auto& it : _floor_name_to_elevation)
     std::cout << it.first << "  |  " << it.second << std::endl;
 
+  std::string ns;
+  if (lift_namespace.size() > 0)
+    ns = "/" + lift_namespace;
   // initialize pub & sub
   _lift_state_pub = _ros_node->create_publisher<LiftState>(
-    "/lift_states", rclcpp::SystemDefaultsQoS());
+    ns + "/lift_states", rclcpp::SystemDefaultsQoS());
 
+  // TODO(luca) remove adapter door request and make lift command its own doors
   _door_request_pub = _ros_node->create_publisher<DoorRequest>(
     "/adapter_door_requests", rclcpp::SystemDefaultsQoS());
 
   _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
-    "/lift_requests", rclcpp::SystemDefaultsQoS(),
+    ns + "/lift_requests", rclcpp::SystemDefaultsQoS(),
     [&](LiftRequest::UniquePtr msg)
     {
       if (msg->lift_name != _lift_name)
