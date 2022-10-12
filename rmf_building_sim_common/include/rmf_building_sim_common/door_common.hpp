@@ -126,7 +126,8 @@ private:
   DoorCommon(const std::string& door_name,
     rclcpp::Node::SharedPtr node,
     const MotionParams& params,
-    const Doors& doors);
+    const Doors& doors,
+    const std::string& door_namespace);
 
   bool all_doors_open();
 
@@ -162,11 +163,13 @@ std::shared_ptr<DoorCommon> DoorCommon::make(
   auto sdf_clone = sdf->Clone();
 
   MotionParams params;
+  std::string door_namespace;
   get_sdf_param_if_available<double>(sdf_clone, "v_max_door", params.v_max);
   get_sdf_param_if_available<double>(sdf_clone, "a_max_door", params.a_max);
   get_sdf_param_if_available<double>(sdf_clone, "a_nom_door", params.a_nom);
   get_sdf_param_if_available<double>(sdf_clone, "dx_min_door", params.dx_min);
   get_sdf_param_if_available<double>(sdf_clone, "f_max_door", params.f_max);
+  get_sdf_param_if_available<std::string>(sdf_clone, "namespace", door_namespace);
 
   auto door_element = sdf_clone;
   std::string left_door_joint_name;
@@ -263,7 +266,8 @@ std::shared_ptr<DoorCommon> DoorCommon::make(
       door_name,
       node,
       params,
-      doors));
+      doors,
+      door_namespace));
 
   return door_common;
 
@@ -281,17 +285,20 @@ std::shared_ptr<DoorCommon> DoorCommon::make(
   auto sdf_clone = sdf->Clone();
 
   MotionParams params;
+  std::string door_namespace;
   get_sdf_param_if_available<double>(sdf_clone, "v_max_door", params.v_max);
   get_sdf_param_if_available<double>(sdf_clone, "a_max_door", params.a_max);
   get_sdf_param_if_available<double>(sdf_clone, "a_nom_door", params.a_nom);
   get_sdf_param_if_available<double>(sdf_clone, "dx_min_door", params.dx_min);
   get_sdf_param_if_available<double>(sdf_clone, "f_max_door", params.f_max);
+  get_sdf_param_if_available<std::string>(sdf_clone, "namespace", door_namespace);
 
   std::shared_ptr<DoorCommon> door_common(new DoorCommon(
       door_name,
       node,
       params,
-      doors));
+      doors,
+      door_namespace));
 
   return door_common;
 }
