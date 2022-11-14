@@ -18,7 +18,7 @@
 #include <string>
 #include <iostream>
 
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 #include <ignition/gui/qt.h>
 #include <ignition/gui/Plugin.hh>
 
@@ -40,8 +40,8 @@ private:
   const std::string _enable_instant_charge_str = "_enable_instant_charge";
   const std::string _enable_drain_str = "_enable_drain";
 
-  ignition::transport::Node _node;
-  ignition::transport::Node::Publisher _charge_state_pub;
+  gz::transport::Node _node;
+  gz::transport::Node::Publisher _charge_state_pub;
 
   void checkbox_checked(const std::string& name, bool checked);
 
@@ -59,7 +59,7 @@ public:
 
 toggle_charging::toggle_charging()
 {
-  _charge_state_pub = _node.Advertise<ignition::msgs::Selection>(
+  _charge_state_pub = _node.Advertise<gz::msgs::Selection>(
     "/charge_state");
   if (!_charge_state_pub)
   {
@@ -97,7 +97,7 @@ void toggle_charging::OnEnableDrain(bool checked)
 void toggle_charging::checkbox_checked(
   const std::string& name, bool checked)
 {
-  ignition::msgs::Selection selection;
+  gz::msgs::Selection selection;
   selection.set_name(name);
   selection.set_selected(checked);
   selection.set_id(1); // Id not necessary for current use case
@@ -105,8 +105,8 @@ void toggle_charging::checkbox_checked(
 }
 
 // Register this plugin
-IGNITION_ADD_PLUGIN(toggle_charging,
-  ignition::gui::Plugin)
+GZ_ADD_PLUGIN(toggle_charging,
+  gz::gui::Plugin)
 
 
 #include "toggle_charging.moc"

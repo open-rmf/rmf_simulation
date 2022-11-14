@@ -24,7 +24,7 @@
 #include <ignition/gui/qt.h>
 #include <ignition/gui/Plugin.hh>
 
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
 #include <ignition/rendering/RenderEngine.hh>
 #include <ignition/rendering/RenderingIface.hh>
@@ -40,7 +40,7 @@ using RobotState = rmf_fleet_msgs::msg::RobotState;
 
 class toggle_floors
   :
-  public ignition::gui::Plugin
+  public gz::gui::Plugin
 {
   Q_OBJECT
 
@@ -58,7 +58,7 @@ private:
   bool eventFilter(QObject* _obj, QEvent* _event) override;
   void PerformRenderingOperations();
   void FindScene();
-  ignition::rendering::ScenePtr scene{nullptr};
+  gz::rendering::ScenePtr scene{nullptr};
   void get_plugin_config();
 
   QStringList qfloors;
@@ -87,20 +87,20 @@ toggle_floors::toggle_floors()
 
 toggle_floors::~toggle_floors()
 {
-  ignition::gui::App()->findChild<
-    ignition::gui::MainWindow*>()->removeEventFilter(this);
+  gz::gui::App()->findChild<
+    gz::gui::MainWindow*>()->removeEventFilter(this);
 }
 
 // Get plugin information from ignition transport
 void toggle_floors::get_plugin_config()
 {
-  ignition::transport::Node node;
+  gz::transport::Node node;
   bool result{false};
   unsigned int timeout{2000};
   const std::string WORLD_NAME = "sim_world";
 
-  ignition::msgs::GUI res;
-  std::string service = ignition::transport::TopicUtils::AsValidTopic("/world/" + WORLD_NAME +
+  gz::msgs::GUI res;
+  std::string service = gz::transport::TopicUtils::AsValidTopic("/world/" + WORLD_NAME +
       "/gui/info");
 
   node.Request(service, timeout, res, result);
@@ -179,8 +179,8 @@ void toggle_floors::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
     });
 
   this->Context()->setContextProperty("qfloors", qfloors);
-  ignition::gui::App()->findChild<
-    ignition::gui::MainWindow*>()->installEventFilter(this);
+  gz::gui::App()->findChild<
+    gz::gui::MainWindow*>()->installEventFilter(this);
 }
 
 void toggle_floors::OnFloorChecked(const QString floor, bool checked)
@@ -214,11 +214,11 @@ void toggle_floors::PerformRenderingOperations()
         auto target_node = this->scene->NodeByName(model);
         if (target_node == NULL)
         {
-          ignwarn << "Node for " << model << "was not found" <<std::endl;
+          ignwarn << "Node for " << model << " was not found" <<std::endl;
           continue;
         }
         auto target_vis =
-          std::dynamic_pointer_cast<ignition::rendering::Visual>(target_node);
+          std::dynamic_pointer_cast<gz::rendering::Visual>(target_node);
         target_vis->SetVisible(_floor_visibility[floor_name]);
       }
       flags_itr.second = false;
@@ -230,10 +230,10 @@ void toggle_floors::PerformRenderingOperations()
     auto target_node = this->scene->NodeByName(robots_itr.first);
     if (target_node == NULL)
     {
-      ignwarn << "Node for " << robots_itr.first << "was not found" <<std::endl;
+      ignwarn << "Node for " << robots_itr.first << " was not found" <<std::endl;
       continue;
     }
-    auto target_vis = std::dynamic_pointer_cast<ignition::rendering::Visual>(
+    auto target_vis = std::dynamic_pointer_cast<gz::rendering::Visual>(
       target_node);
     target_vis->SetVisible(_floor_visibility[robots_itr.second]);
   }
@@ -241,9 +241,9 @@ void toggle_floors::PerformRenderingOperations()
 
 void toggle_floors::FindScene()
 {
-  auto loadedEngNames = ignition::rendering::loadedEngines();
+  auto loadedEngNames = gz::rendering::loadedEngines();
   auto engineName = loadedEngNames[0];
-  auto engine = ignition::rendering::engine(engineName);
+  auto engine = gz::rendering::engine(engineName);
 
   auto scenePtr = engine->SceneByIndex(0);
   if (!scenePtr->IsInitialized() || nullptr == scenePtr->RootVisual())
@@ -255,7 +255,7 @@ void toggle_floors::FindScene()
 
 bool toggle_floors::eventFilter(QObject* _obj, QEvent* _event)
 {
-  if (_event->type() == ignition::gui::events::Render::kType)
+  if (_event->type() == gz::gui::events::Render::kType)
   {
     this->PerformRenderingOperations();
   }
@@ -263,8 +263,8 @@ bool toggle_floors::eventFilter(QObject* _obj, QEvent* _event)
 }
 
 // Register this plugin
-IGNITION_ADD_PLUGIN(toggle_floors,
-  ignition::gui::Plugin
+GZ_ADD_PLUGIN(toggle_floors,
+  gz::gui::Plugin
 )
 
 
