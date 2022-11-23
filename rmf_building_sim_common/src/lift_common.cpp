@@ -234,7 +234,7 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
         _lift_request->session_id != msg->session_id)
         {
           RCLCPP_INFO(logger(),
-          "Failed to request: [%s] is busy at the moment",
+          "Discarding request: [%s] is busy at the moment",
           _lift_name.c_str());
         }
         return;
