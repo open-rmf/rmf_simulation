@@ -543,9 +543,9 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     const auto hold_time =
       rclcpp::Time(_hold_times.at(_traj_wp_idx), RCL_ROS_TIME);
 
-    bool close_enough = (dpos_mag < 0.02);
+    bool close_enough = (dpos_mag < 0.04);
     if (_was_rotating) // Accomodate slight drift when rotating on the spot
-      close_enough = (dpos_mag < 0.04);
+      close_enough = (dpos_mag < 0.1);
 
     const bool checkpoint_pause =
       pause_request.type == pause_request.TYPE_PAUSE_AT_CHECKPOINT
