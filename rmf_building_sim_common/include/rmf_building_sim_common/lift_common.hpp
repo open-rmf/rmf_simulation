@@ -115,8 +115,7 @@ private:
       std::string, std::vector<std::string>> floor_name_to_cabin_door_name,
     std::unordered_map<std::string, DoorState::SharedPtr> shaft_door_states,
     std::unordered_map<std::string, DoorState::SharedPtr> cabin_door_states,
-    std::string initial_floor_name,
-    const std::string& lift_namespace);
+    std::string initial_floor_name);
 
   double get_step_velocity(const double dt, const double position,
     const double velocity);
@@ -148,7 +147,6 @@ std::unique_ptr<LiftCommon> LiftCommon::make(
 {
   MotionParams cabin_motion_params;
   std::string joint_name;
-  std::string lift_namespace;
   std::vector<std::string> floor_names;
   std::unordered_map<std::string, double> floor_name_to_elevation;
   std::unordered_map<std::string,
@@ -172,8 +170,6 @@ std::unique_ptr<LiftCommon> LiftCommon::make(
     cabin_motion_params.dx_min);
   get_sdf_param_if_available<double>(sdf_clone, "f_max_cabin",
     cabin_motion_params.f_max);
-  get_sdf_param_if_available<std::string>(sdf_clone, "namespace",
-    lift_namespace);
   if (!get_sdf_param_required(sdf_clone, "cabin_joint_name",
     joint_name))
     return nullptr;
@@ -260,8 +256,7 @@ std::unique_ptr<LiftCommon> LiftCommon::make(
       floor_name_to_cabin_door_name,
       shaft_door_states,
       cabin_door_states,
-      initial_floor_name,
-      lift_namespace));
+      initial_floor_name));
 
   return lift;
 }
