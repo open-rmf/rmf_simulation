@@ -208,7 +208,7 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
 
   // TODO(luca) remove adapter door request and make lift command its own doors
   _door_request_pub = _ros_node->create_publisher<DoorRequest>(
-    "/adapter_door_requests", rclcpp::SystemDefaultsQoS());
+    "adapter_door_requests", rclcpp::SystemDefaultsQoS());
 
   _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
     "sim/lift_requests", rclcpp::SystemDefaultsQoS(),
