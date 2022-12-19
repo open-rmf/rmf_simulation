@@ -66,6 +66,7 @@ target_include_directories(door
     ${rmf_building_sim_common_INCLUDE_DIRS}
     ${geometry_msgs_INCLUDE_DIRS}
     ${rmf_door_msgs_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 ament_target_dependencies(door
@@ -74,6 +75,24 @@ ament_target_dependencies(door
     ignition-gazebo${IGN_GAZEBO_VER}
     ignition-plugin${IGN_PLUGIN_VER}
     rmf_building_sim_common
+)
+
+###############################
+# register_component stuff
+###############################
+
+add_library(register_component SHARED src/register_component.cpp)
+
+target_include_directories(register_component
+  PUBLIC
+    ${rmf_door_msgs_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+ament_target_dependencies(register_component
+  PUBLIC
+    ignition-gazebo${IGN_GAZEBO_VER}
+    ignition-plugin${IGN_PLUGIN_VER}
 )
 
 ###############################
@@ -186,7 +205,7 @@ target_include_directories(toggle_floors
 ###############################
 
 install(
-  TARGETS door lift crowd_simulator toggle_charging toggle_floors
+  TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )

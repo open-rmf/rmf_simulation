@@ -13,6 +13,8 @@
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/door_common.hpp>
 
+#include <rmf_building_sim_gz_plugins/components/Door.hpp>
+
 using namespace ignition::gazebo;
 
 using namespace rmf_building_sim_common;
@@ -138,21 +140,16 @@ public:
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    // TODO proper rclcpp init (only once and pass args)
-    auto model = Model(entity);
-    char const** argv = NULL;
-    std::string name;
-    auto door_ele = sdf->GetElementImpl("door");
-    get_sdf_attribute_required<std::string>(door_ele, "name", name);
     if (!rclcpp::ok())
-      rclcpp::init(0, argv);
-    std::string plugin_name("plugin_" + name);
+      rclcpp::init(0, nullptr);
+
+    std::string plugin_name("rmf_simulation_door_manager");
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     RCLCPP_INFO(_ros_node->get_logger(),
-      "Loading DoorPlugin for [%s]",
-      name.c_str());
+      "Loading DoorManager");
 
+    /*
     auto doors = get_doors(model, name, sdf, ecm);
 
     if (!doors.has_value())
@@ -180,12 +177,12 @@ public:
       create_entity_components(joint, ecm);
       _joints.insert({joint_name, joint});
     }
+    */
 
     _initialized = true;
 
     RCLCPP_INFO(_ros_node->get_logger(),
-      "Finished loading [%s]",
-      name.c_str());
+      "Finished loading DoorManager");
   }
 
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
@@ -196,8 +193,17 @@ public:
     if (!_initialized || _first_iteration)
     {
       _first_iteration = false;
+      // TODO Initialize doors
       return;
     }
+
+    ecm.Each<components::Door>([](const Entity& entity, const components::Door*) -> bool
+        {
+          ignmsg << "Found door with entity id " << entity << std::endl;
+          return true;
+        });
+
+    return;
 
     // Don't update the pose if the simulation is paused
     if (info.paused)
