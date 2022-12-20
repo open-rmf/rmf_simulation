@@ -26,24 +26,37 @@ namespace ignition
 {
 namespace gazebo
 {
-namespace components
-{
+  struct DoorJoint {
+    std::string name;
+    double closed_position;
+    double open_position;
+  };
   struct DoorData {
     double v_max;
     double a_max;
     double a_nom;
     double dx_min;
     double f_max;
-    std::string left_joint_name;
-    std::string right_joint_name;
+    std::vector<DoorJoint> door_joints;
+    bool ros_interface; // Whether it's managed by RMF, false for lift doors
   };
 
-  /// \brief A component used to turn off a model's joint's movement.
-  using Door = Component<DoorData, class DoorTag>;
-  IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.Door",
-      Door)
-}
+  enum class DoorCommand {
+    OPEN,
+    CLOSE
+  };
+
+  namespace components
+  {
+
+    /// \brief A component used to describe an RMF door.
+    using Door = Component<DoorData, class DoorTag>;
+    IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.Door", Door)
+
+    /// \brief A component used to command an RMF door to open / close.
+    using DoorCmd = Component<DoorCommand, class DoorCmdTag>;
+    IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.DoorCmd", DoorCmd)
+  }
 }
 }
 #endif
-
