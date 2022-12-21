@@ -33,6 +33,7 @@ namespace gazebo
     double closed_position;
     double open_position;
   };
+
   struct DoorData {
     rmf_building_sim_common::MotionParams params;
     std::vector<DoorJoint> joints;

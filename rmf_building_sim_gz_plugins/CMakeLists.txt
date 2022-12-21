@@ -105,6 +105,7 @@ target_include_directories(lift
   PUBLIC
     ${rmf_building_sim_common_INCLUDE_DIRS}
     ${geometry_msgs_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 ament_target_dependencies(lift

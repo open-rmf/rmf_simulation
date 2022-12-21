@@ -9,8 +9,6 @@
 #include <ignition/gazebo/components/Static.hh>
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/components/JointPositionReset.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
@@ -21,6 +19,9 @@
 
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/lift_common.hpp>
+
+#include <rmf_building_sim_gz_plugins/components/Door.hpp>
+#include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
 using namespace ignition::gazebo;
 
@@ -40,20 +41,20 @@ class IGNITION_GAZEBO_VISIBLE LiftPlugin
   public ISystemPreUpdate
 {
 private:
+  static constexpr double STATE_PUB_DT = 1.0;
   rclcpp::Node::SharedPtr _ros_node;
-  Entity _cabin_joint;
-  Entity _lift_entity;
-  std::vector<Entity> _payloads;
-  ignition::math::AxisAlignedBox _initial_aabb;
-  ignition::math::Pose3d _initial_pose;
-  bool _read_aabb_dimensions = true;
+  //std::vector<Entity> _payloads;
+
+  rclcpp::Publisher<LiftState>::SharedPtr _lift_state_pub;
+  rclcpp::Subscription<LiftRequest>::SharedPtr _lift_request_sub;
+
+  std::unordered_map<std::string, ignition::math::AxisAlignedBox> _initial_aabbs;
+  std::unordered_map<std::string, ignition::math::Pose3d> _initial_poses;
+
+  std::unordered_map<std::string, double> _last_state_pub;
 
   PhysEnginePlugin _phys_plugin = PhysEnginePlugin::DEFAULT;
   bool _first_iteration = true;
-
-  std::unique_ptr<LiftCommon> _lift_common = nullptr;
-
-  bool _initialized = false;
 
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
@@ -67,10 +68,6 @@ private:
   {
     enableComponent<components::JointPosition>(ecm, entity);
     enableComponent<components::JointPositionReset>(ecm, entity);
-    ecm.Component<components::JointPositionReset>(entity)->Data() = {0.0};
-    enableComponent<components::JointVelocity>(ecm, entity);
-    enableComponent<components::JointVelocityCmd>(ecm, entity);
-    ecm.Component<components::JointVelocityCmd>(entity)->Data() = {0.0};
   }
 
   void fill_physics_engine(Entity entity, EntityComponentManager& ecm)
@@ -95,6 +92,8 @@ private:
 
   std::vector<Entity> get_payloads(EntityComponentManager& ecm)
   {
+    std::vector<Entity> payloads;
+    /*
     const auto& lift_pose =
       ecm.Component<components::Pose>(_lift_entity)->Data();
     const ignition::math::Vector3d displacement =
@@ -102,7 +101,6 @@ private:
     // Calculate current AABB of lift assuming it hasn't tilted/deformed
     ignition::math::AxisAlignedBox lift_aabb = _initial_aabb + displacement;
 
-    std::vector<Entity> payloads;
     ecm.Each<components::Model, components::Pose>(
       [&](const Entity& entity,
       const components::Model*,
@@ -119,59 +117,117 @@ private:
         }
         return true;
       });
+      */
     return payloads;
   }
 
-public:
-  LiftPlugin()
+  void initialize_components(EntityComponentManager& ecm)
   {
-    // TODO init ros node
-    // Do nothing
+    ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
+        {
+          const auto& name = name_comp->Data();
+          const auto& lift = lift_comp->Data();
+          auto cabin_joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
+          create_joint_components(cabin_joint_entity, ecm);
+
+          // Optimization: Read and store lift's pose and AABB whenever available, then
+          // delete the AABB component once read. Not deleting it causes rtf to drop by
+          // a 3-4x factor whenever the lift moves.
+          const auto& aabb_component =
+            ecm.Component<components::AxisAlignedBox>(entity);
+          const auto& pose_component =
+            ecm.Component<components::Pose>(entity);
+
+          if (aabb_component && pose_component)
+          {
+            const double volume = aabb_component->Data().Volume();
+            if (volume > 0 && volume != std::numeric_limits<double>::infinity())
+            {
+              // TODO(luca) this could be a component instead of a hash map
+              _initial_aabbs[name] = aabb_component->Data();
+              _initial_poses[name] = pose_component->Data();
+              enableComponent<components::AxisAlignedBox>(ecm, entity, false);
+            }
+          }
+          return true;
+        });
   }
+
+public:
 
   void Configure(const Entity& entity,
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    _lift_entity = entity;
-    //_ros_node = gazebo_ros::Node::Get(sdf);
-    // TODO get properties from sdf instead of hardcoded (will fail for multiple instantiations)
-    // TODO proper rclcpp init (only once and pass args)
-    auto model = Model(entity);
-    char const** argv = NULL;
+    ignerr << "Entering lift plugin" << std::endl;
     if (!rclcpp::ok())
-      rclcpp::init(0, argv);
-    std::string plugin_name("plugin_" + model.Name(ecm));
+      rclcpp::init(0, nullptr);
+    std::string plugin_name("rmf_simulation_lift_manager");
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
+    // initialize pub & sub
+    _lift_state_pub = _ros_node->create_publisher<LiftState>(
+      "lift_states", rclcpp::SystemDefaultsQoS());
+
+    _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
+      "lift_requests", rclcpp::SystemDefaultsQoS(),
+      [&](LiftRequest::UniquePtr msg)
+      {
+        // Find entity with the name and create a DoorCmd component
+        auto entity = ecm.EntityByComponents(components::Name(msg->lift_name));
+        if (entity != kNullEntity)
+        {
+          LiftCommand lift_command;
+          lift_command.request_type = msg->request_type;
+          lift_command.destination_floor = msg->destination_floor;
+          lift_command.session_id = msg->request_type == msg->REQUEST_END_SESSION ?
+            "" : msg->session_id;
+
+          lift_command.door_state = msg->door_state == msg->DOOR_OPEN ?
+            DoorCommand::OPEN : DoorCommand::CLOSE;
+
+          ecm.CreateComponent<components::LiftCmd>(entity, components::LiftCmd(lift_command));
+        }
+        else
+        {
+          ignwarn << "Request received for lift " << msg->lift_name <<
+            " but it is not being simulated" << std::endl;
+        }
+        // TODO this checks on processing of the command
+        /*
+        if (_floor_name_to_elevation.find(
+          msg->destination_floor) == _floor_name_to_elevation.end())
+        {
+          RCLCPP_INFO(logger(),
+          "Received request for unavailable floor [%s]",
+          msg->destination_floor.c_str());
+          return;
+        }
+
+        // Trigger an error if a request, different from previous one, comes in
+        // Noop if request is the same
+        if (_lift_request)
+        {
+          if (_lift_request->destination_floor != msg->destination_floor ||
+          _lift_request->request_type != msg->request_type ||
+          _lift_request->session_id != msg->session_id)
+          {
+            RCLCPP_INFO(logger(),
+            "Discarding request: [%s] is busy at the moment",
+            _lift_name.c_str());
+          }
+          return;
+        }
+
+        _lift_request = std::move(msg);
+        RCLCPP_INFO(logger(),
+        "Lift [%s] requested at level [%s]",
+        _lift_name.c_str(), _lift_request->destination_floor.c_str());
+        */
+      });
+
     RCLCPP_INFO(_ros_node->get_logger(),
-      "Loading LiftPlugin for [%s]",
-      model.Name(ecm).c_str());
-
-    _lift_common = LiftCommon::make(
-      model.Name(ecm),
-      _ros_node,
-      sdf);
-
-    if (!_lift_common)
-      return;
-
-    enableComponent<components::AxisAlignedBox>(ecm, _lift_entity);
-
-    _cabin_joint = model.JointByName(ecm, _lift_common->get_joint_name());
-    if (!_cabin_joint)
-    {
-      RCLCPP_ERROR(_ros_node->get_logger(),
-        " -- Model is missing the joint [%s]",
-        _lift_common->get_joint_name().c_str());
-      return;
-    }
-
-    _initialized = true;
-
-    RCLCPP_INFO(_ros_node->get_logger(),
-      "Finished loading [%s]",
-      model.Name(ecm).c_str());
+      "Starting LiftManager");
   }
 
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
@@ -179,8 +235,11 @@ public:
     // Read from components that may not have been initialized in configure()
     if (_first_iteration)
     {
-      fill_physics_engine(_lift_entity, ecm);
+      initialize_components(ecm);
+      // TODO(luca) restore TPE functionality
+      //fill_physics_engine(_lift_entity, ecm);
 
+      /*
       double lift_elevation = _lift_common->get_elevation();
       if (_phys_plugin == PhysEnginePlugin::DEFAULT)
       {
@@ -197,49 +256,56 @@ public:
         position_cmd->Data().Pos().Z() = lift_elevation;
       }
 
+      */
       _first_iteration = false;
       return;
     }
 
-    // Optimization: Read and store lift's pose and AABB whenever available, then
-    // delete the AABB component once read. Not deleting it causes rtf to drop by
-    // a 3-4x factor whenever the lift moves.
-    if (_read_aabb_dimensions)
-    {
-      const auto& aabb_component =
-        ecm.Component<components::AxisAlignedBox>(_lift_entity);
-      const auto& pose_component =
-        ecm.Component<components::Pose>(_lift_entity);
-
-      if (aabb_component && pose_component)
-      {
-        const double volume = aabb_component->Data().Volume();
-        if (volume > 0 && volume != std::numeric_limits<double>::infinity())
-        {
-          _initial_aabb = aabb_component->Data();
-          _initial_pose = pose_component->Data();
-          enableComponent<components::AxisAlignedBox>(ecm, _lift_entity, false);
-          _read_aabb_dimensions = false;
-        }
-      }
-    }
-
-    // TODO parallel thread executor?
     rclcpp::spin_some(_ros_node);
-    if (!_initialized)
-      return;
 
     // Don't update the pose if the simulation is paused
     if (info.paused)
       return;
 
-    // Send update request
-    const double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
-    double position = 0.0;
-    double velocity = 0.0;
+    // Update state
+    ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
+    {
 
+
+      return true;
+    });
+
+    // Publish state
+    ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
+    {
+      const auto& name = name_comp->Data();
+      const auto& lift = lift_comp->Data();
+
+      double t =
+        (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+        count()) * 1e-9;
+      if (_last_state_pub.find(name) == _last_state_pub.end())
+        _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
+      if (t - _last_state_pub[name] >= STATE_PUB_DT)
+      {
+        LiftState msg;
+        msg.lift_time.sec = t;
+        msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
+        msg.lift_name = name;
+        // TODO
+        msg.door_state = msg.DOOR_CLOSED;
+        // TODO
+        msg.motion_state = msg.MOTION_STOPPED;
+        msg.current_mode = msg.MODE_AGV;
+        // TODO
+        msg.session_id = "";
+        _lift_state_pub->publish(msg);
+        _last_state_pub[name] = t;
+      }
+
+      return true;
+    });
+    /*
     // Read from either joint data or model data based on physics engine
     if (_phys_plugin == PhysEnginePlugin::DEFAULT)
     {
@@ -290,6 +356,7 @@ public:
         lin_vel_cmd->Data()[2] = result.velocity;
       }
     }
+    */
   }
 };
 

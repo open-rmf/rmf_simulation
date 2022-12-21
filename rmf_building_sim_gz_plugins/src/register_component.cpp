@@ -7,7 +7,10 @@
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
 
+#include <ignition/gazebo/components/AxisAlignedBox.hh>
+
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
+#include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
 using namespace ignition::gazebo;
 
@@ -100,8 +103,83 @@ private:
 
     }
     return data;
-    
   }
+
+  std::optional<LiftData> read_lift_data(
+    const std::string& lift_name,
+    const std::shared_ptr<const sdf::Element>& sdf)
+  {
+    LiftData data;
+
+    // load lift cabin motion parameters
+    sdf->Get<double>("v_max_cabin", data.params.v_max, 0.2);
+    sdf->Get<double>("a_max_cabin", data.params.a_max, 0.2);
+    sdf->Get<double>("a_nom_cabin", data.params.a_nom, 0.08);
+    sdf->Get<double>("dx_min_cabin", data.params.dx_min, 0.01);
+    sdf->Get<double>("f_max_cabin", data.params.f_max, 100.0);
+
+    if (!sdf->Get<std::string>("cabin_joint_name", data.cabin_joint, ""))
+      return std::nullopt;
+
+    // load the floor name and elevation for each floor
+    auto floor_element = sdf->FindElement("floor");
+    if (!floor_element)
+    {
+      ignerr << "Missing required floor element for [" << lift_name << "] plugin" << std::endl;
+      return std::nullopt;
+    }
+
+    std::optional<std::string> first_found_floor;
+    while (floor_element)
+    {
+      Floor floor;
+      std::string floor_name;
+      if (!floor_element->Get<std::string>("name", floor_name, "") ||
+          !floor_element->Get<double>("elevation", floor.elevation, 0.0))
+      {
+        ignerr << "Missing required floor name or elevation attributes for [" << lift_name << "] plugin" << std::endl;
+        return std::nullopt;
+      }
+
+      if (!first_found_floor.has_value())
+        first_found_floor = floor_name;
+
+      auto door_pair_element = floor_element->FindElement("door_pair");
+      while (door_pair_element)
+      {
+        FloorDoorPair doors;
+        if (!door_pair_element->Get<std::string>("cabin_door", doors.cabin_door, "") ||
+            !door_pair_element->Get<std::string>("shaft_door", doors.shaft_door, ""))
+        {
+          ignerr << "Missing required lift door attributes for [" << lift_name << "] plugin" << std::endl;
+          return std::nullopt;
+        }
+        floor.doors.push_back(doors);
+
+        door_pair_element = door_pair_element->GetNextElement("door_pair");
+      }
+
+      data.floors.insert({floor_name, floor});
+      floor_element = floor_element->GetNextElement("floor");
+    }
+
+    if (!first_found_floor.has_value())
+    {
+      ignerr << "No floors enabled for [" << lift_name << "] plugin" << std::endl;
+      return std::nullopt;
+    }
+
+    sdf->Get<std::string>("initial_floor", data.initial_floor, "");
+
+    if (data.floors.find(data.initial_floor) == data.floors.end())
+    {
+      ignerr << "Initial floor [" << data.initial_floor << "] not available, changing to default" << std::endl;
+      data.initial_floor = *first_found_floor;
+    }
+
+    return data;
+  }
+
 
 public:
   void Configure(const Entity& entity,
@@ -118,6 +196,17 @@ public:
         {
           if (auto data = read_door_data(entity, ecm, name, component_element))
             ecm.CreateComponent(entity, components::Door(*data));
+        }
+        else if (name == "Lift")
+        {
+          if (auto data = read_lift_data(name, component_element))
+          {
+            ignerr << "Found lift plugin data" << std::endl;
+            ecm.CreateComponent(entity, components::Lift(*data));
+            // Bounding boxes are needed to move payloads, enable here to
+            // simplify logic at the lift plugin level
+            enableComponent<components::AxisAlignedBox>(ecm, entity);
+          }
         }
         component_element = component_element->GetNextElement("component");
       }
