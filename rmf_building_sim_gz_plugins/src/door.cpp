@@ -53,45 +53,29 @@ private:
     return !joint_name.empty() && joint_name != "empty_joint";
   }
 
-  bool is_joint_closed(const Entity& entity, EntityComponentManager &ecm, double dx_min) const
+  bool is_joint_closed(const Entity& entity, EntityComponentManager &ecm, double dx_min, double closed_position) const
   {
-    // Check against joint lower limit for closed
-    const auto* joint_axis =
-      ecm.Component<components::JointAxis>(entity);
-
     const auto* joint_position =
       ecm.Component<components::JointPosition>(entity);
 
     if (joint_position == nullptr || joint_position->Data().size() < 1)
       return false;
 
-    double lower_limit = -1.57;
-    if (joint_axis != nullptr)
-      lower_limit = joint_axis->Data().Lower();
-
-    if (std::abs(lower_limit - joint_position->Data()[0]) < dx_min)
+    if (std::abs(closed_position - joint_position->Data()[0]) < dx_min)
       return true;
 
     return false;
   }
 
-  bool is_joint_open(const Entity& entity, EntityComponentManager &ecm, double dx_min) const
+  bool is_joint_open(const Entity& entity, EntityComponentManager &ecm, double dx_min, double open_position) const
   {
-    // Check against joint upper limit for open
-    const auto* joint_axis =
-      ecm.Component<components::JointAxis>(entity);
-
     const auto* joint_position =
       ecm.Component<components::JointPosition>(entity);
 
     if (joint_position == nullptr || joint_position->Data().size() < 1)
       return false;
 
-    double upper_limit = 0.0;
-    if (joint_axis != nullptr)
-      upper_limit = joint_axis->Data().Upper();
-
-    if (std::abs(upper_limit - joint_position->Data()[0]) < dx_min)
+    if (std::abs(open_position - joint_position->Data()[0]) < dx_min)
       return true;
 
     return false;
@@ -106,9 +90,9 @@ private:
       auto joint_entity = Model(entity).JointByName(ecm, joint.name);
       if (joint_entity == kNullEntity)
         continue;
-      if (is_joint_closed(entity, ecm, params.dx_min))
+      if (is_joint_closed(joint_entity, ecm, params.dx_min, joint.closed_position))
         all_open = false;
-      else if (is_joint_open(entity, ecm, params.dx_min))
+      else if (is_joint_open(joint_entity, ecm, params.dx_min, joint.open_position))
         all_closed = false;
     }
     if (all_open)

@@ -87,11 +87,11 @@ private:
       if (joint_name == right_joint_name)
       {
         // Right joint is flipped
-        data.door_joints.push_back({joint_name, upper_limit, lower_limit});
+        data.door_joints.push_back({joint_name, lower_limit, upper_limit});
       }
       else if (joint_name == left_joint_name)
       {
-        data.door_joints.push_back({joint_name, lower_limit, upper_limit});
+        data.door_joints.push_back({joint_name, upper_limit, lower_limit});
       }
       else
       {
