@@ -44,55 +44,29 @@ private:
   {
     enableComponent<components::JointPosition>(ecm, entity);
     enableComponent<components::JointVelocity>(ecm, entity);
-    enableComponent<components::JointVelocityCmd>(ecm, entity);
     ecm.CreateComponent<components::JointVelocityCmd>(entity, components::JointVelocityCmd({0.0}));
   }
 
-  bool is_joint_name_valid(const std::string& joint_name) const
+  bool is_joint_at_position(double joint_position, double dx_min, double target_position) const
   {
-    return !joint_name.empty() && joint_name != "empty_joint";
-  }
-
-  bool is_joint_closed(const Entity& entity, EntityComponentManager &ecm, double dx_min, double closed_position) const
-  {
-    const auto* joint_position =
-      ecm.Component<components::JointPosition>(entity);
-
-    if (joint_position == nullptr || joint_position->Data().size() < 1)
-      return false;
-
-    if (std::abs(closed_position - joint_position->Data()[0]) < dx_min)
-      return true;
-
-    return false;
-  }
-
-  bool is_joint_open(const Entity& entity, EntityComponentManager &ecm, double dx_min, double open_position) const
-  {
-    const auto* joint_position =
-      ecm.Component<components::JointPosition>(entity);
-
-    if (joint_position == nullptr || joint_position->Data().size() < 1)
-      return false;
-
-    if (std::abs(open_position - joint_position->Data()[0]) < dx_min)
-      return true;
-
-    return false;
+    return std::abs(target_position - joint_position) < dx_min;
   }
 
   DoorMode get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& door) const {
     DoorMode mode;
     bool all_open = true;
     bool all_closed = true;
-    for (const auto& joint : door.door_joints)
+    for (const auto& joint : door.joints)
     {
       auto joint_entity = Model(entity).JointByName(ecm, joint.name);
       if (joint_entity == kNullEntity)
         continue;
-      if (is_joint_closed(joint_entity, ecm, door.params.dx_min, joint.closed_position))
+      const auto* joint_component =
+        ecm.Component<components::JointPosition>(joint_entity);
+      const double joint_position = joint_component->Data()[0];
+      if (!is_joint_at_position(joint_position, door.params.dx_min, joint.open_position))
         all_open = false;
-      else if (is_joint_open(joint_entity, ecm, door.params.dx_min, joint.open_position))
+      if (!is_joint_at_position(joint_position, door.params.dx_min, joint.closed_position))
         all_closed = false;
     }
     if (all_open)
@@ -113,7 +87,7 @@ private:
     const MotionParams& params)
   {
     double dx = target - current_position;
-    if (std::abs(dx) < params.dx_min/2.0)
+    if (std::abs(dx) < params.dx_min / 2.0)
       dx = 0.0;
 
     double door_v = compute_desired_rate_of_change(
@@ -125,7 +99,7 @@ private:
   void close_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt) {
     auto model = Model(entity);
 
-    for (const auto& joint : door.door_joints)
+    for (const auto& joint : door.joints)
     {
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
@@ -141,7 +115,7 @@ private:
   void open_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt) {
     auto model = Model(entity);
 
-    for (const auto& joint : door.door_joints)
+    for (const auto& joint : door.joints)
     {
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
@@ -187,22 +161,18 @@ public:
         {
           ignwarn << "Request received for door " << msg->door_name <<
             " but it is not being simulated" << std::endl;
-          return;
         }
       });
   }
 
   void initialize_components(EntityComponentManager& ecm)
   {
-    ecm.Each<components::Door>([&](const Entity& entity, const components::Door*) -> bool
+    ecm.Each<components::Door>([&](const Entity& entity, const components::Door* door) -> bool
         {
-          const auto children = ecm.ChildrenByComponents<components::Joint>(entity, components::Joint());
-          for (auto e : children)
+          for (auto joint : door->Data().joints)
           {
-            // TODO remove this hack
-            if (ecm.Component<components::Name>(e)->Data() == "ramp_joint")
-              continue;
-            create_entity_components(e, ecm);
+            auto joint_entity = Model(entity).JointByName(ecm, joint.name);
+            create_entity_components(joint_entity, ecm);
           }
           return true;
         });
@@ -224,17 +194,12 @@ public:
     if (info.paused)
       return;
 
-    double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
-
-    double dt =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
-      count()) * 1e-9;
-
     // Process commands
     ecm.Each<components::Door, components::DoorCmd>([&](const Entity& entity, const components::Door* door_comp, const components::DoorCmd* door_cmd_comp) -> bool
         {
+          double dt =
+            (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
+            count()) * 1e-9;
           const auto& door = door_comp->Data();
           if (door_cmd_comp->Data() == DoorCommand::CLOSE)
           {
@@ -250,10 +215,13 @@ public:
     // Publish states
     ecm.Each<components::Door, components::Name>([&](const Entity& entity, const components::Door* door_comp, const components::Name* name_comp) -> bool
         {
-          const auto& name = name_comp->Data();
           const auto& door = door_comp->Data();
           if (door.ros_interface == false)
             return true;
+          double t =
+            (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+            count()) * 1e-9;
+          const auto& name = name_comp->Data();
           if (_last_state_pub.find(name) == _last_state_pub.end())
             _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
           if (t - _last_state_pub[name] >= STATE_PUB_DT)

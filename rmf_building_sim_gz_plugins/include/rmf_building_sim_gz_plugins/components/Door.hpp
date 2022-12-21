@@ -35,7 +35,7 @@ namespace gazebo
   };
   struct DoorData {
     rmf_building_sim_common::MotionParams params;
-    std::vector<DoorJoint> door_joints;
+    std::vector<DoorJoint> joints;
     bool ros_interface; // Whether it's managed by RMF, false for lift doors
   };
 

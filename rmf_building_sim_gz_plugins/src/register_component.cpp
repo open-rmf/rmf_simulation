@@ -64,7 +64,6 @@ private:
     sdf->Get<double>("f_max_door", data.params.f_max, 100.0);
     sdf->Get<bool>("ros_interface", data.ros_interface, false);
 
-    // TODO this logic in the actual door controller
     auto model = Model(entity);
     for (auto joint_name: joint_names)
     {
@@ -86,12 +85,12 @@ private:
 
       if (joint_name == right_joint_name)
       {
-        data.door_joints.push_back({joint_name, lower_limit, upper_limit});
+        data.joints.push_back({joint_name, lower_limit, upper_limit});
       }
       else if (joint_name == left_joint_name)
       {
         // Left joint is flipped
-        data.door_joints.push_back({joint_name, upper_limit, lower_limit});
+        data.joints.push_back({joint_name, upper_limit, lower_limit});
       }
       else
       {
@@ -109,8 +108,6 @@ public:
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    ignerr << "Entering register component plugin" << std::endl;
-
     if (sdf->HasElement("component"))
     {
       auto component_element = sdf->FindElement("component");
@@ -122,7 +119,6 @@ public:
           if (auto data = read_door_data(entity, ecm, name, component_element))
             ecm.CreateComponent(entity, components::Door(*data));
         }
-        ignwarn << "Registered component of name " << name << " for entity " << entity << std::endl;
         component_element = component_element->GetNextElement("component");
       }
     }
