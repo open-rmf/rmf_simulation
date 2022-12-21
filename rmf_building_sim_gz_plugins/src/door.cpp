@@ -79,7 +79,7 @@ private:
     const double current_position,
     const double current_velocity,
     const double dt,
-    const MotionParams& params)
+    const MotionParams& params) const
   {
     double dx = target - current_position;
     if (std::abs(dx) < params.dx_min / 2.0)
@@ -161,8 +161,6 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
     rclcpp::spin_some(_ros_node);
-    // JointPosition and JointVelocity components are populated by Physics
-    // system in Update, hence they are uninitialized in the first PreUpdate.
     if (_first_iteration)
     {
       _first_iteration = false;
@@ -181,7 +179,11 @@ public:
             (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
             count()) * 1e-9;
           const auto& door = door_comp->Data();
-          command_door(entity, ecm, door, dt, door_cmd_comp->Data());
+          const auto& door_cmd = door_cmd_comp->Data();
+          // TODO(luca) consider reading when the state is equal to the
+          // requested state and remove DoorCmd components when that is
+          // the case to reduce number of times this loop is called
+          command_door(entity, ecm, door, dt, door_cmd);
           return true;
         });
 
@@ -209,10 +211,7 @@ public:
           }
           return true;
         });
-
-    return;
   }
-
 };
 
 IGNITION_ADD_PLUGIN(

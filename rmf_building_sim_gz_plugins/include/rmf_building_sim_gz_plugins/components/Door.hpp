@@ -48,11 +48,11 @@ namespace gazebo
   {
     /// \brief A component used to describe an RMF door.
     using Door = Component<DoorData, class DoorTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.Door", Door)
+    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.Door", Door)
 
     /// \brief A component used to command an RMF door to open / close.
     using DoorCmd = Component<DoorCommand, class DoorCmdTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.DoorCmd", DoorCmd)
+    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
   }
 }
 }
