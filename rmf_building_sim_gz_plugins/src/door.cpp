@@ -6,8 +6,7 @@
 #include <ignition/gazebo/components/Joint.hh>
 #include <ignition/gazebo/components/JointAxis.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/components/JointPositionReset.hh>
 #include <ignition/gazebo/components/Name.hh>
 
 #include <rclcpp/rclcpp.hpp>
@@ -38,14 +37,10 @@ private:
 
   std::unordered_map<std::string, double> _last_state_pub;
 
-  bool _first_iteration = true;
+  // Used to do open loop joint position control
+  std::unordered_map<Entity, double> _last_cmd_vel;
 
-  void create_entity_components(Entity entity, EntityComponentManager& ecm)
-  {
-    enableComponent<components::JointPosition>(ecm, entity);
-    enableComponent<components::JointVelocity>(ecm, entity);
-    ecm.CreateComponent<components::JointVelocityCmd>(entity, components::JointVelocityCmd({0.0}));
-  }
+  bool _first_iteration = true;
 
   bool is_joint_at_position(double joint_position, double dx_min, double target_position) const
   {
@@ -104,10 +99,10 @@ private:
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
       {
-        auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data();
-        auto cur_vel = ecm.Component<components::JointVelocity>(joint_entity)->Data();
-        auto target_vel = calculate_target_velocity(joint.closed_position, cur_pos[0], cur_vel[0], dt, door.params);
-        ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
+        auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+        auto target_vel = calculate_target_velocity(joint.closed_position, cur_pos, _last_cmd_vel[joint_entity], dt, door.params);
+        ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_pos + target_vel * dt}));
+        _last_cmd_vel[joint_entity] = target_vel;
       }
     }
   }
@@ -120,10 +115,10 @@ private:
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
       {
-        auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data();
-        auto cur_vel = ecm.Component<components::JointVelocity>(joint_entity)->Data();
-        auto target_vel = calculate_target_velocity(joint.open_position, cur_pos[0], cur_vel[0], dt, door.params);
-        ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
+        auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+        auto target_vel = calculate_target_velocity(joint.open_position, cur_pos, _last_cmd_vel[joint_entity], dt, door.params);
+        ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_pos + target_vel * dt}));
+        _last_cmd_vel[joint_entity] = target_vel;
       }
     }
   }
@@ -172,7 +167,7 @@ public:
           for (auto joint : door->Data().joints)
           {
             auto joint_entity = Model(entity).JointByName(ecm, joint.name);
-            create_entity_components(joint_entity, ecm);
+            enableComponent<components::JointPosition>(ecm, joint_entity);
           }
           return true;
         });
