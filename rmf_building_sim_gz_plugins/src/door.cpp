@@ -81,18 +81,18 @@ private:
     return false;
   }
 
-  DoorMode get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& params) const {
+  DoorMode get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& door) const {
     DoorMode mode;
     bool all_open = true;
     bool all_closed = true;
-    for (const auto& joint : params.door_joints)
+    for (const auto& joint : door.door_joints)
     {
       auto joint_entity = Model(entity).JointByName(ecm, joint.name);
       if (joint_entity == kNullEntity)
         continue;
-      if (is_joint_closed(joint_entity, ecm, params.dx_min, joint.closed_position))
+      if (is_joint_closed(joint_entity, ecm, door.params.dx_min, joint.closed_position))
         all_open = false;
-      else if (is_joint_open(joint_entity, ecm, params.dx_min, joint.open_position))
+      else if (is_joint_open(joint_entity, ecm, door.params.dx_min, joint.open_position))
         all_closed = false;
     }
     if (all_open)
@@ -109,10 +109,9 @@ private:
     const double target,
     const double current_position,
     const double current_velocity,
-    const double dt)
+    const double dt,
+    const MotionParams& params)
   {
-    // TODO actual params
-    MotionParams params;
     double dx = target - current_position;
     if (std::abs(dx) < params.dx_min/2.0)
       dx = 0.0;
@@ -123,33 +122,33 @@ private:
     return door_v;
   }
 
-  void close_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& params, double dt) {
+  void close_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt) {
     auto model = Model(entity);
 
-    for (const auto& joint : params.door_joints)
+    for (const auto& joint : door.door_joints)
     {
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
       {
         auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data();
         auto cur_vel = ecm.Component<components::JointVelocity>(joint_entity)->Data();
-        auto target_vel = calculate_target_velocity(joint.closed_position, cur_pos[0], cur_vel[0], dt);
+        auto target_vel = calculate_target_velocity(joint.closed_position, cur_pos[0], cur_vel[0], dt, door.params);
         ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
       }
     }
   }
 
-  void open_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& params, double dt) {
+  void open_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt) {
     auto model = Model(entity);
 
-    for (const auto& joint : params.door_joints)
+    for (const auto& joint : door.door_joints)
     {
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
       {
         auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data();
         auto cur_vel = ecm.Component<components::JointVelocity>(joint_entity)->Data();
-        auto target_vel = calculate_target_velocity(joint.open_position, cur_pos[0], cur_vel[0], dt);
+        auto target_vel = calculate_target_velocity(joint.open_position, cur_pos[0], cur_vel[0], dt, door.params);
         ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
       }
     }
@@ -255,13 +254,14 @@ public:
           const auto& door = door_comp->Data();
           if (door.ros_interface == false)
             return true;
-          // TODO Random initialization to avoid too many messages at the same time
           if (_last_state_pub.find(name) == _last_state_pub.end())
-            _last_state_pub[name] = 0.0;
+            _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
           if (t - _last_state_pub[name] >= STATE_PUB_DT)
           {
             DoorState msg;
             msg.door_name = name;
+            msg.door_time.sec = t;
+            msg.door_time.nanosec = (t - static_cast<int>(t)) * 1e9;
             msg.current_mode = get_current_mode(entity, ecm, door);
             _door_state_pub->publish(msg);
             _last_state_pub[name] = t;

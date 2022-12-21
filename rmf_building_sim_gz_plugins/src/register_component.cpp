@@ -57,11 +57,11 @@ private:
       && right_joint_name != "empty_joint")
       joint_names.insert(right_joint_name);
 
-    sdf->Get<double>("v_max_door", data.v_max, 0.2);
-    sdf->Get<double>("a_max_door", data.a_max, 0.2);
-    sdf->Get<double>("a_nom_door", data.a_nom, 0.08);
-    sdf->Get<double>("dx_min_door", data.dx_min, 0.01);
-    sdf->Get<double>("f_max_door", data.f_max, 100.0);
+    sdf->Get<double>("v_max_door", data.params.v_max, 0.2);
+    sdf->Get<double>("a_max_door", data.params.a_max, 0.2);
+    sdf->Get<double>("a_nom_door", data.params.a_nom, 0.08);
+    sdf->Get<double>("dx_min_door", data.params.dx_min, 0.01);
+    sdf->Get<double>("f_max_door", data.params.f_max, 100.0);
     sdf->Get<bool>("ros_interface", data.ros_interface, false);
 
     // TODO this logic in the actual door controller
@@ -86,11 +86,11 @@ private:
 
       if (joint_name == right_joint_name)
       {
-        // Right joint is flipped
         data.door_joints.push_back({joint_name, lower_limit, upper_limit});
       }
       else if (joint_name == left_joint_name)
       {
+        // Left joint is flipped
         data.door_joints.push_back({joint_name, upper_limit, lower_limit});
       }
       else

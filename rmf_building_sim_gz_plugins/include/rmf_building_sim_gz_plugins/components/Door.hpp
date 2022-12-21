@@ -22,6 +22,8 @@
 #include <ignition/gazebo/components/Component.hh>
 #include <ignition/gazebo/config.hh>
 
+#include <rmf_building_sim_common/utils.hpp>
+
 namespace ignition
 {
 namespace gazebo
@@ -32,11 +34,7 @@ namespace gazebo
     double open_position;
   };
   struct DoorData {
-    double v_max;
-    double a_max;
-    double a_nom;
-    double dx_min;
-    double f_max;
+    rmf_building_sim_common::MotionParams params;
     std::vector<DoorJoint> door_joints;
     bool ros_interface; // Whether it's managed by RMF, false for lift doors
   };
@@ -48,7 +46,6 @@ namespace gazebo
 
   namespace components
   {
-
     /// \brief A component used to describe an RMF door.
     using Door = Component<DoorData, class DoorTag>;
     IGN_GAZEBO_REGISTER_COMPONENT("ign_gazebo_components.Door", Door)

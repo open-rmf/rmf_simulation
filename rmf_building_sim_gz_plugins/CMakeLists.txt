@@ -85,7 +85,7 @@ add_library(register_component SHARED src/register_component.cpp)
 
 target_include_directories(register_component
   PUBLIC
-    ${rmf_door_msgs_INCLUDE_DIRS}
+    ${rmf_building_sim_common_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
