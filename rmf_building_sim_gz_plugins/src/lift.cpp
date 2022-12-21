@@ -9,7 +9,8 @@
 #include <ignition/gazebo/components/Static.hh>
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointPositionReset.hh>
+#include <ignition/gazebo/components/JointVelocity.hh>
+#include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PoseCmd.hh>
@@ -67,7 +68,8 @@ private:
   void create_joint_components(Entity entity, EntityComponentManager& ecm)
   {
     enableComponent<components::JointPosition>(ecm, entity);
-    enableComponent<components::JointPositionReset>(ecm, entity);
+    enableComponent<components::JointVelocity>(ecm, entity);
+    ecm.CreateComponent<components::JointVelocityCmd>(entity, components::JointVelocityCmd({0.0}));
   }
 
   void fill_physics_engine(Entity entity, EntityComponentManager& ecm)
@@ -153,10 +155,103 @@ private:
         });
   }
 
+  std::vector<std::string> get_available_floors(const LiftData& lift) const
+  {
+    std::vector<std::string> floors;
+    floors.reserve(lift.floors.size());
+    for (const auto& [name, floor] : lift.floors)
+    {
+      floors.push_back(name);
+    }
+    return floors;
+  }
+
+  std::string get_current_floor(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift) const
+  {
+    // TODO update current_floor only when lift reaches its destination
+    const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
+    if (joint_entity == kNullEntity)
+    {
+      ignwarn << "Cabin entity not found" << std::endl;
+      return "";
+    }
+
+    const auto lift_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+
+    double smallest_error = std::numeric_limits<double>::max();
+    std::string closest_floor_name;
+    for (const auto& [name, floor] : lift.floors)
+    {
+      double tmp_error = abs(lift_pos - floor.elevation);
+      if (tmp_error < smallest_error)
+      {
+        smallest_error = tmp_error;
+        closest_floor_name = name;
+      }
+    }
+    return closest_floor_name;
+    
+  }
+
+  uint8_t get_door_state(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift) const
+  {
+    // Calculate the current floor
+    
+    /*
+    const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
+    if (joint_entity == kNullEntity)
+    {
+      ignwarn << "Cabin entity not found" << std::endl;
+      return LiftState::MOTION_STOPPED;
+    }
+
+    const auto lift_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+    const auto target_it = lift.floors.find(destination_floor);
+
+    if (target_it != lift.floors.end())
+    {
+      const auto& target_elevation = target_it->second.elevation;
+      if (std::abs(target_elevation - lift_pos) < lift.params.dx_min)
+        return LiftState::MOTION_STOPPED;
+      if (target_elevation - lift_pos > 0)
+        return LiftState::MOTION_UP;
+      if (target_elevation - lift_pos < 0)
+        return LiftState::MOTION_DOWN;
+    }
+    return LiftState::MOTION_STOPPED;
+    */
+    return 0;
+  }
+
+  uint8_t get_motion_state(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, const std::string& destination_floor) const
+  {
+    const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
+    if (joint_entity == kNullEntity)
+    {
+      ignwarn << "Cabin entity not found" << std::endl;
+      return LiftState::MOTION_STOPPED;
+    }
+
+    const auto lift_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+    const auto target_it = lift.floors.find(destination_floor);
+
+    if (target_it != lift.floors.end())
+    {
+      const auto& target_elevation = target_it->second.elevation;
+      if (std::abs(target_elevation - lift_pos) < lift.params.dx_min)
+        return LiftState::MOTION_STOPPED;
+      if (target_elevation - lift_pos > 0)
+        return LiftState::MOTION_UP;
+      if (target_elevation - lift_pos < 0)
+        return LiftState::MOTION_DOWN;
+    }
+    return LiftState::MOTION_STOPPED;
+  }
+
 public:
 
-  void Configure(const Entity& entity,
-    const std::shared_ptr<const sdf::Element>& sdf,
+  void Configure(const Entity& /*entity*/,
+    const std::shared_ptr<const sdf::Element>& /*sdf*/,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
     ignerr << "Entering lift plugin" << std::endl;
@@ -186,6 +281,26 @@ public:
           lift_command.door_state = msg->door_state == msg->DOOR_OPEN ?
             DoorCommand::OPEN : DoorCommand::CLOSE;
 
+          // Trigger an error if a request, different from previous one, comes in
+          const auto* cur_lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
+          if (cur_lift_cmd_comp)
+          {
+            const auto& cur_lift_cmd = cur_lift_cmd_comp->Data();
+            if (cur_lift_cmd.destination_floor != msg->destination_floor ||
+                cur_lift_cmd.request_type != msg->request_type ||
+                cur_lift_cmd.session_id != msg->session_id)
+            {
+              ignwarn << "Discarding request: [" << msg->lift_name <<"] is busy at the moment" << std::endl;
+              return;
+            }
+          }
+          else
+          {
+            // TODO consistency between rclcpp and gz logger
+            RCLCPP_INFO(_ros_node->get_logger(),
+              "Lift [%s] requested at level [%s]",
+              msg->lift_name.c_str(), msg->destination_floor.c_str());
+          }
           ecm.CreateComponent<components::LiftCmd>(entity, components::LiftCmd(lift_command));
         }
         else
@@ -193,37 +308,6 @@ public:
           ignwarn << "Request received for lift " << msg->lift_name <<
             " but it is not being simulated" << std::endl;
         }
-        // TODO this checks on processing of the command
-        /*
-        if (_floor_name_to_elevation.find(
-          msg->destination_floor) == _floor_name_to_elevation.end())
-        {
-          RCLCPP_INFO(logger(),
-          "Received request for unavailable floor [%s]",
-          msg->destination_floor.c_str());
-          return;
-        }
-
-        // Trigger an error if a request, different from previous one, comes in
-        // Noop if request is the same
-        if (_lift_request)
-        {
-          if (_lift_request->destination_floor != msg->destination_floor ||
-          _lift_request->request_type != msg->request_type ||
-          _lift_request->session_id != msg->session_id)
-          {
-            RCLCPP_INFO(logger(),
-            "Discarding request: [%s] is busy at the moment",
-            _lift_name.c_str());
-          }
-          return;
-        }
-
-        _lift_request = std::move(msg);
-        RCLCPP_INFO(logger(),
-        "Lift [%s] requested at level [%s]",
-        _lift_name.c_str(), _lift_request->destination_floor.c_str());
-        */
       });
 
     RCLCPP_INFO(_ros_node->get_logger(),
@@ -267,19 +351,38 @@ public:
     if (info.paused)
       return;
 
-    // Update state
-    ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
-    {
+    // Save the invalid commands to delete them after printing an error
+    std::unordered_set<Entity> invalid_lift_cmds;
 
+    // Update state
+    ecm.Each<components::Lift, components::Name, components::LiftCmd>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp, const components::LiftCmd* lift_cmd_comp) -> bool
+    {
+      // Check validity of command
+      const auto& lift = lift_comp->Data();
+      const auto& lift_cmd = lift_cmd_comp->Data();
+      const auto& name = name_comp->Data();
+      if (lift.floors.find(lift_cmd.destination_floor) == lift.floors.end())
+      {
+        ignwarn << "Received request for unavailable floor [" << lift_cmd.destination_floor << "]" << std::endl;
+        invalid_lift_cmds.insert(entity);
+        return true;
+      }
 
       return true;
     });
+
+    for (const auto& e : invalid_lift_cmds)
+    {
+      enableComponent<components::LiftCmd>(ecm, e, false);
+    }
 
     // Publish state
     ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
     {
       const auto& name = name_comp->Data();
       const auto& lift = lift_comp->Data();
+
+      const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
 
       double t =
         (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
@@ -292,13 +395,18 @@ public:
         msg.lift_time.sec = t;
         msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
         msg.lift_name = name;
-        // TODO
-        msg.door_state = msg.DOOR_CLOSED;
-        // TODO
-        msg.motion_state = msg.MOTION_STOPPED;
+
+        msg.available_floors = get_available_floors(lift);
+        msg.current_floor = get_current_floor(entity, ecm, lift);
+        msg.destination_floor = lift_cmd_comp != nullptr ?
+          lift_cmd_comp->Data().destination_floor : msg.current_floor;
+
+        msg.door_state = get_door_state(entity, ecm, lift);
+        msg.motion_state = lift_cmd_comp != nullptr ?
+          get_motion_state(entity, ecm, lift, lift_cmd_comp->Data().destination_floor) : msg.MOTION_STOPPED;
         msg.current_mode = msg.MODE_AGV;
-        // TODO
-        msg.session_id = "";
+        msg.session_id = lift_cmd_comp != nullptr ?
+          lift_cmd_comp->Data().session_id : "";
         _lift_state_pub->publish(msg);
         _last_state_pub[name] = t;
       }
