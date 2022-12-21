@@ -91,32 +91,17 @@ private:
     return door_v;
   }
 
-  void close_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt) {
+  void command_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt, DoorCommand cmd)
+  {
     auto model = Model(entity);
-
     for (const auto& joint : door.joints)
     {
       auto joint_entity = model.JointByName(ecm, joint.name);
       if (joint_entity != kNullEntity)
       {
         auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
-        auto target_vel = calculate_target_velocity(joint.closed_position, cur_pos, _last_cmd_vel[joint_entity], dt, door.params);
-        ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_pos + target_vel * dt}));
-        _last_cmd_vel[joint_entity] = target_vel;
-      }
-    }
-  }
-
-  void open_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt) {
-    auto model = Model(entity);
-
-    for (const auto& joint : door.joints)
-    {
-      auto joint_entity = model.JointByName(ecm, joint.name);
-      if (joint_entity != kNullEntity)
-      {
-        auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
-        auto target_vel = calculate_target_velocity(joint.open_position, cur_pos, _last_cmd_vel[joint_entity], dt, door.params);
+        auto target_pos = cmd == DoorCommand::OPEN ? joint.open_position : joint.closed_position;
+        auto target_vel = calculate_target_velocity(target_pos, cur_pos, _last_cmd_vel[joint_entity], dt, door.params);
         ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_pos + target_vel * dt}));
         _last_cmd_vel[joint_entity] = target_vel;
       }
@@ -196,14 +181,7 @@ public:
             (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
             count()) * 1e-9;
           const auto& door = door_comp->Data();
-          if (door_cmd_comp->Data() == DoorCommand::CLOSE)
-          {
-            close_door(entity, ecm, door, dt);
-          }
-          else if (door_cmd_comp->Data() == DoorCommand::OPEN)
-          {
-            open_door(entity, ecm, door, dt);
-          }
+          command_door(entity, ecm, door, dt, door_cmd_comp->Data());
           return true;
         });
 
