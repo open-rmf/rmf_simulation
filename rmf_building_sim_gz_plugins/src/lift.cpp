@@ -9,8 +9,7 @@
 #include <ignition/gazebo/components/Static.hh>
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/components/JointPositionReset.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PoseCmd.hh>
@@ -52,6 +51,8 @@ private:
   std::unordered_map<std::string, ignition::math::AxisAlignedBox> _initial_aabbs;
   std::unordered_map<std::string, ignition::math::Pose3d> _initial_poses;
 
+  std::unordered_map<Entity, double> _last_cmd_vel;
+
   std::unordered_map<std::string, double> _last_state_pub;
 
   PhysEnginePlugin _phys_plugin = PhysEnginePlugin::DEFAULT;
@@ -68,8 +69,6 @@ private:
   void create_joint_components(Entity entity, EntityComponentManager& ecm)
   {
     enableComponent<components::JointPosition>(ecm, entity);
-    enableComponent<components::JointVelocity>(ecm, entity);
-    ecm.CreateComponent<components::JointVelocityCmd>(entity, components::JointVelocityCmd({0.0}));
   }
 
   void fill_physics_engine(Entity entity, EntityComponentManager& ecm)
@@ -265,12 +264,20 @@ private:
       ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
   }
 
-  bool all_doors_closed(EntityComponentManager& ecm, const std::vector<Entity>& doors) const
+  bool all_doors_at_state(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorCommand cmd) const
   {
-    /*
     for (const auto& entity : doors)
-      ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
-      */
+    {
+      const auto* door_state_comp = ecm.Component<components::DoorStateComp>(entity);
+      // TODO log
+      if (door_state_comp == nullptr)
+      {
+        continue;
+      }
+      if (door_state_comp->Data() != cmd)
+        return false;
+    }
+    return true;
   }
 
   double calculate_target_velocity(
@@ -286,6 +293,17 @@ private:
 
     return compute_desired_rate_of_change(
       dx, current_velocity, params, dt);
+  }
+
+  void command_lift(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, double dt, double target_elevation, double cur_elevation)
+  {
+    auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
+    if (joint_entity != kNullEntity)
+    {
+      auto target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
+      ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_elevation + target_vel * dt}));
+      _last_cmd_vel[joint_entity] = target_vel;
+    }
   }
 
 public:
@@ -398,7 +416,12 @@ public:
     if (info.paused)
       return;
 
+    std::unordered_set<Entity> finished_cmds;
+
     // Update state
+    double dt =
+      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
+      count()) * 1e-9;
     ecm.Each<components::Lift, components::Name, components::Pose, components::LiftCmd>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp, const components::Pose* pose_comp, const components::LiftCmd* lift_cmd_comp) -> bool
     {
       const auto& lift = lift_comp->Data();
@@ -414,21 +437,32 @@ public:
       {
         // Just command the doors to the target state
         command_doors(ecm, doors, lift_cmd.door_state);
+        // Clear the command if it was finished
+        if (lift_cmd.destination_floor == cur_floor &&
+            all_doors_at_state(ecm, doors, lift_cmd.door_state))
+          finished_cmds.insert(entity);
       }
       else
       {
         // Make sure doors are closed before moving to next floor
         command_doors(ecm, doors, DoorCommand::CLOSE);
-        if (all_doors_closed(ecm, doors))
+        if (all_doors_at_state(ecm, doors, DoorCommand::CLOSE))
         {
-          // Command lift
+          command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
         }
       }
 
       return true;
     });
 
+    // Clear finished commands
+    for (const auto& e : finished_cmds)
+      enableComponent<components::LiftCmd>(ecm, e, false);
+
     // Publish state
+    double t =
+      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+      count()) * 1e-9;
     ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
     {
       const auto& name = name_comp->Data();
@@ -436,9 +470,6 @@ public:
 
       const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
 
-      double t =
-        (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-        count()) * 1e-9;
       if (_last_state_pub.find(name) == _last_state_pub.end())
         _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
       if (t - _last_state_pub[name] >= STATE_PUB_DT)
