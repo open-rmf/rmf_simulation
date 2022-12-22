@@ -47,8 +47,7 @@ private:
     return std::abs(target_position - joint_position) < dx_min;
   }
 
-  DoorMode get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& door) const {
-    DoorMode mode;
+  DoorCommand get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& door) const {
     bool all_open = true;
     bool all_closed = true;
     for (const auto& joint : door.joints)
@@ -65,13 +64,10 @@ private:
         all_closed = false;
     }
     if (all_open)
-      mode.value = mode.MODE_OPEN;
+      return DoorCommand::OPEN;
     else if (all_closed)
-      mode.value = mode.MODE_CLOSED;
-    else
-      mode.value = mode.MODE_MOVING;
-
-    return mode;
+      return DoorCommand::CLOSE;
+    return DoorCommand::MOVING;
   }
 
   double calculate_target_velocity(
@@ -183,13 +179,24 @@ public:
           // TODO(luca) consider reading when the state is equal to the
           // requested state and remove DoorCmd components when that is
           // the case to reduce number of times this loop is called
+          //ignmsg << "Opening door" << std::endl;
           command_door(entity, ecm, door, dt, door_cmd);
           return true;
         });
 
-    // Publish states
-    ecm.Each<components::Door, components::Name>([&](const Entity& entity, const components::Door* door_comp, const components::Name* name_comp) -> bool
+    // Update states
+    ecm.Each<components::Door>([&](const Entity& entity, const components::Door* door_comp) -> bool
         {
+          const auto& door = door_comp->Data();
+          const auto cur_mode = get_current_mode(entity, ecm, door);
+          ecm.CreateComponent<components::DoorStateComp>(entity, components::DoorStateComp(cur_mode));
+          return true;
+        });
+
+    // Publish states
+    ecm.Each<components::Door, components::DoorStateComp, components::Name>([&](const Entity& entity, const components::Door* door_comp, const components::DoorStateComp* door_state_comp, const components::Name* name_comp) -> bool
+        {
+          const auto& door_state = door_state_comp->Data();
           const auto& door = door_comp->Data();
           if (door.ros_interface == false)
             return true;
@@ -205,7 +212,21 @@ public:
             msg.door_name = name;
             msg.door_time.sec = t;
             msg.door_time.nanosec = (t - static_cast<int>(t)) * 1e9;
-            msg.current_mode = get_current_mode(entity, ecm, door);
+            switch (door_state) {
+              case DoorCommand::OPEN: {
+                msg.current_mode.value = msg.current_mode.MODE_OPEN;
+                break;
+              }
+              case DoorCommand::MOVING: {
+                msg.current_mode.value = msg.current_mode.MODE_MOVING;
+                break;
+              }
+              case DoorCommand::CLOSE: {
+                msg.current_mode.value = msg.current_mode.MODE_CLOSED;
+                break;
+              }
+            }
+            //msg.current_mode = get_current_mode(entity, ecm, door);
             _door_state_pub->publish(msg);
             _last_state_pub[name] = t;
           }

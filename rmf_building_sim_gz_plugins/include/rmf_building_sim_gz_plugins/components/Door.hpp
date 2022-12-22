@@ -41,8 +41,9 @@ namespace gazebo
   };
 
   enum class DoorCommand {
-    OPEN,
-    CLOSE
+    CLOSE = 0,
+    MOVING = 1,
+    OPEN = 2
   };
 
   namespace components
@@ -54,6 +55,10 @@ namespace gazebo
     /// \brief A component used to command an RMF door to open / close.
     using DoorCmd = Component<DoorCommand, class DoorCmdTag>;
     IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
+
+    /// \brief A component used to show the state of an RMF door.
+    using DoorStateComp = Component<DoorCommand, class DoorStateTag>;
+    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.DoorStateComp", DoorStateComp)
   }
 }
 }

@@ -190,37 +190,48 @@ private:
       }
     }
     return closest_floor_name;
-    
+  }
+
+  // Returns all the doors for the given floor
+  std::vector<Entity> get_floor_doors(EntityComponentManager& ecm, const LiftData& lift, const std::string& floor_name) const {
+    std::vector<Entity> doors;
+    for (const auto& door_pair : lift.floors.at(floor_name).doors)
+    {
+      // TODO also check cabin doors when they are fixed
+      const auto shaft_door = ecm.EntityByComponents(components::Name(door_pair.shaft_door));
+      if (shaft_door != kNullEntity)
+        doors.push_back(shaft_door);
+    }
+    return doors;
   }
 
   uint8_t get_door_state(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift) const
   {
-    // Calculate the current floor
-    
-    /*
-    const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
-    if (joint_entity == kNullEntity)
+    auto cur_floor = get_current_floor(entity, ecm, lift);
+    auto doors = get_floor_doors(ecm, lift, cur_floor);
+
+    bool all_open = true;
+    bool all_closed = true;
+
+    for (const auto& door: doors)
     {
-      ignwarn << "Cabin entity not found" << std::endl;
-      return LiftState::MOTION_STOPPED;
+      const auto door_state = ecm.Component<components::DoorStateComp>(door);
+      if (door_state == nullptr)
+      {
+        ignwarn << "Door state for lift not found" << std::endl;
+        continue;
+      }
+      if (door_state->Data() != DoorCommand::OPEN)
+        all_open = false;
+      if (door_state->Data() != DoorCommand::CLOSE)
+        all_closed = false;
     }
 
-    const auto lift_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
-    const auto target_it = lift.floors.find(destination_floor);
-
-    if (target_it != lift.floors.end())
-    {
-      const auto& target_elevation = target_it->second.elevation;
-      if (std::abs(target_elevation - lift_pos) < lift.params.dx_min)
-        return LiftState::MOTION_STOPPED;
-      if (target_elevation - lift_pos > 0)
-        return LiftState::MOTION_UP;
-      if (target_elevation - lift_pos < 0)
-        return LiftState::MOTION_DOWN;
-    }
-    return LiftState::MOTION_STOPPED;
-    */
-    return 0;
+    if (all_open)
+      return DoorMode::MODE_OPEN;
+    else if (all_closed)
+      return DoorMode::MODE_CLOSED;
+    return DoorMode::MODE_MOVING;
   }
 
   uint8_t get_motion_state(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, const std::string& destination_floor) const
@@ -248,6 +259,35 @@ private:
     return LiftState::MOTION_STOPPED;
   }
 
+  void command_doors(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorCommand door_state) const
+  {
+    for (const auto& entity : doors)
+      ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
+  }
+
+  bool all_doors_closed(EntityComponentManager& ecm, const std::vector<Entity>& doors) const
+  {
+    /*
+    for (const auto& entity : doors)
+      ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
+      */
+  }
+
+  double calculate_target_velocity(
+    const double target,
+    const double current_position,
+    const double current_velocity,
+    const double dt,
+    const MotionParams& params) const
+  {
+    double dx = target - current_position;
+    if (std::abs(dx) < params.dx_min / 2.0)
+      dx = 0.0;
+
+    return compute_desired_rate_of_change(
+      dx, current_velocity, params, dt);
+  }
+
 public:
 
   void Configure(const Entity& /*entity*/,
@@ -270,8 +310,15 @@ public:
       {
         // Find entity with the name and create a DoorCmd component
         auto entity = ecm.EntityByComponents(components::Name(msg->lift_name));
-        if (entity != kNullEntity)
+        const auto* lift_comp = ecm.Component<components::Lift>(entity);
+        if (entity != kNullEntity || lift_comp == nullptr)
         {
+          const auto& available_floors = lift_comp->Data().floors;
+          if (available_floors.find(msg->destination_floor) == available_floors.end())
+          {
+            ignwarn << "Received request for unavailable floor [" << msg->destination_floor << "]" << std::endl;
+            return;
+          }
           LiftCommand lift_command;
           lift_command.request_type = msg->request_type;
           lift_command.destination_floor = msg->destination_floor;
@@ -351,30 +398,35 @@ public:
     if (info.paused)
       return;
 
-    // Save the invalid commands to delete them after printing an error
-    std::unordered_set<Entity> invalid_lift_cmds;
-
     // Update state
-    ecm.Each<components::Lift, components::Name, components::LiftCmd>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp, const components::LiftCmd* lift_cmd_comp) -> bool
+    ecm.Each<components::Lift, components::Name, components::Pose, components::LiftCmd>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp, const components::Pose* pose_comp, const components::LiftCmd* lift_cmd_comp) -> bool
     {
-      // Check validity of command
       const auto& lift = lift_comp->Data();
       const auto& lift_cmd = lift_cmd_comp->Data();
       const auto& name = name_comp->Data();
-      if (lift.floors.find(lift_cmd.destination_floor) == lift.floors.end())
+      const auto& pose = pose_comp->Data();
+      
+      double target_elevation = lift.floors.at(lift_cmd.destination_floor).elevation;
+      std::string cur_floor = get_current_floor(entity, ecm, lift);
+      auto doors = get_floor_doors(ecm, lift, cur_floor);
+
+      if (std::abs(pose.Z() - target_elevation) < lift.params.dx_min)
       {
-        ignwarn << "Received request for unavailable floor [" << lift_cmd.destination_floor << "]" << std::endl;
-        invalid_lift_cmds.insert(entity);
-        return true;
+        // Just command the doors to the target state
+        command_doors(ecm, doors, lift_cmd.door_state);
+      }
+      else
+      {
+        // Make sure doors are closed before moving to next floor
+        command_doors(ecm, doors, DoorCommand::CLOSE);
+        if (all_doors_closed(ecm, doors))
+        {
+          // Command lift
+        }
       }
 
       return true;
     });
-
-    for (const auto& e : invalid_lift_cmds)
-    {
-      enableComponent<components::LiftCmd>(ecm, e, false);
-    }
 
     // Publish state
     ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
