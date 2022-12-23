@@ -10,6 +10,7 @@
 #include <ignition/gazebo/components/AxisAlignedBox.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
 #include <ignition/gazebo/components/JointPositionReset.hh>
+#include <ignition/gazebo/components/JointVelocityCmd.hh>
 #include <ignition/gazebo/components/LinearVelocityCmd.hh>
 #include <ignition/gazebo/components/AngularVelocityCmd.hh>
 #include <ignition/gazebo/components/PoseCmd.hh>
@@ -196,10 +197,14 @@ private:
     std::vector<Entity> doors;
     for (const auto& door_pair : lift.floors.at(floor_name).doors)
     {
-      // TODO also check cabin doors when they are fixed
       const auto shaft_door = ecm.EntityByComponents(components::Name(door_pair.shaft_door));
       if (shaft_door != kNullEntity)
         doors.push_back(shaft_door);
+      const auto cabin_door = ecm.EntityByComponents(components::Name(door_pair.cabin_door));
+      if (cabin_door != kNullEntity)
+        doors.push_back(cabin_door);
+      else
+        std::cout << "Cabin door " << door_pair.cabin_door << "not found" << std::endl;
     }
     return doors;
   }
@@ -220,9 +225,9 @@ private:
         ignwarn << "Door state for lift not found" << std::endl;
         continue;
       }
-      if (door_state->Data() != DoorCommand::OPEN)
+      if (door_state->Data() != DoorModeCmp::OPEN)
         all_open = false;
-      if (door_state->Data() != DoorCommand::CLOSE)
+      if (door_state->Data() != DoorModeCmp::CLOSE)
         all_closed = false;
     }
 
@@ -258,13 +263,13 @@ private:
     return LiftState::MOTION_STOPPED;
   }
 
-  void command_doors(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorCommand door_state) const
+  void command_doors(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorModeCmp door_state) const
   {
     for (const auto& entity : doors)
       ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
   }
 
-  bool all_doors_at_state(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorCommand cmd) const
+  bool all_doors_at_state(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorModeCmp cmd) const
   {
     for (const auto& entity : doors)
     {
@@ -301,8 +306,9 @@ private:
     if (joint_entity != kNullEntity)
     {
       auto target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
-      ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_elevation + target_vel * dt}));
+      ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
       _last_cmd_vel[joint_entity] = target_vel;
+      std::cout << "Commanding lift to " << target_elevation << " from " << cur_elevation << " target vel is " << target_vel << std::endl;
     }
   }
 
@@ -344,7 +350,7 @@ public:
             "" : msg->session_id;
 
           lift_command.door_state = msg->door_state == msg->DOOR_OPEN ?
-            DoorCommand::OPEN : DoorCommand::CLOSE;
+            DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
 
           // Trigger an error if a request, different from previous one, comes in
           const auto* cur_lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
@@ -422,31 +428,36 @@ public:
     double dt =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
       count()) * 1e-9;
-    ecm.Each<components::Lift, components::Name, components::Pose, components::LiftCmd>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp, const components::Pose* pose_comp, const components::LiftCmd* lift_cmd_comp) -> bool
+    ecm.Each<components::Lift, components::Pose>([&](const Entity& entity, const components::Lift* lift_comp, const components::Pose* pose_comp) -> bool
     {
       const auto& lift = lift_comp->Data();
-      const auto& lift_cmd = lift_cmd_comp->Data();
-      const auto& name = name_comp->Data();
       const auto& pose = pose_comp->Data();
-      
-      double target_elevation = lift.floors.at(lift_cmd.destination_floor).elevation;
-      std::string cur_floor = get_current_floor(entity, ecm, lift);
-      auto doors = get_floor_doors(ecm, lift, cur_floor);
+
+      const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
+
+      const auto destination_floor = lift_cmd_comp != nullptr ?
+        lift_cmd_comp->Data().destination_floor : lift.initial_floor;
+      const double target_elevation = lift.floors.at(destination_floor).elevation;
+      const auto target_door_state = lift_cmd_comp != nullptr ?
+        lift_cmd_comp->Data().door_state : DoorModeCmp::CLOSE;
+      const std::string cur_floor = get_current_floor(entity, ecm, lift);
+
+      const auto doors = get_floor_doors(ecm, lift, cur_floor);
 
       if (std::abs(pose.Z() - target_elevation) < lift.params.dx_min)
       {
         // Just command the doors to the target state
-        command_doors(ecm, doors, lift_cmd.door_state);
+        command_doors(ecm, doors, target_door_state);
         // Clear the command if it was finished
-        if (lift_cmd.destination_floor == cur_floor &&
-            all_doors_at_state(ecm, doors, lift_cmd.door_state))
+        if (destination_floor == cur_floor &&
+            all_doors_at_state(ecm, doors, target_door_state))
           finished_cmds.insert(entity);
       }
       else
       {
         // Make sure doors are closed before moving to next floor
-        command_doors(ecm, doors, DoorCommand::CLOSE);
-        if (all_doors_at_state(ecm, doors, DoorCommand::CLOSE))
+        command_doors(ecm, doors, DoorModeCmp::CLOSE);
+        if (all_doors_at_state(ecm, doors, DoorModeCmp::CLOSE))
         {
           command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
         }

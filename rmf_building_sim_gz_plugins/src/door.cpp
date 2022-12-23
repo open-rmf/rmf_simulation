@@ -47,7 +47,7 @@ private:
     return std::abs(target_position - joint_position) < dx_min;
   }
 
-  DoorCommand get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& door) const {
+  DoorModeCmp get_current_mode(const Entity& entity, EntityComponentManager& ecm, const DoorData& door) const {
     bool all_open = true;
     bool all_closed = true;
     for (const auto& joint : door.joints)
@@ -64,10 +64,10 @@ private:
         all_closed = false;
     }
     if (all_open)
-      return DoorCommand::OPEN;
+      return DoorModeCmp::OPEN;
     else if (all_closed)
-      return DoorCommand::CLOSE;
-    return DoorCommand::MOVING;
+      return DoorModeCmp::CLOSE;
+    return DoorModeCmp::MOVING;
   }
 
   double calculate_target_velocity(
@@ -87,7 +87,7 @@ private:
     return door_v;
   }
 
-  void command_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt, DoorCommand cmd)
+  void command_door(const Entity& entity, EntityComponentManager& ecm, const DoorData& door, double dt, DoorModeCmp cmd)
   {
     auto model = Model(entity);
     for (const auto& joint : door.joints)
@@ -96,7 +96,7 @@ private:
       if (joint_entity != kNullEntity)
       {
         auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
-        auto target_pos = cmd == DoorCommand::OPEN ? joint.open_position : joint.closed_position;
+        auto target_pos = cmd == DoorModeCmp::OPEN ? joint.open_position : joint.closed_position;
         auto target_vel = calculate_target_velocity(target_pos, cur_pos, _last_cmd_vel[joint_entity], dt, door.params);
         ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset({cur_pos + target_vel * dt}));
         _last_cmd_vel[joint_entity] = target_vel;
@@ -130,7 +130,7 @@ public:
         if (entity != kNullEntity)
         {
           auto door_command = msg->requested_mode.value == msg->requested_mode.MODE_OPEN ?
-            DoorCommand::OPEN : DoorCommand::CLOSE;
+            DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
           ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_command));
         }
         else
@@ -213,15 +213,15 @@ public:
             msg.door_time.sec = t;
             msg.door_time.nanosec = (t - static_cast<int>(t)) * 1e9;
             switch (door_state) {
-              case DoorCommand::OPEN: {
+              case DoorModeCmp::OPEN: {
                 msg.current_mode.value = msg.current_mode.MODE_OPEN;
                 break;
               }
-              case DoorCommand::MOVING: {
+              case DoorModeCmp::MOVING: {
                 msg.current_mode.value = msg.current_mode.MODE_MOVING;
                 break;
               }
-              case DoorCommand::CLOSE: {
+              case DoorModeCmp::CLOSE: {
                 msg.current_mode.value = msg.current_mode.MODE_CLOSED;
                 break;
               }

@@ -52,7 +52,7 @@ namespace gazebo
     uint8_t request_type;
     std::string destination_floor;
     std::string session_id;
-    DoorCommand door_state;
+    DoorModeCmp door_state;
   };
 
   namespace components
