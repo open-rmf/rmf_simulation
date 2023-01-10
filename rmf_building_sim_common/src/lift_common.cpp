@@ -225,11 +225,18 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
         return;
       }
 
-      if (_lift_request)  // Lift is still processing a previous request
+      // Trigger an error if a request, different from previous one, comes in
+      // Noop if request is the same
+      if (_lift_request)
       {
-        RCLCPP_INFO(logger(),
-        "Failed to request: [%s] is busy at the moment",
-        _lift_name.c_str());
+        if (_lift_request->destination_floor != msg->destination_floor ||
+        _lift_request->request_type != msg->request_type ||
+        _lift_request->session_id != msg->session_id)
+        {
+          RCLCPP_INFO(logger(),
+          "Discarding request: [%s] is busy at the moment",
+          _lift_name.c_str());
+        }
         return;
       }
 
