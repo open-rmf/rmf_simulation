@@ -232,7 +232,7 @@ public:
       auto cur_pos =
         ecm.Component<components::JointPosition>(it->second)->Data()[0];
       ecm.CreateComponent(it->second,
-        components::JointPositionReset ({cur_pos + result.velocity * dt}));
+        components::JointPositionReset({cur_pos + result.velocity * dt}));
       _last_velocities[result.joint_name] = result.velocity;
     }
   }
