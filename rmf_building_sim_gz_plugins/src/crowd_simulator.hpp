@@ -19,9 +19,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <ignition/plugin/Register.hh>
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
+#include <gz/plugin/Register.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
 
 #include <ignition/transport/Node.hh>
 
@@ -30,60 +30,60 @@
 
 namespace crowd_simulation_ign {
 
-class IGNITION_GAZEBO_VISIBLE CrowdSimulatorPlugin
-  : public ignition::gazebo::System,
-  public ignition::gazebo::ISystemConfigure,
-  public ignition::gazebo::ISystemPreUpdate
+class GZ_SIM_VISIBLE CrowdSimulatorPlugin
+  : public gz::sim::System,
+  public gz::sim::ISystemConfigure,
+  public gz::sim::ISystemPreUpdate
 {
   using AnimState = crowd_simulator::CrowdSimInterface::AnimState;
 public:
   CrowdSimulatorPlugin()
-  : _transport_node_ptr(std::make_shared<ignition::transport::Node>()),
+  : _transport_node_ptr(std::make_shared<gz::transport::Node>()),
     _crowd_sim_interface(std::make_shared<crowd_simulator::CrowdSimInterface>()),
     _initialized(false)
   {}
 
   // inherit from ISystemConfigure
-  void Configure(const ignition::gazebo::Entity& entity,
+  void Configure(const gz::sim::Entity& entity,
     const std::shared_ptr<const sdf::Element>& sdf,
-    ignition::gazebo::EntityComponentManager& ecm,
-    ignition::gazebo::EventManager& event_mgr) override;
+    gz::sim::EntityComponentManager& ecm,
+    gz::sim::EventManager& event_mgr) override;
 
   // inherit from ISystemPreUpdate
-  void PreUpdate(const ignition::gazebo::UpdateInfo& info,
-    ignition::gazebo::EntityComponentManager& ecm) override;
+  void PreUpdate(const gz::sim::UpdateInfo& info,
+    gz::sim::EntityComponentManager& ecm) override;
 
 private:
-  std::shared_ptr<ignition::transport::Node> _transport_node_ptr;
+  std::shared_ptr<gz::transport::Node> _transport_node_ptr;
   std::shared_ptr<crowd_simulator::CrowdSimInterface> _crowd_sim_interface;
   bool _initialized;
   std::chrono::steady_clock::duration _last_sim_time{0};
 
-  std::shared_ptr<ignition::gazebo::Model> _world;
+  std::shared_ptr<gz::sim::Model> _world;
   std::string _world_name;
 
   // map for <model_name, object_id>, contains both external (models) and internal agents (actors)
   std::unordered_map<std::string, size_t> _object_dic;
   // map for <model_name, entity_id> contains external and internal agents
-  std::unordered_map<std::string, ignition::gazebo::Entity> _entity_dic;
+  std::unordered_map<std::string, gz::sim::Entity> _entity_dic;
 
   bool _spawn_agents_in_world();
-  void _init_spawned_agents(ignition::gazebo::EntityComponentManager& ecm);
+  void _init_spawned_agents(gz::sim::EntityComponentManager& ecm);
   void _config_spawned_agents(
     const crowd_simulator::CrowdSimInterface::ObjectPtr obj_ptr,
-    const ignition::gazebo::Entity& enity,
-    ignition::gazebo::EntityComponentManager& ecm) const;
+    const gz::sim::Entity& enity,
+    gz::sim::EntityComponentManager& ecm) const;
   bool _create_entity(
     const std::string& model_name,
     const crowd_simulator::ModelTypeDatabase::RecordPtr model_type_ptr) const;
   void _update_all_objects(
     double delta_sim_time,
-    ignition::gazebo::EntityComponentManager& ecm) const;
+    gz::sim::EntityComponentManager& ecm) const;
   void _update_internal_object(
     double delta_sim_time,
     const crowd_simulator::CrowdSimInterface::ObjectPtr obj_ptr,
-    const ignition::gazebo::Entity& enity,
-    ignition::gazebo::EntityComponentManager& ecm) const;
+    const gz::sim::Entity& enity,
+    gz::sim::EntityComponentManager& ecm) const;
 };
 
 } //namespace crowd_simulation_ign

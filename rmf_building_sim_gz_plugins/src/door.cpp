@@ -1,19 +1,19 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/JointAxis.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/door_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 using namespace rmf_building_sim_common;
 
@@ -21,7 +21,7 @@ namespace rmf_building_sim_gz_plugins {
 
 //==============================================================================
 
-class IGNITION_GAZEBO_VISIBLE DoorPlugin
+class GZ_SIM_VISIBLE DoorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -235,12 +235,12 @@ public:
 
 };
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   DoorPlugin,
   System,
   DoorPlugin::ISystemConfigure,
   DoorPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
+GZ_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
 
 } // namespace rmf_building_sim_gz_plugins

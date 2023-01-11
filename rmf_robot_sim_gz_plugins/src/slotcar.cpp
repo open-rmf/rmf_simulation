@@ -1,22 +1,22 @@
 #include <unordered_map>
 
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/Static.hh>
-#include <ignition/gazebo/components/AxisAlignedBox.hh>
-#include <ignition/gazebo/components/LinearVelocityCmd.hh>
-#include <ignition/gazebo/components/AngularVelocityCmd.hh>
-#include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/Static.hh>
+#include <gz/sim/components/AxisAlignedBox.hh>
+#include <gz/sim/components/LinearVelocityCmd.hh>
+#include <gz/sim/components/AngularVelocityCmd.hh>
+#include <gz/sim/components/PhysicsEnginePlugin.hh>
 
-#include <ignition/math/eigen3.hh>
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/math/eigen3.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 #include <rclcpp/rclcpp.hpp>
 
 #include <rmf_robot_sim_common/utils.hpp>
@@ -24,13 +24,13 @@
 
 #include <rmf_fleet_msgs/msg/location.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
 std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
   {"ignition-physics-tpe-plugin", PhysEnginePlugin::TPE}};
 
-class IGNITION_GAZEBO_VISIBLE SlotcarPlugin
+class GZ_SIM_VISIBLE SlotcarPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -46,7 +46,7 @@ public:
 
 private:
   std::unique_ptr<rmf_robot_sim_common::SlotcarCommon> dataPtr;
-  ignition::transport::Node _ign_node;
+  gz::transport::Node _ign_node;
   rclcpp::Node::SharedPtr _ros_node;
 
   Entity _entity;
@@ -64,7 +64,7 @@ private:
   double _prev_v_command = 0.0;
   double _prev_w_command = 0.0;
 
-  void charge_state_cb(const ignition::msgs::Selection& msg);
+  void charge_state_cb(const gz::msgs::Selection& msg);
 
   void send_control_signals(EntityComponentManager& ecm,
     const std::pair<double, double>& displacements,
@@ -74,10 +74,10 @@ private:
     const double target_linear_speed_destination,
     const std::optional<double>& max_linear_velocity);
   void init_obstacle_exclusions(EntityComponentManager& ecm);
-  void item_dispensed_cb(const ignition::msgs::UInt64_V& msg);
-  void item_ingested_cb(const ignition::msgs::Entity& msg);
-  bool get_slotcar_height(const ignition::msgs::Entity& req,
-    ignition::msgs::Double& rep);
+  void item_dispensed_cb(const gz::msgs::UInt64_V& msg);
+  void item_ingested_cb(const gz::msgs::Entity& msg);
+  bool get_slotcar_height(const gz::msgs::Entity& req,
+    gz::msgs::Double& rep);
   std::vector<Eigen::Vector3d> get_obstacle_positions(
     EntityComponentManager& ecm);
 
@@ -86,7 +86,7 @@ private:
 
   void draw_lookahead_marker();
 
-  ignition::msgs::Marker_V _trajectory_marker_msg;
+  gz::msgs::Marker_V _trajectory_marker_msg;
 };
 
 SlotcarPlugin::SlotcarPlugin()
@@ -265,13 +265,13 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
   return obstacle_positions;
 }
 
-void SlotcarPlugin::charge_state_cb(const ignition::msgs::Selection& msg)
+void SlotcarPlugin::charge_state_cb(const gz::msgs::Selection& msg)
 {
   dataPtr->charge_state_cb(msg.name(), msg.selected());
 }
 
 // First element of msg should be the slotcar, and the second should be the payload
-void SlotcarPlugin::item_dispensed_cb(const ignition::msgs::UInt64_V& msg)
+void SlotcarPlugin::item_dispensed_cb(const gz::msgs::UInt64_V& msg)
 {
   if (msg.data_size() == 2 && msg.data(0) == _entity)
   {
@@ -280,7 +280,7 @@ void SlotcarPlugin::item_dispensed_cb(const ignition::msgs::UInt64_V& msg)
   }
 }
 
-void SlotcarPlugin::item_ingested_cb(const ignition::msgs::Entity& msg)
+void SlotcarPlugin::item_ingested_cb(const gz::msgs::Entity& msg)
 {
   if (msg.IsInitialized())
   {
@@ -292,8 +292,8 @@ void SlotcarPlugin::item_ingested_cb(const ignition::msgs::Entity& msg)
   }
 }
 
-bool SlotcarPlugin::get_slotcar_height(const ignition::msgs::Entity& req,
-  ignition::msgs::Double& rep)
+bool SlotcarPlugin::get_slotcar_height(const gz::msgs::Entity& req,
+  gz::msgs::Double& rep)
 {
   if (req.id() == _entity)
   {
@@ -306,12 +306,12 @@ bool SlotcarPlugin::get_slotcar_height(const ignition::msgs::Entity& req,
 void SlotcarPlugin::path_request_marker_update(
   const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg)
 {
-  ignition::msgs::Boolean res;
+  gz::msgs::Boolean res;
   bool result;
   for (int i = 0; i < _trajectory_marker_msg.marker_size(); ++i)
   {
     auto marker = _trajectory_marker_msg.mutable_marker(i);
-    marker->set_action(ignition::msgs::Marker::DELETE_ALL);
+    marker->set_action(gz::msgs::Marker::DELETE_ALL);
   }
   _ign_node.Request(
     "/marker_array", _trajectory_marker_msg, 5000, res, result);
@@ -319,26 +319,26 @@ void SlotcarPlugin::path_request_marker_update(
   auto line_marker = _trajectory_marker_msg.add_marker();
   line_marker->set_ns(dataPtr->model_name() + "_line");
   line_marker->set_id(1);
-  line_marker->set_action(ignition::msgs::Marker::ADD_MODIFY);
-  line_marker->set_type(ignition::msgs::Marker::LINE_STRIP);
-  line_marker->set_visibility(ignition::msgs::Marker::GUI);
-  ignition::msgs::Set(
+  line_marker->set_action(gz::msgs::Marker::ADD_MODIFY);
+  line_marker->set_type(gz::msgs::Marker::LINE_STRIP);
+  line_marker->set_visibility(gz::msgs::Marker::GUI);
+  gz::msgs::Set(
     line_marker->mutable_material()->mutable_ambient(),
-    ignition::math::Color(1, 0, 0, 1));
-  ignition::msgs::Set(
+    gz::math::Color(1, 0, 0, 1));
+  gz::msgs::Set(
     line_marker->mutable_material()->mutable_diffuse(),
-    ignition::math::Color(1, 0, 0, 1));
+    gz::math::Color(1, 0, 0, 1));
 
   auto marker_headings = _trajectory_marker_msg.add_marker();
   marker_headings->set_id(1);
   marker_headings->set_ns(dataPtr->model_name() + "_waypoint_headings");
-  marker_headings->set_action(ignition::msgs::Marker::ADD_MODIFY);
-  marker_headings->set_type(ignition::msgs::Marker::LINE_LIST);
-  marker_headings->set_visibility(ignition::msgs::Marker::GUI);
-  ignition::msgs::Set(marker_headings->mutable_material()->mutable_ambient(),
-    ignition::math::Color(0, 1, 0, 1));
-  ignition::msgs::Set(marker_headings->mutable_material()->mutable_diffuse(),
-    ignition::math::Color(0, 1, 0, 1));
+  marker_headings->set_action(gz::msgs::Marker::ADD_MODIFY);
+  marker_headings->set_type(gz::msgs::Marker::LINE_LIST);
+  marker_headings->set_visibility(gz::msgs::Marker::GUI);
+  gz::msgs::Set(marker_headings->mutable_material()->mutable_ambient(),
+    gz::math::Color(0, 1, 0, 1));
+  gz::msgs::Set(marker_headings->mutable_material()->mutable_diffuse(),
+    gz::math::Color(0, 1, 0, 1));
 
   auto& locations = msg->path;
   double elevation = 0.5;
@@ -347,35 +347,35 @@ void SlotcarPlugin::path_request_marker_update(
     auto loc = locations[i];
 
     // Add points to the trajectory line, slightly elevated for visibility.
-    ignition::msgs::Set(line_marker->add_point(),
-      ignition::math::Vector3d(loc.x, loc.y, elevation)
+    gz::msgs::Set(line_marker->add_point(),
+      gz::math::Vector3d(loc.x, loc.y, elevation)
     );
 
     // Draw waypoints
-    ignition::math::Color waypoint_color(0.0, 1.0, 0.0, 1.0);
+    gz::math::Color waypoint_color(0.0, 1.0, 0.0, 1.0);
     auto waypoint_marker = _trajectory_marker_msg.add_marker();
     waypoint_marker->set_ns(dataPtr->model_name() + "_waypoints");
     waypoint_marker->set_id(i+1);
-    waypoint_marker->set_action(ignition::msgs::Marker::ADD_MODIFY);
-    waypoint_marker->set_type(ignition::msgs::Marker::SPHERE);
-    waypoint_marker->set_visibility(ignition::msgs::Marker::GUI);
-    ignition::msgs::Set(waypoint_marker->mutable_scale(),
-      ignition::math::Vector3d(1.5, 1.5, 1.5));
-    ignition::msgs::Set(
+    waypoint_marker->set_action(gz::msgs::Marker::ADD_MODIFY);
+    waypoint_marker->set_type(gz::msgs::Marker::SPHERE);
+    waypoint_marker->set_visibility(gz::msgs::Marker::GUI);
+    gz::msgs::Set(waypoint_marker->mutable_scale(),
+      gz::math::Vector3d(1.5, 1.5, 1.5));
+    gz::msgs::Set(
       waypoint_marker->mutable_material()->mutable_ambient(),
       waypoint_color);
-    ignition::msgs::Set(
+    gz::msgs::Set(
       waypoint_marker->mutable_material()->mutable_diffuse(),
       waypoint_color);
-    ignition::msgs::Set(waypoint_marker->mutable_pose(),
-      ignition::math::Pose3d(loc.x, loc.y, elevation, 0, 0, 0));
+    gz::msgs::Set(waypoint_marker->mutable_pose(),
+      gz::math::Pose3d(loc.x, loc.y, elevation, 0, 0, 0));
 
     Eigen::Vector2d dir(cos(loc.yaw), sin(loc.yaw));
     double length = 2.0;
-    ignition::msgs::Set(marker_headings->add_point(),
-      ignition::math::Vector3d(loc.x, loc.y, elevation));
-    ignition::msgs::Set(marker_headings->add_point(),
-      ignition::math::Vector3d(loc.x + length * dir.x(),
+    gz::msgs::Set(marker_headings->add_point(),
+      gz::math::Vector3d(loc.x, loc.y, elevation));
+    gz::msgs::Set(marker_headings->add_point(),
+      gz::math::Vector3d(loc.x + length * dir.x(),
       loc.y + length * dir.y(),
       elevation+0.5));
   }
@@ -389,26 +389,26 @@ void SlotcarPlugin::draw_lookahead_marker()
   auto lookahead_point = dataPtr->get_lookahead_point();
 
   // Lookahead point
-  ignition::msgs::Marker marker_msg;
+  gz::msgs::Marker marker_msg;
   marker_msg.set_ns(dataPtr->model_name() + "_lookahead_point");
   marker_msg.set_id(1);
-  marker_msg.set_action(ignition::msgs::Marker::ADD_MODIFY);
-  marker_msg.set_type(ignition::msgs::Marker::CYLINDER);
-  marker_msg.set_visibility(ignition::msgs::Marker::GUI);
+  marker_msg.set_action(gz::msgs::Marker::ADD_MODIFY);
+  marker_msg.set_type(gz::msgs::Marker::CYLINDER);
+  marker_msg.set_visibility(gz::msgs::Marker::GUI);
 
-  ignition::msgs::Set(marker_msg.mutable_pose(),
-    ignition::math::Pose3d(
+  gz::msgs::Set(marker_msg.mutable_pose(),
+    gz::math::Pose3d(
       lookahead_point(0),
       lookahead_point(1),
       lookahead_point(2),
       0, 0, 0));
   const double scale = 1.5;
-  ignition::msgs::Set(marker_msg.mutable_scale(),
-    ignition::math::Vector3d(scale, scale, scale));
-  ignition::msgs::Set(marker_msg.mutable_material()->mutable_ambient(),
-    ignition::math::Color(0, 0, 1, 1));
-  ignition::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(),
-    ignition::math::Color(0, 0, 1, 1));
+  gz::msgs::Set(marker_msg.mutable_scale(),
+    gz::math::Vector3d(scale, scale, scale));
+  gz::msgs::Set(marker_msg.mutable_material()->mutable_ambient(),
+    gz::math::Color(0, 0, 1, 1));
+  gz::msgs::Set(marker_msg.mutable_material()->mutable_diffuse(),
+    gz::math::Color(0, 0, 1, 1));
   _ign_node.Request("/marker", marker_msg);
 }
 
@@ -494,10 +494,10 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
 }
 
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   SlotcarPlugin,
   System,
   SlotcarPlugin::ISystemConfigure,
   SlotcarPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(SlotcarPlugin, "slotcar")
+GZ_ADD_PLUGIN_ALIAS(SlotcarPlugin, "slotcar")
