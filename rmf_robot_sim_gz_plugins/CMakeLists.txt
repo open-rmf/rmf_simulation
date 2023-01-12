@@ -182,6 +182,29 @@ target_include_directories(LightTuning
 )
 
 ###############################
+# AttachableCart Plugin
+###############################
+
+add_library(attachable_cart SHARED src/attachable_cart.cpp)
+
+ament_target_dependencies(attachable_cart
+    ignition-gazebo${IGN_GAZEBO_VER}
+    ignition-plugin${IGN_PLUGIN_VER}
+    ignition-msgs${IGN_MSGS_VER}
+    rmf_fleet_msgs
+    rclcpp
+    rmf_robot_sim_common
+    Eigen3
+)
+
+target_include_directories(teleport_dispenser
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${EIGEN3_INCLUDE_DIRS}
+)
+
+###############################
 # Install Targets
 ###############################
 
@@ -192,6 +215,7 @@ install(
     readonly
     slotcar
     LightTuning
+    attachable_cart
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
