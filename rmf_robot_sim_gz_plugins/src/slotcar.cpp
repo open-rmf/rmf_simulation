@@ -84,6 +84,8 @@ private:
   void path_request_marker_update(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr);
 
+  bool attach_cart(bool attach);
+
   void draw_lookahead_marker();
 
   ignition::msgs::Marker_V _trajectory_marker_msg;
@@ -105,6 +107,19 @@ SlotcarPlugin::~SlotcarPlugin()
 {
 }
 
+bool SlotcarPlugin::attach_cart(bool attach)
+{
+  if (attach)
+  {
+    std::cout << "Attaching cart" << std::endl;
+  }
+  else
+  {
+    std::cout << "Detaching cart" << std::endl;
+  }
+  return false;
+}
+
 void SlotcarPlugin::Configure(const Entity& entity,
   const std::shared_ptr<const sdf::Element>& sdf,
   EntityComponentManager& ecm, EventManager&)
@@ -114,6 +129,9 @@ void SlotcarPlugin::Configure(const Entity& entity,
   std::string model_name = model.Name(ecm);
   dataPtr->set_model_name(model_name);
   dataPtr->read_sdf(sdf);
+  dataPtr->set_attach_cart_callback(std::bind(&SlotcarPlugin::
+    attach_cart,
+    this, std::placeholders::_1));
 
   // TODO proper argc argv
   char const** argv = NULL;
