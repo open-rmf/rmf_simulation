@@ -50,15 +50,16 @@ private:
   rclcpp::Node::SharedPtr _ros_node;
 
   Entity _entity;
+  Eigen::Isometry3d _pose;
   std::unordered_set<Entity> _payloads;
   std::unordered_set<Entity> _obstacle_exclusions;
+  std::vector<Eigen::Vector3d> _dispensable_positions;
   double _height = 0;
 
   PhysEnginePlugin phys_plugin = PhysEnginePlugin::DEFAULT;
 
   bool first_iteration = true; // Flag for checking if it is first PreUpdate() call
   bool _read_aabb_dimensions = true;
-  bool _remove_world_pose_cmd = false;
 
   // Previous velocities, used to do open loop velocity control
   double _prev_v_command = 0.0;
@@ -78,8 +79,8 @@ private:
   void item_ingested_cb(const ignition::msgs::Entity& msg);
   bool get_slotcar_height(const ignition::msgs::Entity& req,
     ignition::msgs::Double& rep);
-  std::vector<Eigen::Vector3d> get_obstacle_positions(
-    EntityComponentManager& ecm);
+  std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>>
+    get_obstacle_positions(EntityComponentManager& ecm);
 
   void path_request_marker_update(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr);
@@ -111,6 +112,7 @@ bool SlotcarPlugin::attach_cart(bool attach)
 {
   if (attach)
   {
+    // Find _dispensable_position closest to _pose
     std::cout << "Attaching cart" << std::endl;
   }
   else
@@ -255,32 +257,40 @@ void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
   _obstacle_exclusions.insert(_entity);
 }
 
-std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
-  EntityComponentManager& ecm)
+std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>>
+  SlotcarPlugin::get_obstacle_positions(EntityComponentManager& ecm)
 {
   std::vector<Eigen::Vector3d> obstacle_positions;
+  std::vector<Eigen::Vector3d> dispensable_positions;
   ecm.Each<components::Model, components::Name, components::Pose,
     components::Static>(
     [&](const Entity& entity,
     const components::Model*,
-    const components::Name*,
+    const components::Name* name,
     const components::Pose* pose,
     const components::Static* is_static
     ) -> bool
     {
+      const auto& n = name->Data();
       // Object should not be static
       // It should not be part of obstacle exclusions (doors/lifts/dispensables)
       // And it should be closer than the "stop" range (checked by common)
-      const auto obstacle_position = pose->Data().Pos();
+      const auto object_position = pose->Data().Pos();
       if (is_static->Data() == false &&
       _obstacle_exclusions.find(entity) == _obstacle_exclusions.end())
       {
         obstacle_positions.push_back(rmf_plugins_utils::convert_vec(
-          obstacle_position));
+          object_position));
+      }
+      // It is a dispensable object
+      if (n.find("dispensable") != std::string::npos)
+      {
+        dispensable_positions.push_back(rmf_plugins_utils::convert_vec(
+          object_position));
       }
       return true;
     });
-  return obstacle_positions;
+  return {obstacle_positions, dispensable_positions};
 }
 
 void SlotcarPlugin::charge_state_cb(const ignition::msgs::Selection& msg)
@@ -493,12 +503,12 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count())
     * 1e-9;
 
-  auto pose = ecm.Component<components::Pose>(_entity)->Data();
-  auto obstacle_positions = get_obstacle_positions(ecm);
+  _pose = rmf_plugins_utils::convert_pose(
+      ecm.Component<components::Pose>(_entity)->Data());
+  auto [obstacle_positions, dispensable_positions] = get_obstacle_positions(ecm);
+  _dispensable_positions = std::move(dispensable_positions);
 
-  auto update_result =
-    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
-      obstacle_positions, time);
+  auto update_result = dataPtr->update(_pose, obstacle_positions, time);
 
   send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
     update_result.target_linear_speed_now,
