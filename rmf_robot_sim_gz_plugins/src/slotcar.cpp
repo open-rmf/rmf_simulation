@@ -5,6 +5,8 @@
 #include <ignition/gazebo/System.hh>
 #include <ignition/gazebo/Model.hh>
 #include <ignition/gazebo/Util.hh>
+#include <ignition/gazebo/components/DetachableJoint.hh>
+#include <ignition/gazebo/components/Link.hh>
 #include <ignition/gazebo/components/Model.hh>
 #include <ignition/gazebo/components/Name.hh>
 #include <ignition/gazebo/components/Pose.hh>
@@ -45,15 +47,20 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
+  // Distance to attach cart, if none is found attaching will fail
+  static constexpr float MIN_ATTACHING_DIST = 1.0;
   std::unique_ptr<rmf_robot_sim_common::SlotcarCommon> dataPtr;
   ignition::transport::Node _ign_node;
   rclcpp::Node::SharedPtr _ros_node;
 
+  EntityComponentManager *_ecm;
+
   Entity _entity;
+  Entity _joint_entity = kNullEntity;
   Eigen::Isometry3d _pose;
   std::unordered_set<Entity> _payloads;
   std::unordered_set<Entity> _obstacle_exclusions;
-  std::vector<Eigen::Vector3d> _dispensable_positions;
+  std::unordered_map<Entity, Eigen::Vector3d> _dispensable_positions;
   double _height = 0;
 
   PhysEnginePlugin phys_plugin = PhysEnginePlugin::DEFAULT;
@@ -79,13 +86,16 @@ private:
   void item_ingested_cb(const ignition::msgs::Entity& msg);
   bool get_slotcar_height(const ignition::msgs::Entity& req,
     ignition::msgs::Double& rep);
-  std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>>
+  std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity, Eigen::Vector3d>>
     get_obstacle_positions(EntityComponentManager& ecm);
 
   void path_request_marker_update(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr);
 
   bool attach_cart(bool attach);
+
+  bool attach_entity(const Entity& entity);
+  bool detach_entity();
 
   void draw_lookahead_marker();
 
@@ -114,12 +124,63 @@ bool SlotcarPlugin::attach_cart(bool attach)
   {
     // Find _dispensable_position closest to _pose
     std::cout << "Attaching cart" << std::endl;
+    if (_dispensable_positions.size() == 0)
+      return false;
+    auto min_entity = _dispensable_positions.begin()->first;
+    auto min_dist = (_pose.translation() - _dispensable_positions.begin()->second).norm();
+    for (const auto& [entity, pose] : _dispensable_positions)
+    {
+      auto dist = (_pose.translation() - pose).norm(); 
+      if (dist < min_dist)
+      {
+        min_dist = dist;
+        min_entity = entity;
+      }
+    }
+    return attach_entity(min_entity);
   }
   else
   {
     std::cout << "Detaching cart" << std::endl;
+    return detach_entity();
   }
   return false;
+}
+
+bool SlotcarPlugin::detach_entity()
+{
+  _ecm->RequestRemoveEntity(_joint_entity);
+  _joint_entity = kNullEntity;
+  return true;
+}
+
+bool SlotcarPlugin::attach_entity(const Entity& entity)
+{
+  // A cart was already attached
+  if (_joint_entity != kNullEntity)
+    return true;
+
+  _joint_entity = _ecm->CreateEntity();
+
+  auto robot_link_entities = _ecm->ChildrenByComponents(_entity, components::Link());
+  if (robot_link_entities.size() != 1)
+  {
+    ignwarn << "Robot should only have one link, using first" << std::endl;
+  }
+  auto robot_link_entity = robot_link_entities[0];
+
+  auto cart_link_entities = _ecm->ChildrenByComponents(entity, components::Link());
+  if (cart_link_entities.size() != 1)
+  {
+    ignwarn << "Cart should only have one link, using first" << std::endl;
+  }
+  auto cart_link_entity = cart_link_entities[0];
+
+  _ecm->CreateComponent(
+    _joint_entity,
+    components::DetachableJoint({robot_link_entity,
+                                 cart_link_entity, "fixed"}));
+  return true;
 }
 
 void SlotcarPlugin::Configure(const Entity& entity,
@@ -127,6 +188,7 @@ void SlotcarPlugin::Configure(const Entity& entity,
   EntityComponentManager& ecm, EventManager&)
 {
   _entity = entity;
+  _ecm = &ecm;
   auto model = Model(entity);
   std::string model_name = model.Name(ecm);
   dataPtr->set_model_name(model_name);
@@ -257,11 +319,11 @@ void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
   _obstacle_exclusions.insert(_entity);
 }
 
-std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>>
+std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity, Eigen::Vector3d>>
   SlotcarPlugin::get_obstacle_positions(EntityComponentManager& ecm)
 {
   std::vector<Eigen::Vector3d> obstacle_positions;
-  std::vector<Eigen::Vector3d> dispensable_positions;
+  std::unordered_map<Entity, Eigen::Vector3d> dispensable_positions;
   ecm.Each<components::Model, components::Name, components::Pose,
     components::Static>(
     [&](const Entity& entity,
@@ -285,8 +347,8 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>>
       // It is a dispensable object
       if (n.find("dispensable") != std::string::npos)
       {
-        dispensable_positions.push_back(rmf_plugins_utils::convert_vec(
-          object_position));
+        dispensable_positions.insert({entity, rmf_plugins_utils::convert_vec(
+          object_position)});
       }
       return true;
     });
