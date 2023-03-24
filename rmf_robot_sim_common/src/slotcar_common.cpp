@@ -500,6 +500,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     else if (_current_mode.mode == RobotMode::MODE_ATTACHING_CART)
     {
       if (_attach_cart_callback != nullptr && _attach_cart_callback(true))
+        _current_mode.mode = RobotMode::MODE_ATTACHED;
+      else
         _current_mode.mode = RobotMode::MODE_IDLE;
     }
     else if (_current_mode.mode == RobotMode::MODE_DETACHING_CART)

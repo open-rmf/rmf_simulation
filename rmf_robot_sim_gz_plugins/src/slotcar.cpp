@@ -137,6 +137,9 @@ bool SlotcarPlugin::attach_cart(bool attach)
         min_entity = entity;
       }
     }
+    if (min_dist > MIN_ATTACHING_DIST)
+      return false;
+
     return attach_entity(min_entity);
   }
   else
