@@ -511,6 +511,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       else
         _current_mode.mode = RobotMode::MODE_IDLE;
     }
+    else if (_current_mode.mode == RobotMode::MODE_ACTION_COMPLETED)
+    {
+      // Do nothing
+    }
     else if (stationary)
     {
       _current_mode.mode = RobotMode::MODE_IDLE;
