@@ -54,6 +54,10 @@ target_include_directories(rmf_robot_sim_utils
 
 add_library(ingestor_common SHARED ${PROJECT_SOURCE_DIR}/src/ingestor_common.cpp)
 
+target_link_libraries(ingestor_common
+    rmf_robot_sim_utils
+)
+
 ament_target_dependencies(ingestor_common
     rmf_fleet_msgs
     rmf_building_map_msgs
@@ -76,6 +80,10 @@ target_include_directories(ingestor_common
 
 add_library(dispenser_common SHARED ${PROJECT_SOURCE_DIR}/src/dispenser_common.cpp)
 
+target_link_libraries(dispenser_common
+    rmf_robot_sim_utils
+)
+
 ament_target_dependencies(dispenser_common
     rmf_fleet_msgs
     rmf_building_map_msgs
@@ -97,6 +105,10 @@ target_include_directories(dispenser_common
 ###################################
 
 add_library(readonly_common SHARED ${PROJECT_SOURCE_DIR}/src/readonly_common.cpp)
+
+target_link_libraries(readonly_common
+    rmf_robot_sim_utils
+)
 
 ament_target_dependencies(readonly_common
     rmf_fleet_msgs
@@ -156,10 +168,13 @@ ament_export_dependencies(
 )
 
 ament_export_include_directories(include)
+
+# cmake is sensitive to the order of these ament_export_targets calls
+# each library must be listed after any other libraries that it depends on
+ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
-ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
 
 install(

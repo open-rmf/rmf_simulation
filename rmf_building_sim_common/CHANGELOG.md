@@ -1,5 +1,10 @@
 ## Changelog for package rmf\_building\_sim\_common
 
+2.1.0 (2022-XX-XX)
+------------------
+* Don't print warning if lift is going to same floor ([#89](https://github.com/open-rmf/rmf_simulation/pull/89))
+* Contributors: Luca Della Vedova
+
 2.0.0 (2022-XX-XX)
 ------------------
 * Use ECM instead of traversing sdformat parent for Gazebo doors ([#80](https://github.com/open-rmf/rmf_simulation/pull/80))
