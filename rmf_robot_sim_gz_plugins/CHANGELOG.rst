@@ -2,6 +2,11 @@
 Changelog for package rmf\_robot\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Switch to rst changelogs (`#101 <https://github.com/open-rmf/rmf_simulation/issues/101>`_)
+* Contributors: Yadunund
+
 2.0.0 (2022-XX-XX)
 ------------------
 * Renamed to rmf\_robot\_sim\_gz\_plugins and Humble migration (`#77 <https://github.com/open-rmf/rmf_simulation/pull/77>`_)

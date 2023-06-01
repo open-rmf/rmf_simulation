@@ -2,7 +2,12 @@
 Changelog for package rmf\_robot\_sim\_gz\_classic\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.0.0 (2022-XX-XX)
+Forthcoming
+-----------
+* Switch to rst changelogs (`#101 <https://github.com/open-rmf/rmf_simulation/issues/101>`_)
+* Contributors: Yadunund
+
+2.0.0 (2022-10-04)
 ------------------
 * Renamed to rmf\_robot\_sim\_gz\_classic\_plugins and Humble migration (`#77 <https://github.com/open-rmf/rmf_simulation/pull/77>`_)
 * Checking for models with dispensable in names to not be considered an obstacle by slotcar (`#74 <https://github.com/open-rmf/rmf_simulation/pull/7>`_)
