@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2023-06-02)
+------------------
 * Switch to rst changelogs (`#101 <https://github.com/open-rmf/rmf_simulation/pull/101>`_)
 * Fix eigen not found when building rpm (`#102 <https://github.com/open-rmf/rmf_simulation/pull/102>`_)
 * Fix library linking (`#97 <https://github.com/open-rmf/rmf_simulation/pull/97>`_)

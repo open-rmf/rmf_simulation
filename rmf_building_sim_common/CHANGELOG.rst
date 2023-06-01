@@ -2,8 +2,8 @@
 Changelog for package rmf\_building\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.1 (2023-06-02)
+------------------
 * Switch to rst changelogs (`#101 <https://github.com/open-rmf/rmf_simulation/pull/101>`_)
 * Don't print warning if lift is going to same floor (`#89 <https://github.com/open-rmf/rmf_simulation/pull/89>`_)
 * Contributors: Luca Della Vedova, Yadunund
