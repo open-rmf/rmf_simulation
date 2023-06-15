@@ -5,8 +5,7 @@
 #include <ignition/gazebo/Util.hh>
 #include <ignition/gazebo/components/JointAxis.hh>
 #include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
+#include <ignition/gazebo/components/JointPositionReset.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -30,6 +29,8 @@ private:
   rclcpp::Node::SharedPtr _ros_node;
   std::unordered_map<std::string, Entity> _joints;
 
+  std::unordered_map<std::string, double> _last_velocities;
+
   std::shared_ptr<DoorCommon> _door_common = nullptr;
 
   bool _initialized = false;
@@ -38,8 +39,6 @@ private:
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
     enableComponent<components::JointPosition>(ecm, entity);
-    enableComponent<components::JointVelocity>(ecm, entity);
-    enableComponent<components::JointVelocityCmd>(ecm, entity);
   }
 
   std::optional<DoorCommon::Doors> get_doors(
@@ -206,6 +205,9 @@ public:
     double t =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
       count()) * 1e-9;
+    double dt =
+      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
+      count()) * 1e-9;
 
     // Create DoorUpdateRequest
     std::vector<DoorCommon::DoorUpdateRequest> requests;
@@ -215,8 +217,8 @@ public:
       request.joint_name = joint.first;
       request.position = ecm.Component<components::JointPosition>(
         joint.second)->Data()[0];
-      request.velocity = ecm.Component<components::JointVelocity>(
-        joint.second)->Data()[0];
+      // Open loop velocity control, similar to slotcar
+      request.velocity = _last_velocities[request.joint_name];
       requests.push_back(request);
     }
 
@@ -227,9 +229,11 @@ public:
     {
       const auto it = _joints.find(result.joint_name);
       assert(it != _joints.end());
-      auto vel_cmd = ecm.Component<components::JointVelocityCmd>(
-        it->second);
-      vel_cmd->Data() = {result.velocity};
+      auto cur_pos =
+        ecm.Component<components::JointPosition>(it->second)->Data()[0];
+      ecm.CreateComponent(it->second,
+        components::JointPositionReset({cur_pos + result.velocity * dt}));
+      _last_velocities[result.joint_name] = result.velocity;
     }
   }
 
