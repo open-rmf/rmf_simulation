@@ -18,7 +18,7 @@ jobs:
       - name: install_clang
         run: sudo apt update && sudo apt install -y clang clang-tools lld
       - name: tsan_build_test
-        uses: ros-tooling/action-ros-ci@v0.2
+        uses: ros-tooling/action-ros-ci@v0.3
         id: tsan_build_test
         env:
           CC: clang
