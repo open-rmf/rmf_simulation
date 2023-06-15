@@ -8,8 +8,9 @@ jobs:
   tsan:
     name: tsan
     runs-on: ubuntu-latest
-    container:
-      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
+    strategy:
+      matrix:
+        docker_image: ['ros:iron-ros-base']
     steps:
       - name: deps
         uses: ros-tooling/setup-ros@v0.4
