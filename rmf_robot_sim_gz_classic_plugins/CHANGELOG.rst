@@ -2,6 +2,9 @@
 Changelog for package rmf\_robot\_sim\_gz\_classic\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.2.0 (2023-06-08)
 ------------------
 
