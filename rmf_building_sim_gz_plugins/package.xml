@@ -21,7 +21,7 @@
   <depend>libqt5-qml</depend>
   <depend>libqt5-quick</depend>
   <depend>menge_vendor</depend>
-  <depend>ignition-fortress</depend>
+  <!--<depend>ignition-fortress</depend>-->
 
   <export>
     <build_type>ament_cmake</build_type>

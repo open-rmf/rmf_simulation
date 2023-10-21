@@ -1,28 +1,28 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/Static.hh>
-#include <ignition/gazebo/components/AxisAlignedBox.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointVelocity.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
-#include <ignition/gazebo/components/JointPositionReset.hh>
-#include <ignition/gazebo/components/LinearVelocityCmd.hh>
-#include <ignition/gazebo/components/AngularVelocityCmd.hh>
-#include <ignition/gazebo/components/PoseCmd.hh>
-#include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/Static.hh>
+#include <gz/sim/components/AxisAlignedBox.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointVelocity.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
+#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/LinearVelocityCmd.hh>
+#include <gz/sim/components/AngularVelocityCmd.hh>
+#include <gz/sim/components/PoseCmd.hh>
+#include <gz/sim/components/PhysicsEnginePlugin.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
 #include <rmf_building_sim_common/utils.hpp>
 #include <rmf_building_sim_common/lift_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 using namespace rmf_building_sim_common;
 
@@ -30,11 +30,11 @@ namespace building_sim_ign {
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
 std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
-  {"ignition-physics-tpe-plugin", PhysEnginePlugin::TPE}};
+  {"gz-physics-tpe-plugin", PhysEnginePlugin::TPE}};
 
 //==============================================================================
 
-class IGNITION_GAZEBO_VISIBLE LiftPlugin
+class GZ_SIM_VISIBLE LiftPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -44,8 +44,8 @@ private:
   Entity _cabin_joint;
   Entity _lift_entity;
   std::vector<Entity> _payloads;
-  ignition::math::AxisAlignedBox _initial_aabb;
-  ignition::math::Pose3d _initial_pose;
+  gz::math::AxisAlignedBox _initial_aabb;
+  gz::math::Pose3d _initial_pose;
   bool _read_aabb_dimensions = true;
 
   PhysEnginePlugin _phys_plugin = PhysEnginePlugin::DEFAULT;
@@ -97,10 +97,10 @@ private:
   {
     const auto& lift_pose =
       ecm.Component<components::Pose>(_lift_entity)->Data();
-    const ignition::math::Vector3d displacement =
+    const gz::math::Vector3d displacement =
       lift_pose.CoordPositionSub(_initial_pose);
     // Calculate current AABB of lift assuming it hasn't tilted/deformed
-    ignition::math::AxisAlignedBox lift_aabb = _initial_aabb + displacement;
+    gz::math::AxisAlignedBox lift_aabb = _initial_aabb + displacement;
 
     std::vector<Entity> payloads;
     ecm.Each<components::Model, components::Pose>(
@@ -294,12 +294,12 @@ public:
 };
 
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   LiftPlugin,
   System,
   LiftPlugin::ISystemConfigure,
   LiftPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(LiftPlugin, "lift")
+GZ_ADD_PLUGIN_ALIAS(LiftPlugin, "lift")
 
 } // namespace building_sim_ign
