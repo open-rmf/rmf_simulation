@@ -146,6 +146,7 @@ public:
     if (!rclcpp::ok())
       rclcpp::init(0, argv);
     std::string plugin_name("plugin_" + name);
+    sanitize_node_name(plugin_name);
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     RCLCPP_INFO(_ros_node->get_logger(),
