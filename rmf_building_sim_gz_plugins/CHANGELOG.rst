@@ -2,6 +2,11 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Sanitize node names to avoid plugin exceptions (`#112 <https://github.com/open-rmf/rmf_simulation/pull/112>`_)
+* Contributors: Luca Della Vedova
+
 2.1.1 (2023-06-30)
 ------------------
 * Use JointPositionReset for open loop door control (`#106 <https://github.com/open-rmf/rmf_simulation/issues/106>`_)
