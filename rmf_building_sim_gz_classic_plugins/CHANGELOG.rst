@@ -2,8 +2,8 @@
 Changelog for package rmf\_building\_sim\_gz\_classic\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.2 (2023-12-20)
+------------------
 * Sanitize node names to avoid plugin exceptions (`#110 <https://github.com/open-rmf/rmf_simulation/pull/110>`_)
 * Contributors: Luca Della Vedova
 
