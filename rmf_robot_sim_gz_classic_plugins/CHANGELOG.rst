@@ -2,6 +2,11 @@
 Changelog for package rmf\_robot\_sim\_gz\_classic\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.2.2 (2023-12-20)
+------------------
+* Sanitize node names to avoid plugin exceptions (`#110 <https://github.com/open-rmf/rmf_simulation/pull/110>`_)
+* Contributors: Luca Della Vedova
+
 2.2.1 (2023-06-30)
 ------------------
 
