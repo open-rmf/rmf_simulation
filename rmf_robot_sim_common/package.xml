@@ -1,6 +1,6 @@
 <package format="3">
   <name>rmf_robot_sim_common</name>
-  <version>2.1.1</version>
+  <version>2.1.2</version>
   <description>
     Common utility functions for Gazebo-classic and Gazebo RMF plugins
   </description>
