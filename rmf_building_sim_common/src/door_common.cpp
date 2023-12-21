@@ -72,10 +72,10 @@ DoorCommon::DoorCommon(const std::string& door_name,
   _request.requested_mode.value = DoorMode::MODE_CLOSED;
 
   _door_state_pub = _ros_node->create_publisher<DoorState>(
-    "/door_states", rclcpp::SystemDefaultsQoS());
+    "sim/door_states", rclcpp::SystemDefaultsQoS());
 
   _door_request_sub = _ros_node->create_subscription<DoorRequest>(
-    "/door_requests", rclcpp::SystemDefaultsQoS(),
+    "sim/door_requests", rclcpp::SystemDefaultsQoS(),
     [&](DoorRequest::UniquePtr msg)
     {
       if (msg->door_name == _state.door_name)

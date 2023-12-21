@@ -204,13 +204,14 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
 
   // initialize pub & sub
   _lift_state_pub = _ros_node->create_publisher<LiftState>(
-    "/lift_states", rclcpp::SystemDefaultsQoS());
+    "sim/lift_states", rclcpp::SystemDefaultsQoS());
 
+  // TODO(luca) remove adapter door request and make lift command its own doors
   _door_request_pub = _ros_node->create_publisher<DoorRequest>(
-    "/adapter_door_requests", rclcpp::SystemDefaultsQoS());
+    "adapter_door_requests", rclcpp::SystemDefaultsQoS());
 
   _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
-    "/lift_requests", rclcpp::SystemDefaultsQoS(),
+    "sim/lift_requests", rclcpp::SystemDefaultsQoS(),
     [&](LiftRequest::UniquePtr msg)
     {
       if (msg->lift_name != _lift_name)
