@@ -18,6 +18,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+find_package(rmf_door_msgs REQUIRED)
+find_package(rmf_lift_msgs REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
@@ -64,7 +66,6 @@ add_library(door SHARED src/door.cpp)
 target_include_directories(door
   PUBLIC
     ${rmf_building_sim_common_INCLUDE_DIRS}
-    ${geometry_msgs_INCLUDE_DIRS}
     ${rmf_door_msgs_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
@@ -74,7 +75,7 @@ ament_target_dependencies(door
     rclcpp
     gz-sim${GZ_SIM_VER}
     gz-plugin${GZ_PLUGIN_VER}
-    rmf_building_sim_common
+    rmf_door_msgs
 )
 
 ###############################
@@ -103,8 +104,8 @@ add_library(lift SHARED src/lift.cpp)
 
 target_include_directories(lift
   PUBLIC
-    ${rmf_building_sim_common_INCLUDE_DIRS}
-    ${geometry_msgs_INCLUDE_DIRS}
+    ${rmf_lift_msgs_INCLUDE_DIRS}
+    ${rmf_door_msgs_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
@@ -113,7 +114,8 @@ ament_target_dependencies(lift
     rclcpp
     gz-sim${GZ_SIM_VER}
     gz-plugin${GZ_PLUGIN_VER}
-    rmf_building_sim_common
+    rmf_lift_msgs
+    rmf_door_msgs
 )
 
 ###############################

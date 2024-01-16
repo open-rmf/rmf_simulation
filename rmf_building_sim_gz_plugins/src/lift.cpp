@@ -18,17 +18,20 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <rmf_building_sim_common/utils.hpp>
-#include <rmf_building_sim_common/lift_common.hpp>
-
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
+#include <rmf_door_msgs/msg/door_mode.hpp>
+#include <rmf_lift_msgs/msg/lift_request.hpp>
+#include <rmf_lift_msgs/msg/lift_state.hpp>
+
 using namespace gz::sim;
 
-using namespace rmf_building_sim_common;
+using DoorMode = rmf_door_msgs::msg::DoorMode;
+using LiftState = rmf_lift_msgs::msg::LiftState;
+using LiftRequest = rmf_lift_msgs::msg::LiftRequest;
 
-namespace building_sim_ign {
+namespace rmf_building_sim_gz_plugins {
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
 std::unordered_map<std::string, PhysEnginePlugin> plugin_names {

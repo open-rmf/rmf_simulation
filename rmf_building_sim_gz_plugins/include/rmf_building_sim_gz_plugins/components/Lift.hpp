@@ -22,8 +22,8 @@
 #include <gz/sim/components/Component.hh>
 #include <gz/sim/config.hh>
 
-#include <rmf_building_sim_common/utils.hpp>
 
+#include <rmf_building_sim_gz_plugins/utils.hpp>
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 
 namespace gz
@@ -44,7 +44,7 @@ namespace sim
     std::string name;
     std::unordered_map<std::string, Floor> floors; // Maps name to floor
     std::string initial_floor;
-    rmf_building_sim_common::MotionParams params;
+    rmf_building_sim_gz_plugins::MotionParams params;
     std::string cabin_joint;
   };
 

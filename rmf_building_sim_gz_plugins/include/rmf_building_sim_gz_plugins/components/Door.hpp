@@ -22,7 +22,7 @@
 #include <gz/sim/components/Component.hh>
 #include <gz/sim/config.hh>
 
-#include <rmf_building_sim_common/utils.hpp>
+#include <rmf_building_sim_gz_plugins/utils.hpp>
 
 namespace gz
 {
@@ -35,7 +35,7 @@ namespace sim
   };
 
   struct DoorData {
-    rmf_building_sim_common::MotionParams params;
+    rmf_building_sim_gz_plugins::MotionParams params;
     std::vector<DoorJoint> joints;
     bool ros_interface; // Whether it's managed by RMF, false for lift doors
   };

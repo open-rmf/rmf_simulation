@@ -19,7 +19,7 @@
 
 using namespace gz::sim;
 
-using namespace rmf_building_sim_common;
+using namespace rmf_building_sim_gz_plugins;
 using DoorMode = rmf_door_msgs::msg::DoorMode;
 using DoorState = rmf_door_msgs::msg::DoorState;
 using DoorRequest = rmf_door_msgs::msg::DoorRequest;
@@ -215,7 +215,7 @@ public:
         });
 
     // Publish states
-    ecm.Each<components::Door, components::DoorStateComp, components::Name>([&](const Entity& entity, const components::Door* door_comp, const components::DoorStateComp* door_state_comp, const components::Name* name_comp) -> bool
+    ecm.Each<components::Door, components::DoorStateComp, components::Name>([&](const Entity&, const components::Door* door_comp, const components::DoorStateComp* door_state_comp, const components::Name* name_comp) -> bool
         {
           const auto& door_state = door_state_comp->Data();
           const auto& door = door_comp->Data();
