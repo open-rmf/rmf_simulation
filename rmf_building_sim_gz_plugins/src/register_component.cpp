@@ -1,24 +1,25 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/components/Factory.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
+#include <gz/sim/components/Factory.hh>
+#include <gz/sim/components/JointAxis.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
 
-#include <ignition/gazebo/components/AxisAlignedBox.hh>
+#include <gz/sim/components/AxisAlignedBox.hh>
+#include <gz/sim/components/Name.hh>
 
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 namespace rmf_building_sim_gz_plugins {
 
 //==============================================================================
 
-class IGNITION_GAZEBO_VISIBLE RegisterComponentPlugin
+class GZ_SIM_VISIBLE RegisterComponentPlugin
   : public System,
   public ISystemConfigure
 {
@@ -73,7 +74,14 @@ private:
       auto joint_entity = model.JointByName(ecm, joint_name);
       if (joint_entity == kNullEntity)
       {
-        continue;
+        // Try in the global space
+        joint_entity = ecm.EntityByComponents(components::Name(joint_name));
+        if (joint_entity == kNullEntity)
+        {
+          // TODO(luca) error handling here
+          std::cout << "Joint " << joint_name << " not found" << std::endl;
+          continue;
+        }
       }
       const auto* joint_axis =
         ecm.Component<components::JointAxis>(joint_entity);
@@ -214,11 +222,11 @@ public:
   }
 };
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   RegisterComponentPlugin,
   System,
   RegisterComponentPlugin::ISystemConfigure)
 
-IGNITION_ADD_PLUGIN_ALIAS(RegisterComponentPlugin, "register_component")
+GZ_ADD_PLUGIN_ALIAS(RegisterComponentPlugin, "register_component")
 
 } // namespace rmf_building_sim_gz_plugins

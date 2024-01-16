@@ -18,17 +18,17 @@
 #ifndef RMF_BUILDING_SIM_GZ_PLUGINS_COMPONENTS_LIFT_HPP
 #define RMF_BUILDING_SIM_GZ_PLUGINS_COMPONENTS_LIFT_HPP
 
-#include <ignition/gazebo/components/Factory.hh>
-#include <ignition/gazebo/components/Component.hh>
-#include <ignition/gazebo/config.hh>
+#include <gz/sim/components/Factory.hh>
+#include <gz/sim/components/Component.hh>
+#include <gz/sim/config.hh>
 
 #include <rmf_building_sim_common/utils.hpp>
 
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 
-namespace ignition
+namespace gz
 {
-namespace gazebo
+namespace sim 
 {
   struct FloorDoorPair {
     std::string cabin_door;
@@ -59,11 +59,11 @@ namespace gazebo
   {
     /// \brief A component used to describe an RMF lift.
     using Lift = Component<LiftData, class LiftTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.Lift", Lift)
+    GZ_SIM_REGISTER_COMPONENT("rmf_components.Lift", Lift)
 
     /// \brief A component used to command an RMF lift to open / close.
     using LiftCmd = Component<LiftCommand, class LiftCmdTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.LiftCmd", LiftCmd)
+    GZ_SIM_REGISTER_COMPONENT("rmf_components.LiftCmd", LiftCmd)
   }
 }
 }

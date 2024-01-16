@@ -18,15 +18,15 @@
 #ifndef RMF_BUILDING_SIM_GZ_PLUGINS_COMPONENTS_DOOR_HPP
 #define RMF_BUILDING_SIM_GZ_PLUGINS_COMPONENTS_DOOR_HPP
 
-#include <ignition/gazebo/components/Factory.hh>
-#include <ignition/gazebo/components/Component.hh>
-#include <ignition/gazebo/config.hh>
+#include <gz/sim/components/Factory.hh>
+#include <gz/sim/components/Component.hh>
+#include <gz/sim/config.hh>
 
 #include <rmf_building_sim_common/utils.hpp>
 
-namespace ignition
+namespace gz
 {
-namespace gazebo
+namespace sim 
 {
   struct DoorJoint {
     std::string name;
@@ -50,15 +50,15 @@ namespace gazebo
   {
     /// \brief A component used to describe an RMF door.
     using Door = Component<DoorData, class DoorTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.Door", Door)
+    GZ_SIM_REGISTER_COMPONENT("rmf_components.Door", Door)
 
     /// \brief A component used to command an RMF door to open / close.
     using DoorCmd = Component<DoorModeCmp, class DoorCmdTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
+    GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
 
     /// \brief A component used to show the state of an RMF door.
     using DoorStateComp = Component<DoorModeCmp, class DoorStateTag>;
-    IGN_GAZEBO_REGISTER_COMPONENT("rmf_components.DoorStateComp", DoorStateComp)
+    GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorStateComp", DoorStateComp)
   }
 }
 }

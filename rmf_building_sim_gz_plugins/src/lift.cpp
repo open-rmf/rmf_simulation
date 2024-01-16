@@ -1,20 +1,20 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/Static.hh>
-#include <ignition/gazebo/components/AxisAlignedBox.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointPositionReset.hh>
-#include <ignition/gazebo/components/JointVelocityCmd.hh>
-#include <ignition/gazebo/components/LinearVelocityCmd.hh>
-#include <ignition/gazebo/components/AngularVelocityCmd.hh>
-#include <ignition/gazebo/components/PoseCmd.hh>
-#include <ignition/gazebo/components/PhysicsEnginePlugin.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/Static.hh>
+#include <gz/sim/components/AxisAlignedBox.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
+#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/LinearVelocityCmd.hh>
+#include <gz/sim/components/AngularVelocityCmd.hh>
+#include <gz/sim/components/PoseCmd.hh>
+#include <gz/sim/components/PhysicsEnginePlugin.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -24,7 +24,7 @@
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 using namespace rmf_building_sim_common;
 
@@ -32,11 +32,11 @@ namespace building_sim_ign {
 
 enum class PhysEnginePlugin {DEFAULT, TPE};
 std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
-  {"ignition-physics-tpe-plugin", PhysEnginePlugin::TPE}};
+  {"gz-physics-tpe-plugin", PhysEnginePlugin::TPE}};
 
 //==============================================================================
 
-class IGNITION_GAZEBO_VISIBLE LiftPlugin
+class GZ_SIM_VISIBLE LiftPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -49,10 +49,12 @@ private:
   rclcpp::Publisher<LiftState>::SharedPtr _lift_state_pub;
   rclcpp::Subscription<LiftRequest>::SharedPtr _lift_request_sub;
 
-  std::unordered_map<std::string, ignition::math::AxisAlignedBox> _initial_aabbs;
-  std::unordered_map<std::string, ignition::math::Pose3d> _initial_poses;
+  std::unordered_map<std::string, gz::math::AxisAlignedBox> _initial_aabbs;
+  std::unordered_map<std::string, gz::math::Pose3d> _initial_poses;
+  std::unordered_map<std::string, Entity> _cached_entity_by_names;
 
   std::unordered_map<Entity, double> _last_cmd_vel;
+  std::unordered_map<Entity, LiftCommand> _last_lift_command;
 
   std::unordered_map<std::string, double> _last_state_pub;
 
@@ -98,10 +100,10 @@ private:
     /*
     const auto& lift_pose =
       ecm.Component<components::Pose>(_lift_entity)->Data();
-    const ignition::math::Vector3d displacement =
+    const gz::math::Vector3d displacement =
       lift_pose.CoordPositionSub(_initial_pose);
     // Calculate current AABB of lift assuming it hasn't tilted/deformed
-    ignition::math::AxisAlignedBox lift_aabb = _initial_aabb + displacement;
+    gz::math::AxisAlignedBox lift_aabb = _initial_aabb + displacement;
 
     ecm.Each<components::Model, components::Pose>(
       [&](const Entity& entity,
@@ -203,8 +205,6 @@ private:
       const auto cabin_door = ecm.EntityByComponents(components::Name(door_pair.cabin_door));
       if (cabin_door != kNullEntity)
         doors.push_back(cabin_door);
-      else
-        std::cout << "Cabin door " << door_pair.cabin_door << "not found" << std::endl;
     }
     return doors;
   }
@@ -269,6 +269,21 @@ private:
       ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
   }
 
+  // TODO(luca) move this to a common block and reuse in all plugins
+  Entity entity_by_name(EntityComponentManager& ecm, const std::string& name)
+  {
+    // Lookup the cache first
+    auto it = _cached_entity_by_names.find(name);
+    if (it != _cached_entity_by_names.end())
+      return it->second;
+    auto entity = ecm.EntityByComponents(components::Name(name));
+    if (entity != kNullEntity)
+    {
+      _cached_entity_by_names[name] = entity;
+    }
+    return entity;
+  }
+
   bool all_doors_at_state(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorModeCmp cmd) const
   {
     for (const auto& entity : doors)
@@ -308,7 +323,6 @@ private:
       auto target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
       ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
       _last_cmd_vel[joint_entity] = target_vel;
-      std::cout << "Commanding lift to " << target_elevation << " from " << cur_elevation << " target vel is " << target_vel << std::endl;
     }
   }
 
@@ -333,7 +347,7 @@ public:
       [&](LiftRequest::UniquePtr msg)
       {
         // Find entity with the name and create a DoorCmd component
-        auto entity = ecm.EntityByComponents(components::Name(msg->lift_name));
+        auto entity = entity_by_name(ecm, msg->lift_name);
         const auto* lift_comp = ecm.Component<components::Lift>(entity);
         if (entity != kNullEntity || lift_comp == nullptr)
         {
@@ -372,6 +386,7 @@ public:
               "Lift [%s] requested at level [%s]",
               msg->lift_name.c_str(), msg->destination_floor.c_str());
           }
+          _last_lift_command[entity] = lift_command;
           ecm.CreateComponent<components::LiftCmd>(entity, components::LiftCmd(lift_command));
         }
         else
@@ -434,12 +449,24 @@ public:
       const auto& pose = pose_comp->Data();
 
       const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
+      LiftCommand lift_cmd;
+      if (lift_cmd_comp != nullptr)
+      {
+        lift_cmd = lift_cmd_comp->Data();
+      }
+      else if (_last_lift_command.find(entity) != _last_lift_command.end())
+      {
+        lift_cmd = _last_lift_command[entity];
+      }
+      else {
+        // Default
+        lift_cmd.destination_floor = lift.initial_floor;
+        lift_cmd.door_state = DoorModeCmp::CLOSE;
+      }
 
-      const auto destination_floor = lift_cmd_comp != nullptr ?
-        lift_cmd_comp->Data().destination_floor : lift.initial_floor;
+      const auto& destination_floor = lift_cmd.destination_floor;
       const double target_elevation = lift.floors.at(destination_floor).elevation;
-      const auto target_door_state = lift_cmd_comp != nullptr ?
-        lift_cmd_comp->Data().door_state : DoorModeCmp::CLOSE;
+      const auto target_door_state = lift_cmd.door_state;
       const std::string cur_floor = get_current_floor(entity, ecm, lift);
 
       const auto doors = get_floor_doors(ecm, lift, cur_floor);
@@ -563,12 +590,12 @@ public:
 };
 
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   LiftPlugin,
   System,
   LiftPlugin::ISystemConfigure,
   LiftPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(LiftPlugin, "lift")
+GZ_ADD_PLUGIN_ALIAS(LiftPlugin, "lift")
 
 } // namespace building_sim_ign

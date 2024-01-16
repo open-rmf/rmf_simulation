@@ -1,30 +1,30 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Joint.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointPositionReset.hh>
-#include <ignition/gazebo/components/Name.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Joint.hh>
+#include <gz/sim/components/JointAxis.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/Name.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <rmf_building_sim_common/utils.hpp>
-#include <rmf_building_sim_common/door_common.hpp>
+#include <rmf_door_msgs/msg/door_mode.hpp>
+#include <rmf_door_msgs/msg/door_state.hpp>
+#include <rmf_door_msgs/msg/door_request.hpp>
 
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 using namespace rmf_building_sim_common;
+using DoorMode = rmf_door_msgs::msg::DoorMode;
+using DoorState = rmf_door_msgs::msg::DoorState;
+using DoorRequest = rmf_door_msgs::msg::DoorRequest;
 
-namespace rmf_building_sim_gz_plugins {
-
-//==============================================================================
-
-class IGNITION_GAZEBO_VISIBLE DoorPlugin
+class GZ_SIM_VISIBLE DoorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -42,6 +42,21 @@ private:
 
   bool _first_iteration = true;
 
+  Entity get_joint_entity(const EntityComponentManager& ecm, const Entity& model_entity, const std::string& joint_name) const
+  {
+    auto joint_entity = Model(model_entity).JointByName(ecm, joint_name);
+    if (joint_entity == kNullEntity)
+    {
+      // Try in the global space
+      joint_entity = ecm.EntityByComponents(components::Name(joint_name));
+      if (joint_entity == kNullEntity)
+      {
+        std::cout << "Joint " << joint_name << " not found" << std::endl;
+      }
+    }
+    return joint_entity;
+  }
+
   bool is_joint_at_position(double joint_position, double dx_min, double target_position) const
   {
     return std::abs(target_position - joint_position) < dx_min;
@@ -52,16 +67,22 @@ private:
     bool all_closed = true;
     for (const auto& joint : door.joints)
     {
-      auto joint_entity = Model(entity).JointByName(ecm, joint.name);
+      auto joint_entity = get_joint_entity(ecm, entity, joint.name);
       if (joint_entity == kNullEntity)
+      {
         continue;
+      }
       const auto* joint_component =
         ecm.Component<components::JointPosition>(joint_entity);
       const double joint_position = joint_component->Data()[0];
       if (!is_joint_at_position(joint_position, door.params.dx_min, joint.open_position))
+      {
         all_open = false;
+      }
       if (!is_joint_at_position(joint_position, door.params.dx_min, joint.closed_position))
+      {
         all_closed = false;
+      }
     }
     if (all_open)
       return DoorModeCmp::OPEN;
@@ -92,7 +113,7 @@ private:
     auto model = Model(entity);
     for (const auto& joint : door.joints)
     {
-      auto joint_entity = model.JointByName(ecm, joint.name);
+      auto joint_entity = get_joint_entity(ecm, entity, joint.name);
       if (joint_entity != kNullEntity)
       {
         auto cur_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
@@ -147,7 +168,7 @@ public:
         {
           for (auto joint : door->Data().joints)
           {
-            auto joint_entity = Model(entity).JointByName(ecm, joint.name);
+            auto joint_entity = get_joint_entity(ecm, entity, joint.name);
             enableComponent<components::JointPosition>(ecm, joint_entity);
           }
           return true;
@@ -235,12 +256,11 @@ public:
   }
 };
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   DoorPlugin,
   System,
   DoorPlugin::ISystemConfigure,
   DoorPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
+GZ_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
 
-} // namespace rmf_building_sim_gz_plugins

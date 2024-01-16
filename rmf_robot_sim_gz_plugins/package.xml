@@ -1,6 +1,6 @@
 <package format="3">
   <name>rmf_robot_sim_gz_plugins</name>
-  <version>2.0.0</version>
+  <version>2.2.1</version>
   <description>
     ROS 2 Gazebo plugins for TeleportIngestors and TeleportDispensers
   </description>
@@ -22,7 +22,7 @@
   <depend>libqt5-core</depend>
   <depend>libqt5-qml</depend>
   <depend>libqt5-quick</depend>
-  <depend>ignition-fortress</depend>
+  <!--  <depend>ignition-fortress</depend>-->
 
   <export>
     <build_type>ament_cmake</build_type>
