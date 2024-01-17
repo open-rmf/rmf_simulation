@@ -26,10 +26,6 @@
 
 using namespace gz::sim;
 
-enum class PhysEnginePlugin {DEFAULT, TPE};
-std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
-  {"gz-physics-tpe-plugin", PhysEnginePlugin::TPE}};
-
 class GZ_SIM_VISIBLE SlotcarPlugin
   : public System,
   public ISystemConfigure,
@@ -50,13 +46,9 @@ private:
   rclcpp::Node::SharedPtr _ros_node;
 
   Entity _entity;
-  std::unordered_set<Entity> _payloads;
   std::unordered_set<Entity> _obstacle_exclusions;
   double _height = 0;
 
-  PhysEnginePlugin phys_plugin = PhysEnginePlugin::DEFAULT;
-
-  bool first_iteration = true; // Flag for checking if it is first PreUpdate() call
   bool _read_aabb_dimensions = true;
   bool _remove_world_pose_cmd = false;
 
@@ -68,14 +60,11 @@ private:
 
   void send_control_signals(EntityComponentManager& ecm,
     const std::pair<double, double>& displacements,
-    const std::unordered_set<Entity> payloads,
     const double dt,
     const double target_linear_speed_now,
     const double target_linear_speed_destination,
     const std::optional<double>& max_linear_velocity);
   void init_obstacle_exclusions(EntityComponentManager& ecm);
-  void item_dispensed_cb(const gz::msgs::UInt64_V& msg);
-  void item_ingested_cb(const gz::msgs::Entity& msg);
   bool get_slotcar_height(const gz::msgs::Entity& req,
     gz::msgs::Double& rep);
   std::vector<Eigen::Vector3d> get_obstacle_positions(
@@ -136,18 +125,6 @@ void SlotcarPlugin::Configure(const Entity& entity,
   enableComponent<components::LinearVelocityCmd>(ecm, entity);
   enableComponent<components::AngularVelocityCmd>(ecm, entity);
 
-  // Keep track of when a payload is dispensed onto/ingested from slotcar
-  // Needed for TPE Plugin to know when to manually move payload via this plugin
-  if (!_gz_node.Subscribe("/item_dispensed", &SlotcarPlugin::item_dispensed_cb,
-    this))
-  {
-    std::cerr << "Error subscribing to topic [/item_dispensed]" << std::endl;
-  }
-  if (!_gz_node.Subscribe("/item_ingested", &SlotcarPlugin::item_ingested_cb,
-    this))
-  {
-    std::cerr << "Error subscribing to topic [/item_ingested]" << std::endl;
-  }
   // Respond to requests asking for height (e.g. for dispenser to dispense object)
   const std::string height_srv_name =
     "/slotcar_height_" + std::to_string(entity);
@@ -167,7 +144,6 @@ void SlotcarPlugin::Configure(const Entity& entity,
 
 void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   const std::pair<double, double>& displacements,
-  const std::unordered_set<Entity> payloads,
   const double dt,
   const double target_linear_speed_now,
   const double target_linear_speed_destination,
@@ -192,20 +168,6 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   // Update previous velocities
   _prev_v_command = target_vels[0];
   _prev_w_command = target_vels[1];
-
-  if (phys_plugin == PhysEnginePlugin::TPE) // Need to manually move any payloads
-  {
-    for (const Entity& payload : payloads)
-    {
-      enableComponent<components::LinearVelocityCmd>(ecm, payload);
-      enableComponent<components::AngularVelocityCmd>(ecm, payload);
-
-      ecm.Component<components::LinearVelocityCmd>(payload)->Data() =
-        lin_vel_cmd->Data();
-      ecm.Component<components::AngularVelocityCmd>(payload)->Data() =
-        ang_vel_cmd->Data();
-    }
-  }
 }
 
 void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
@@ -269,28 +231,6 @@ std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
 void SlotcarPlugin::charge_state_cb(const gz::msgs::Selection& msg)
 {
   dataPtr->charge_state_cb(msg.name(), msg.selected());
-}
-
-// First element of msg should be the slotcar, and the second should be the payload
-void SlotcarPlugin::item_dispensed_cb(const gz::msgs::UInt64_V& msg)
-{
-  if (msg.data_size() == 2 && msg.data(0) == _entity)
-  {
-    Entity new_payload = msg.data(1);
-    this->_payloads.insert(new_payload);
-  }
-}
-
-void SlotcarPlugin::item_ingested_cb(const gz::msgs::Entity& msg)
-{
-  if (msg.IsInitialized())
-  {
-    const std::unordered_set<Entity>::iterator it = _payloads.find(msg.id());
-    if (it != _payloads.end())
-    {
-      _payloads.erase(it);
-    }
-  }
 }
 
 bool SlotcarPlugin::get_slotcar_height(const gz::msgs::Entity& req,
@@ -416,28 +356,6 @@ void SlotcarPlugin::draw_lookahead_marker()
 void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
-  // Read from components that may not have been initialized in configure()
-  if (first_iteration)
-  {
-    Entity parent = _entity;
-    while (ecm.ParentEntity(parent))
-    {
-      parent = ecm.ParentEntity(parent);
-    }
-    if (ecm.EntityHasComponentType(parent,
-      components::PhysicsEnginePlugin().TypeId()))
-    {
-      const std::string physics_plugin_name =
-        ecm.Component<components::PhysicsEnginePlugin>(parent)->Data();
-      const auto it = plugin_names.find(physics_plugin_name);
-      if (it != plugin_names.end())
-      {
-        phys_plugin = it->second;
-      }
-    }
-    first_iteration = false;
-  }
-
   // Optimization: Read and store slotcar's dimensions whenever available, then
   // delete the AABB component once read. Not deleting it causes rtf to drop by
   // a 3-4x factor whenever the slotcar moves.
@@ -483,7 +401,7 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     dataPtr->update(rmf_plugins_utils::convert_pose(pose),
       obstacle_positions, time);
 
-  send_control_signals(ecm, {update_result.v, update_result.w}, _payloads, dt,
+  send_control_signals(ecm, {update_result.v, update_result.w}, dt,
     update_result.target_linear_speed_now,
     update_result.target_linear_speed_destination,
     update_result.max_speed);

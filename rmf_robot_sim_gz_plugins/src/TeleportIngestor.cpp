@@ -73,7 +73,6 @@ private:
 
   rclcpp::Node::SharedPtr _ros_node;
   gz::transport::Node _gz_node;
-  gz::transport::Node::Publisher _item_ingested_pub;
 
   SimEntity find_nearest_model(const EntityComponentManager& ecm,
     const std::vector<SimEntity>& robot_model_entities,
@@ -195,12 +194,6 @@ void TeleportIngestorPlugin::transport_model(EntityComponentManager& ecm)
     ecm.Component<components::AngularVelocityCmd>(_ingested_entity)->Data() = {
       0, 0, 0};
   }
-
-  // For Ignition slotcar plugin to know when an item has been ingested from it
-  // Necessary for TPE Plugin
-  gz::msgs::Entity ingest_msg;
-  ingest_msg.set_id(_ingested_entity); // Implicit conversion to protobuf::uint64
-  _item_ingested_pub.Publish(ingest_msg);
 }
 
 void TeleportIngestorPlugin::send_ingested_item_home(
@@ -279,15 +272,6 @@ void TeleportIngestorPlugin::Configure(const Entity& entity,
   _ingestor_common->init_ros_node(_ros_node);
   RCLCPP_INFO(_ingestor_common->ros_node->get_logger(),
     "Started TeleportIngestorPlugin node...");
-
-  // Needed for TPE plugin, so that subscriber knows when to stop moving a payload that
-  // has been ingested from it
-  _item_ingested_pub = _gz_node.Advertise<gz::msgs::Entity>(
-    "/item_ingested");
-  if (!_item_ingested_pub)
-  {
-    ignwarn << "Error advertising topic [/item_ingested]" << std::endl;
-  }
 }
 
 void TeleportIngestorPlugin::PreUpdate(const UpdateInfo& info,

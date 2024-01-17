@@ -69,7 +69,6 @@ private:
   std::unique_ptr<TeleportDispenserCommon> _dispenser_common;
 
   gz::transport::Node _ign_node;
-  gz::transport::Node::Publisher _item_dispensed_pub;
 
   Entity _dispenser;
   Entity _item_en; // Item that dispenser may contain
@@ -166,13 +165,6 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
 
   enableComponent<components::WorldPoseCmd>(ecm, to_move);
   ecm.Component<components::WorldPoseCmd>(to_move)->Data() = new_pose;
-
-  // For Ignition slotcar plugin to know when an item has been dispensed to it
-  // Necessary for TPE Plugin
-  gz::msgs::UInt64_V dispense_msg;
-  dispense_msg.add_data(google::protobuf::uint64(base)); //Conversion from Entity -> uint64
-  dispense_msg.add_data(google::protobuf::uint64(to_move));
-  _item_dispensed_pub.Publish(dispense_msg);
 }
 
 void TeleportDispenserPlugin::fill_robot_list(EntityComponentManager& ecm,
@@ -266,15 +258,6 @@ void TeleportDispenserPlugin::Configure(const Entity& entity,
   _dispenser_common->init_ros_node(_ros_node);
   RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),
     "Started TeleportIngestorPlugin node...");
-
-  // Needed for TPE plugin, so that subscriber knows when to move a payload that
-  // has been dispensed to it
-  _item_dispensed_pub = _ign_node.Advertise<gz::msgs::UInt64_V>(
-    "/item_dispensed");
-  if (!_item_dispensed_pub)
-  {
-    ignwarn << "Error advertising topic [/item_dispensed]" << std::endl;
-  }
 
   create_dispenser_bounding_box(ecm);
 }
