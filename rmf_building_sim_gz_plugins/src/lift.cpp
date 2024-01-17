@@ -59,7 +59,8 @@ private:
   bool _components_initialized = false;
   bool _aabb_read = false;
 
-  std::vector<Entity> get_payloads(EntityComponentManager& ecm, const Entity& lift_entity)
+  std::vector<Entity> get_payloads(EntityComponentManager& ecm,
+    const Entity& lift_entity)
   {
     std::vector<Entity> payloads;
     const auto& lift_pose =
@@ -96,64 +97,70 @@ private:
 
   void initialize_components(EntityComponentManager& ecm)
   {
-    ecm.Each<components::Lift>([&](const Entity& entity, const components::Lift* lift_comp) -> bool
+    ecm.Each<components::Lift>([&](const Entity& entity,
+      const components::Lift* lift_comp) -> bool
+      {
+        const auto& lift = lift_comp->Data();
+        auto cabin_joint_entity =
+        Model(entity).JointByName(ecm, lift.cabin_joint);
+        enableComponent<components::AxisAlignedBox>(ecm, entity);
+        enableComponent<components::JointPosition>(ecm, cabin_joint_entity);
+        enableComponent<components::JointVelocityCmd>(ecm, cabin_joint_entity);
+
+        LiftCommand lift_command;
+        lift_command.request_type = LiftRequest::REQUEST_AGV_MODE;
+        // Set the initial floor
+        const auto target_it = lift.floors.find(lift.initial_floor);
+        auto initial_floor = std::string("");
+        auto target_elevation = std::numeric_limits<double>::min();
+        if (target_it != lift.floors.end())
         {
-          const auto& lift = lift_comp->Data();
-          auto cabin_joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
-          enableComponent<components::AxisAlignedBox>(ecm, entity);
-          enableComponent<components::JointPosition>(ecm, cabin_joint_entity);
-          enableComponent<components::JointVelocityCmd>(ecm, cabin_joint_entity);
-
-          LiftCommand lift_command;
-          lift_command.request_type = LiftRequest::REQUEST_AGV_MODE;
-          // Set the initial floor
-          const auto target_it = lift.floors.find(lift.initial_floor);
-          auto initial_floor = std::string("");
-          auto target_elevation = std::numeric_limits<double>::min();
-          if (target_it != lift.floors.end())
+          initial_floor = target_it->first;
+          target_elevation = target_it->second.elevation;
+        }
+        else
+        {
+          gzwarn << "Initial floor not found, setting elevation to first floor" << std::endl;
+          for (const auto& [name, floor]: lift.floors)
           {
-            initial_floor = target_it->first;
-            target_elevation = target_it->second.elevation;
-          }
-          else
-          {
-            gzwarn << "Initial floor not found, setting elevation to first floor" << std::endl;
-            for (const auto& [name, floor]: lift.floors)
+            if (floor.elevation < target_elevation)
             {
-              if (floor.elevation < target_elevation)
-              {
-                target_elevation = floor.elevation;
-                initial_floor = name;
-              }
+              target_elevation = floor.elevation;
+              initial_floor = name;
             }
-            target_elevation = lift.floors.at(0).elevation;
           }
-          lift_command.destination_floor = initial_floor;
-          _last_lift_command[entity] = lift_command;
+          target_elevation = lift.floors.at(0).elevation;
+        }
+        lift_command.destination_floor = initial_floor;
+        _last_lift_command[entity] = lift_command;
 
-          std::vector<double> joint_position = {target_elevation};
-          ecm.CreateComponent<components::JointPositionReset>(entity, components::JointPositionReset{joint_position});
-          return true;
-        });
+        std::vector<double> joint_position = {target_elevation};
+        ecm.CreateComponent<components::JointPositionReset>(entity,
+        components::JointPositionReset{joint_position});
+        return true;
+      });
   }
 
   void read_aabbs(EntityComponentManager& ecm)
   {
-    ecm.Each<components::AxisAlignedBox, components::Pose>([&](const Entity& entity, const components::AxisAlignedBox* aabb, const components::Pose* pose) -> bool
+    ecm.Each<components::AxisAlignedBox,
+      components::Pose>([&](const Entity& entity,
+      const components::AxisAlignedBox* aabb,
+      const components::Pose* pose) -> bool
+      {
+        // Optimization: Read and store lift's pose and AABB whenever available, then
+        // delete the AABB component once read. Not deleting it causes rtf to drop by
+        // a 3-4x factor whenever the lift moves.
+        const double volume = aabb->Data().Volume();
+        if (volume > 0 && volume != std::numeric_limits<double>::infinity())
         {
-          // Optimization: Read and store lift's pose and AABB whenever available, then
-          // delete the AABB component once read. Not deleting it causes rtf to drop by
-          // a 3-4x factor whenever the lift moves.
-          const double volume = aabb->Data().Volume();
-          if (volume > 0 && volume != std::numeric_limits<double>::infinity())
-          {
-            // TODO(luca) this could be a component instead of a hash map
-            _initial_aabbs[entity] = aabb->Data();
-            _initial_poses[entity] = pose->Data();
-            enableComponent<components::AxisAlignedBox>(ecm, entity, false);
-          }
-          return true;
-        });
+          // TODO(luca) this could be a component instead of a hash map
+          _initial_aabbs[entity] = aabb->Data();
+          _initial_poses[entity] = pose->Data();
+          enableComponent<components::AxisAlignedBox>(ecm, entity, false);
+        }
+        return true;
+      });
   }
 
   std::vector<std::string> get_available_floors(const LiftData& lift) const
@@ -167,7 +174,9 @@ private:
     return floors;
   }
 
-  std::string get_current_floor(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift) const
+  std::string get_current_floor(const Entity& entity,
+    EntityComponentManager& ecm,
+    const LiftData& lift) const
   {
     // TODO update current_floor only when lift reaches its destination
     const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
@@ -177,7 +186,8 @@ private:
       return "";
     }
 
-    const auto lift_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+    const auto lift_pos =
+      ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
 
     double smallest_error = std::numeric_limits<double>::max();
     std::string closest_floor_name;
@@ -194,21 +204,27 @@ private:
   }
 
   // Returns all the doors for the given floor
-  std::vector<Entity> get_floor_doors(EntityComponentManager& ecm, const LiftData& lift, const std::string& floor_name) const {
+  std::vector<Entity> get_floor_doors(EntityComponentManager& ecm,
+    const LiftData& lift,
+    const std::string& floor_name) const
+  {
     std::vector<Entity> doors;
     for (const auto& door_pair : lift.floors.at(floor_name).doors)
     {
-      const auto shaft_door = ecm.EntityByComponents(components::Name(door_pair.shaft_door));
+      const auto shaft_door =
+        ecm.EntityByComponents(components::Name(door_pair.shaft_door));
       if (shaft_door != kNullEntity)
         doors.push_back(shaft_door);
-      const auto cabin_door = ecm.EntityByComponents(components::Name(door_pair.cabin_door));
+      const auto cabin_door =
+        ecm.EntityByComponents(components::Name(door_pair.cabin_door));
       if (cabin_door != kNullEntity)
         doors.push_back(cabin_door);
     }
     return doors;
   }
 
-  uint8_t get_door_state(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift) const
+  uint8_t get_door_state(const Entity& entity, EntityComponentManager& ecm,
+    const LiftData& lift) const
   {
     auto cur_floor = get_current_floor(entity, ecm, lift);
     auto doors = get_floor_doors(ecm, lift, cur_floor);
@@ -237,7 +253,9 @@ private:
     return DoorMode::MODE_MOVING;
   }
 
-  uint8_t get_motion_state(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, const std::string& destination_floor) const
+  uint8_t get_motion_state(const Entity& entity, EntityComponentManager& ecm,
+    const LiftData& lift,
+    const std::string& destination_floor) const
   {
     const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
     if (joint_entity == kNullEntity)
@@ -246,7 +264,8 @@ private:
       return LiftState::MOTION_STOPPED;
     }
 
-    const auto lift_pos = ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+    const auto lift_pos =
+      ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
     const auto target_it = lift.floors.find(destination_floor);
 
     if (target_it != lift.floors.end())
@@ -262,10 +281,13 @@ private:
     return LiftState::MOTION_STOPPED;
   }
 
-  void command_doors(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorModeCmp door_state) const
+  void command_doors(EntityComponentManager& ecm,
+    const std::vector<Entity>& doors,
+    DoorModeCmp door_state) const
   {
     for (const auto& entity : doors)
-      ecm.CreateComponent<components::DoorCmd>(entity, components::DoorCmd(door_state));
+      ecm.CreateComponent<components::DoorCmd>(entity,
+        components::DoorCmd(door_state));
   }
 
   // TODO(luca) move this to a common block and reuse in all plugins
@@ -283,11 +305,14 @@ private:
     return entity;
   }
 
-  bool all_doors_at_state(EntityComponentManager& ecm, const std::vector<Entity>& doors, DoorModeCmp cmd) const
+  bool all_doors_at_state(EntityComponentManager& ecm,
+    const std::vector<Entity>& doors,
+    DoorModeCmp cmd) const
   {
     for (const auto& entity : doors)
     {
-      const auto* door_state_comp = ecm.Component<components::DoorStateComp>(entity);
+      const auto* door_state_comp = ecm.Component<components::DoorStateComp>(
+        entity);
       // TODO log
       if (door_state_comp == nullptr)
       {
@@ -314,14 +339,19 @@ private:
       dx, current_velocity, params, dt);
   }
 
-  double command_lift(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, double dt, double target_elevation, double cur_elevation)
+  double command_lift(const Entity& entity, EntityComponentManager& ecm,
+    const LiftData& lift, double dt, double target_elevation,
+    double cur_elevation)
   {
     auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
     auto target_vel = 0.0;
     if (joint_entity != kNullEntity)
     {
-      target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
-      ecm.Component<components::JointVelocityCmd>(joint_entity)->Data() = {target_vel};
+      target_vel = calculate_target_velocity(target_elevation, cur_elevation,
+          _last_cmd_vel[joint_entity], dt,
+          lift.params);
+      ecm.Component<components::JointVelocityCmd>(joint_entity)->Data() =
+      {target_vel};
       _last_cmd_vel[joint_entity] = target_vel;
     }
     return target_vel;
@@ -353,7 +383,8 @@ public:
         if (entity != kNullEntity || lift_comp == nullptr)
         {
           const auto& available_floors = lift_comp->Data().floors;
-          if (available_floors.find(msg->destination_floor) == available_floors.end())
+          if (available_floors.find(msg->destination_floor) ==
+          available_floors.end())
           {
             gzwarn << "Received request for unavailable floor [" << msg->destination_floor << "]" << std::endl;
             return;
@@ -362,19 +393,20 @@ public:
           lift_command.request_type = msg->request_type;
           lift_command.destination_floor = msg->destination_floor;
           lift_command.session_id = msg->request_type == msg->REQUEST_END_SESSION ?
-            "" : msg->session_id;
+          "" : msg->session_id;
 
           lift_command.door_state = msg->door_state == msg->DOOR_OPEN ?
-            DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
+          DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
 
           // Trigger an error if a request, different from previous one, comes in
-          const auto* cur_lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
+          const auto* cur_lift_cmd_comp =
+          ecm.Component<components::LiftCmd>(entity);
           if (cur_lift_cmd_comp)
           {
             const auto& cur_lift_cmd = cur_lift_cmd_comp->Data();
             if (cur_lift_cmd.destination_floor != msg->destination_floor ||
-                cur_lift_cmd.request_type != msg->request_type ||
-                cur_lift_cmd.session_id != msg->session_id)
+            cur_lift_cmd.request_type != msg->request_type ||
+            cur_lift_cmd.session_id != msg->session_id)
             {
               gzwarn << "Discarding request: [" << msg->lift_name <<"] is busy at the moment" << std::endl;
               return;
@@ -383,15 +415,17 @@ public:
           else
           {
             auto it = _last_lift_command.find(entity);
-            if (it != _last_lift_command.end() && (it->second.destination_floor != msg->destination_floor ||
-                it->second.request_type != msg->request_type ||
-                it->second.session_id != msg->session_id))
+            if (it != _last_lift_command.end() &&
+            (it->second.destination_floor != msg->destination_floor ||
+            it->second.request_type != msg->request_type ||
+            it->second.session_id != msg->session_id))
             {
               RCLCPP_INFO(_ros_node->get_logger(),
-                "Lift [%s] requested at level [%s]",
-                msg->lift_name.c_str(), msg->destination_floor.c_str());
+              "Lift [%s] requested at level [%s]",
+              msg->lift_name.c_str(), msg->destination_floor.c_str());
               _last_lift_command[entity] = lift_command;
-              ecm.CreateComponent<components::LiftCmd>(entity, components::LiftCmd(lift_command));
+              ecm.CreateComponent<components::LiftCmd>(entity,
+              components::LiftCmd(lift_command));
             }
           }
         }
@@ -434,69 +468,74 @@ public:
     double dt =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
       count()) * 1e-9;
-    ecm.Each<components::Lift, components::Pose>([&](const Entity& entity, const components::Lift* lift_comp, const components::Pose* pose_comp) -> bool
-    {
-      const auto& lift = lift_comp->Data();
-      const auto& pose = pose_comp->Data();
+    ecm.Each<components::Lift,
+      components::Pose>([&](const Entity& entity,
+      const components::Lift* lift_comp,
+      const components::Pose* pose_comp) -> bool
+      {
+        const auto& lift = lift_comp->Data();
+        const auto& pose = pose_comp->Data();
 
-      const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
-      LiftCommand lift_cmd;
-      if (lift_cmd_comp != nullptr)
-      {
-        lift_cmd = lift_cmd_comp->Data();
-      }
-      else if (_last_lift_command.find(entity) != _last_lift_command.end())
-      {
-        lift_cmd = _last_lift_command[entity];
-      }
-      else
-      {
-        return true;
-      }
-
-      const auto& destination_floor = lift_cmd.destination_floor;
-      const double target_elevation = lift.floors.at(destination_floor).elevation;
-      const auto target_door_state = lift_cmd.door_state;
-      const std::string cur_floor = get_current_floor(entity, ecm, lift);
-
-      const auto doors = get_floor_doors(ecm, lift, cur_floor);
-
-      if (std::abs(pose.Z() - target_elevation) < lift.params.dx_min)
-      {
-        // Just command the doors to the target state
-        command_doors(ecm, doors, target_door_state);
-        // Clear the command if it was finished
-        if (destination_floor == cur_floor &&
-            all_doors_at_state(ecm, doors, target_door_state))
-          finished_cmds.insert(entity);
-      }
-      else
-      {
-        // Make sure doors are closed before moving to next floor
-        command_doors(ecm, doors, DoorModeCmp::CLOSE);
-        if (all_doors_at_state(ecm, doors, DoorModeCmp::CLOSE))
+        const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
+        LiftCommand lift_cmd;
+        if (lift_cmd_comp != nullptr)
         {
-          auto target_velocity = command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
-          // Move payloads as well
-          if (target_velocity != 0.0)
+          lift_cmd = lift_cmd_comp->Data();
+        }
+        else if (_last_lift_command.find(entity) != _last_lift_command.end())
+        {
+          lift_cmd = _last_lift_command[entity];
+        }
+        else
+        {
+          return true;
+        }
+
+        const auto& destination_floor = lift_cmd.destination_floor;
+        const double target_elevation = lift.floors.at(
+          destination_floor).elevation;
+        const auto target_door_state = lift_cmd.door_state;
+        const std::string cur_floor = get_current_floor(entity, ecm, lift);
+
+        const auto doors = get_floor_doors(ecm, lift, cur_floor);
+
+        if (std::abs(pose.Z() - target_elevation) < lift.params.dx_min)
+        {
+          // Just command the doors to the target state
+          command_doors(ecm, doors, target_door_state);
+          // Clear the command if it was finished
+          if (destination_floor == cur_floor &&
+          all_doors_at_state(ecm, doors, target_door_state))
+            finished_cmds.insert(entity);
+        }
+        else
+        {
+          // Make sure doors are closed before moving to next floor
+          command_doors(ecm, doors, DoorModeCmp::CLOSE);
+          if (all_doors_at_state(ecm, doors, DoorModeCmp::CLOSE))
           {
-            auto payloads = get_payloads(ecm, entity);
-            for (const Entity& payload : payloads)
+            auto target_velocity =
+            command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
+            // Move payloads as well
+            if (target_velocity != 0.0)
             {
-              if (ecm.EntityHasComponentType(payload,
-                components::LinearVelocityCmd().TypeId()))
+              auto payloads = get_payloads(ecm, entity);
+              for (const Entity& payload : payloads)
               {
-                auto lin_vel_cmd =
+                if (ecm.EntityHasComponentType(payload,
+                components::LinearVelocityCmd().TypeId()))
+                {
+                  auto lin_vel_cmd =
                   ecm.Component<components::LinearVelocityCmd>(payload);
-                lin_vel_cmd->Data()[2] = target_velocity;
+                  lin_vel_cmd->Data()[2] = target_velocity;
+                }
               }
             }
           }
         }
-      }
 
-      return true;
-    });
+        return true;
+      });
 
     // Clear finished commands
     for (const auto& e : finished_cmds)
@@ -506,44 +545,48 @@ public:
     double t =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
       count()) * 1e-9;
-    ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
-    {
-      const auto& name = name_comp->Data();
-      const auto& lift = lift_comp->Data();
-
-      const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
-
-      if (_last_state_pub.find(name) == _last_state_pub.end())
-        _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
-      if (t - _last_state_pub[name] >= STATE_PUB_DT)
+    ecm.Each<components::Lift,
+      components::Name>([&](const Entity& entity,
+      const components::Lift* lift_comp,
+      const components::Name* name_comp) -> bool
       {
-        LiftState msg;
-        msg.lift_time.sec = t;
-        msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
-        msg.lift_name = name;
+        const auto& name = name_comp->Data();
+        const auto& lift = lift_comp->Data();
 
-        msg.available_floors = get_available_floors(lift);
-        msg.current_floor = get_current_floor(entity, ecm, lift);
-        msg.destination_floor = lift_cmd_comp != nullptr ?
+        const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
+
+        if (_last_state_pub.find(name) == _last_state_pub.end())
+          _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
+        if (t - _last_state_pub[name] >= STATE_PUB_DT)
+        {
+          LiftState msg;
+          msg.lift_time.sec = t;
+          msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
+          msg.lift_name = name;
+
+          msg.available_floors = get_available_floors(lift);
+          msg.current_floor = get_current_floor(entity, ecm, lift);
+          msg.destination_floor = lift_cmd_comp != nullptr ?
           lift_cmd_comp->Data().destination_floor : msg.current_floor;
 
-        msg.door_state = get_door_state(entity, ecm, lift);
-        msg.motion_state = lift_cmd_comp != nullptr ?
-          get_motion_state(entity, ecm, lift, lift_cmd_comp->Data().destination_floor) : msg.MOTION_STOPPED;
-        msg.current_mode = msg.MODE_AGV;
-        msg.session_id = lift_cmd_comp != nullptr ?
+          msg.door_state = get_door_state(entity, ecm, lift);
+          msg.motion_state = lift_cmd_comp != nullptr ?
+          get_motion_state(entity, ecm, lift,
+          lift_cmd_comp->Data().destination_floor) : msg.MOTION_STOPPED;
+          msg.current_mode = msg.MODE_AGV;
+          msg.session_id = lift_cmd_comp != nullptr ?
           lift_cmd_comp->Data().session_id : "";
-        auto it = _last_lift_command.find(entity);
-        if (it != _last_lift_command.end())
-        {
-          msg.session_id = it->second.session_id;
+          auto it = _last_lift_command.find(entity);
+          if (it != _last_lift_command.end())
+          {
+            msg.session_id = it->second.session_id;
+          }
+          _lift_state_pub->publish(msg);
+          _last_state_pub[name] = t;
         }
-        _lift_state_pub->publish(msg);
-        _last_state_pub[name] = t;
-      }
 
-      return true;
-    });
+        return true;
+      });
   }
 };
 

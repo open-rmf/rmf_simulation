@@ -26,45 +26,46 @@
 #include <rmf_building_sim_gz_plugins/utils.hpp>
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 
-namespace gz
+namespace gz {
+namespace sim {
+struct FloorDoorPair
 {
-namespace sim 
+  std::string cabin_door;
+  std::string shaft_door;
+};
+
+struct Floor
 {
-  struct FloorDoorPair {
-    std::string cabin_door;
-    std::string shaft_door;
-  };
+  double elevation;
+  std::vector<FloorDoorPair> doors;
+};
 
-  struct Floor {
-    double elevation;
-    std::vector<FloorDoorPair> doors;
-  };
+struct LiftData
+{
+  std::string name;
+  std::unordered_map<std::string, Floor> floors; // Maps name to floor
+  std::string initial_floor;
+  rmf_building_sim_gz_plugins::MotionParams params;
+  std::string cabin_joint;
+};
 
-  struct LiftData {
-    std::string name;
-    std::unordered_map<std::string, Floor> floors; // Maps name to floor
-    std::string initial_floor;
-    rmf_building_sim_gz_plugins::MotionParams params;
-    std::string cabin_joint;
-  };
+struct LiftCommand
+{
+  uint8_t request_type;
+  std::string destination_floor;
+  std::string session_id;
+  DoorModeCmp door_state;
+};
 
-  struct LiftCommand {
-    uint8_t request_type;
-    std::string destination_floor;
-    std::string session_id;
-    DoorModeCmp door_state;
-  };
+namespace components {
+/// \brief A component used to describe an RMF lift.
+using Lift = Component<LiftData, class LiftTag>;
+GZ_SIM_REGISTER_COMPONENT("rmf_components.Lift", Lift)
 
-  namespace components
-  {
-    /// \brief A component used to describe an RMF lift.
-    using Lift = Component<LiftData, class LiftTag>;
-    GZ_SIM_REGISTER_COMPONENT("rmf_components.Lift", Lift)
-
-    /// \brief A component used to command an RMF lift to open / close.
-    using LiftCmd = Component<LiftCommand, class LiftCmdTag>;
-    GZ_SIM_REGISTER_COMPONENT("rmf_components.LiftCmd", LiftCmd)
-  }
+/// \brief A component used to command an RMF lift to open / close.
+using LiftCmd = Component<LiftCommand, class LiftCmdTag>;
+GZ_SIM_REGISTER_COMPONENT("rmf_components.LiftCmd", LiftCmd)
+}
 }
 }
 #endif

@@ -37,10 +37,11 @@ private:
     auto door_element = sdf->FindElement("door");
 
     if (door_element == nullptr ||
-        !door_element->Get<std::string>("left_joint_name", left_joint_name, "") ||
-        !door_element->Get<std::string>("right_joint_name", right_joint_name, ""))
+      !door_element->Get<std::string>("left_joint_name", left_joint_name, "") ||
+      !door_element->Get<std::string>("right_joint_name", right_joint_name, ""))
     {
-      ignerr << "Missing required parameters for plugin " << door_name << std::endl;
+      ignerr << "Missing required parameters for plugin " << door_name <<
+        std::endl;
       return std::nullopt;
     }
 
@@ -48,7 +49,8 @@ private:
       right_joint_name == "empty_joint") ||
       (left_joint_name.empty() && right_joint_name.empty()))
     {
-      ignerr << "Both door joint names are missing for " << door_name << " plugin, at least one"
+      ignerr << "Both door joint names are missing for " << door_name <<
+        " plugin, at least one"
         " is required" << std::endl;
       return std::nullopt;
     }
@@ -105,7 +107,8 @@ private:
       }
       else
       {
-        ignwarn << "Unsupported joint_name " << joint_name << " Ignoring..." << std::endl;
+        ignwarn << "Unsupported joint_name " << joint_name << " Ignoring..." <<
+          std::endl;
         continue;
       }
 
@@ -133,7 +136,8 @@ private:
     auto floor_element = sdf->FindElement("floor");
     if (!floor_element)
     {
-      ignerr << "Missing required floor element for [" << lift_name << "] plugin" << std::endl;
+      ignerr << "Missing required floor element for [" << lift_name <<
+        "] plugin" << std::endl;
       return std::nullopt;
     }
 
@@ -143,9 +147,10 @@ private:
       Floor floor;
       std::string floor_name;
       if (!floor_element->Get<std::string>("name", floor_name, "") ||
-          !floor_element->Get<double>("elevation", floor.elevation, 0.0))
+        !floor_element->Get<double>("elevation", floor.elevation, 0.0))
       {
-        ignerr << "Missing required floor name or elevation attributes for [" << lift_name << "] plugin" << std::endl;
+        ignerr << "Missing required floor name or elevation attributes for [" <<
+          lift_name << "] plugin" << std::endl;
         return std::nullopt;
       }
 
@@ -156,10 +161,13 @@ private:
       while (door_pair_element)
       {
         FloorDoorPair doors;
-        if (!door_pair_element->Get<std::string>("cabin_door", doors.cabin_door, "") ||
-            !door_pair_element->Get<std::string>("shaft_door", doors.shaft_door, ""))
+        if (!door_pair_element->Get<std::string>("cabin_door", doors.cabin_door,
+          "") ||
+          !door_pair_element->Get<std::string>("shaft_door", doors.shaft_door,
+          ""))
         {
-          ignerr << "Missing required lift door attributes for [" << lift_name << "] plugin" << std::endl;
+          ignerr << "Missing required lift door attributes for [" <<
+            lift_name << "] plugin" << std::endl;
           return std::nullopt;
         }
         floor.doors.push_back(doors);
@@ -173,7 +181,8 @@ private:
 
     if (!first_found_floor.has_value())
     {
-      ignerr << "No floors enabled for [" << lift_name << "] plugin" << std::endl;
+      ignerr << "No floors enabled for [" << lift_name << "] plugin" <<
+        std::endl;
       return std::nullopt;
     }
 
@@ -181,7 +190,8 @@ private:
 
     if (data.floors.find(data.initial_floor) == data.floors.end())
     {
-      ignerr << "Initial floor [" << data.initial_floor << "] not available, changing to default" << std::endl;
+      ignerr << "Initial floor [" << data.initial_floor <<
+        "] not available, changing to default" << std::endl;
       data.initial_floor = *first_found_floor;
     }
 

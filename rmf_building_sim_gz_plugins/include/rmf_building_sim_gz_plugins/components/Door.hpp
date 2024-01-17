@@ -24,42 +24,42 @@
 
 #include <rmf_building_sim_gz_plugins/utils.hpp>
 
-namespace gz
+namespace gz {
+namespace sim {
+struct DoorJoint
 {
-namespace sim 
+  std::string name;
+  double closed_position;
+  double open_position;
+};
+
+struct DoorData
 {
-  struct DoorJoint {
-    std::string name;
-    double closed_position;
-    double open_position;
-  };
+  rmf_building_sim_gz_plugins::MotionParams params;
+  std::vector<DoorJoint> joints;
+  bool ros_interface; // Whether it's managed by RMF, false for lift doors
+};
 
-  struct DoorData {
-    rmf_building_sim_gz_plugins::MotionParams params;
-    std::vector<DoorJoint> joints;
-    bool ros_interface; // Whether it's managed by RMF, false for lift doors
-  };
+enum class DoorModeCmp
+{
+  CLOSE = 0,
+  MOVING = 1,
+  OPEN = 2
+};
 
-  enum class DoorModeCmp {
-    CLOSE = 0,
-    MOVING = 1,
-    OPEN = 2
-  };
+namespace components {
+/// \brief A component used to describe an RMF door.
+using Door = Component<DoorData, class DoorTag>;
+GZ_SIM_REGISTER_COMPONENT("rmf_components.Door", Door)
 
-  namespace components
-  {
-    /// \brief A component used to describe an RMF door.
-    using Door = Component<DoorData, class DoorTag>;
-    GZ_SIM_REGISTER_COMPONENT("rmf_components.Door", Door)
+/// \brief A component used to command an RMF door to open / close.
+using DoorCmd = Component<DoorModeCmp, class DoorCmdTag>;
+GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
 
-    /// \brief A component used to command an RMF door to open / close.
-    using DoorCmd = Component<DoorModeCmp, class DoorCmdTag>;
-    GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
-
-    /// \brief A component used to show the state of an RMF door.
-    using DoorStateComp = Component<DoorModeCmp, class DoorStateTag>;
-    GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorStateComp", DoorStateComp)
-  }
+/// \brief A component used to show the state of an RMF door.
+using DoorStateComp = Component<DoorModeCmp, class DoorStateTag>;
+GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorStateComp", DoorStateComp)
+}
 }
 }
 #endif
