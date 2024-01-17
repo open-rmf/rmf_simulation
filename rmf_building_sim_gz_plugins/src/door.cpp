@@ -156,7 +156,7 @@ public:
         }
         else
         {
-          ignwarn << "Request received for door " << msg->door_name <<
+          gzwarn << "Request received for door " << msg->door_name <<
             " but it is not being simulated" << std::endl;
         }
       });
@@ -171,6 +171,7 @@ public:
             auto joint_entity = get_joint_entity(ecm, entity, joint.name);
             enableComponent<components::JointPosition>(ecm, joint_entity);
           }
+          enableComponent<components::DoorStateComp>(ecm, entity);
           return true;
         });
   }
@@ -189,8 +190,9 @@ public:
     if (info.paused)
       return;
 
+    std::unordered_set<Entity> finished_cmds;
     // Process commands
-    ecm.Each<components::Door, components::DoorCmd>([&](const Entity& entity, const components::Door* door_comp, const components::DoorCmd* door_cmd_comp) -> bool
+    ecm.Each<components::Door, components::DoorCmd, components::DoorStateComp>([&](const Entity& entity, const components::Door* door_comp, const components::DoorCmd* door_cmd_comp, const components::DoorStateComp* door_state_comp) -> bool
         {
           double dt =
             (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
@@ -200,8 +202,11 @@ public:
           // TODO(luca) consider reading when the state is equal to the
           // requested state and remove DoorCmd components when that is
           // the case to reduce number of times this loop is called
-          //ignmsg << "Opening door" << std::endl;
           command_door(entity, ecm, door, dt, door_cmd);
+          if (door_cmd == door_state_comp->Data())
+          {
+            finished_cmds.insert(entity);
+          }
           return true;
         });
 
@@ -210,7 +215,7 @@ public:
         {
           const auto& door = door_comp->Data();
           const auto cur_mode = get_current_mode(entity, ecm, door);
-          ecm.CreateComponent<components::DoorStateComp>(entity, components::DoorStateComp(cur_mode));
+          ecm.Component<components::DoorStateComp>(entity)->Data() = cur_mode;
           return true;
         });
 
@@ -247,12 +252,16 @@ public:
                 break;
               }
             }
-            //msg.current_mode = get_current_mode(entity, ecm, door);
             _door_state_pub->publish(msg);
             _last_state_pub[name] = t;
           }
           return true;
         });
+
+    for (const auto& entity: finished_cmds)
+    {
+      enableComponent<components::DoorCmd>(ecm, entity);
+    }
   }
 };
 

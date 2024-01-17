@@ -33,10 +33,6 @@ using LiftRequest = rmf_lift_msgs::msg::LiftRequest;
 
 namespace rmf_building_sim_gz_plugins {
 
-enum class PhysEnginePlugin {DEFAULT, TPE};
-std::unordered_map<std::string, PhysEnginePlugin> plugin_names {
-  {"gz-physics-tpe-plugin", PhysEnginePlugin::TPE}};
-
 //==============================================================================
 
 class GZ_SIM_VISIBLE LiftPlugin
@@ -47,7 +43,6 @@ class GZ_SIM_VISIBLE LiftPlugin
 private:
   static constexpr double STATE_PUB_DT = 1.0;
   rclcpp::Node::SharedPtr _ros_node;
-  //std::vector<Entity> _payloads;
 
   rclcpp::Publisher<LiftState>::SharedPtr _lift_state_pub;
   rclcpp::Subscription<LiftRequest>::SharedPtr _lift_request_sub;
@@ -61,42 +56,8 @@ private:
 
   std::unordered_map<std::string, double> _last_state_pub;
 
-  PhysEnginePlugin _phys_plugin = PhysEnginePlugin::DEFAULT;
-  bool _first_iteration = true;
-  bool _read_aabb = false;
-
-  void create_entity_components(Entity entity, EntityComponentManager& ecm)
-  {
-    enableComponent<components::LinearVelocityCmd>(ecm, entity);
-    enableComponent<components::WorldPoseCmd>(ecm, entity);
-    const auto pos = ecm.Component<components::Pose>(entity);
-    ecm.Component<components::WorldPoseCmd>(entity)->Data() = pos->Data();
-  }
-
-  void create_joint_components(Entity entity, EntityComponentManager& ecm)
-  {
-    enableComponent<components::JointPosition>(ecm, entity);
-  }
-
-  void fill_physics_engine(Entity entity, EntityComponentManager& ecm)
-  {
-    Entity parent = entity;
-    while (ecm.ParentEntity(parent))
-    {
-      parent = ecm.ParentEntity(parent);
-    }
-    if (ecm.EntityHasComponentType(parent,
-      components::PhysicsEnginePlugin().TypeId()))
-    {
-      const std::string physics_plugin_name =
-        ecm.Component<components::PhysicsEnginePlugin>(parent)->Data();
-      const auto it = plugin_names.find(physics_plugin_name);
-      if (it != plugin_names.end())
-      {
-        _phys_plugin = it->second;
-      }
-    }
-  }
+  bool _components_initialized = false;
+  bool _aabb_read = false;
 
   std::vector<Entity> get_payloads(EntityComponentManager& ecm, const Entity& lift_entity)
   {
@@ -139,8 +100,39 @@ private:
         {
           const auto& lift = lift_comp->Data();
           auto cabin_joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
-          create_joint_components(cabin_joint_entity, ecm);
           enableComponent<components::AxisAlignedBox>(ecm, entity);
+          enableComponent<components::JointPosition>(ecm, cabin_joint_entity);
+          enableComponent<components::JointVelocityCmd>(ecm, cabin_joint_entity);
+
+          LiftCommand lift_command;
+          lift_command.request_type = LiftRequest::REQUEST_AGV_MODE;
+          // Set the initial floor
+          const auto target_it = lift.floors.find(lift.initial_floor);
+          auto initial_floor = std::string("");
+          auto target_elevation = std::numeric_limits<double>::min();
+          if (target_it != lift.floors.end())
+          {
+            initial_floor = target_it->first;
+            target_elevation = target_it->second.elevation;
+          }
+          else
+          {
+            gzwarn << "Initial floor not found, setting elevation to first floor" << std::endl;
+            for (const auto& [name, floor]: lift.floors)
+            {
+              if (floor.elevation < target_elevation)
+              {
+                target_elevation = floor.elevation;
+                initial_floor = name;
+              }
+            }
+            target_elevation = lift.floors.at(0).elevation;
+          }
+          lift_command.destination_floor = initial_floor;
+          _last_lift_command[entity] = lift_command;
+
+          std::vector<double> joint_position = {target_elevation};
+          ecm.CreateComponent<components::JointPositionReset>(entity, components::JointPositionReset{joint_position});
           return true;
         });
   }
@@ -181,7 +173,7 @@ private:
     const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
     if (joint_entity == kNullEntity)
     {
-      ignwarn << "Cabin entity not found" << std::endl;
+      gzwarn << "Cabin entity not found" << std::endl;
       return "";
     }
 
@@ -229,7 +221,7 @@ private:
       const auto door_state = ecm.Component<components::DoorStateComp>(door);
       if (door_state == nullptr)
       {
-        ignwarn << "Door state for lift not found" << std::endl;
+        gzwarn << "Door state for lift not found" << std::endl;
         continue;
       }
       if (door_state->Data() != DoorModeCmp::OPEN)
@@ -250,7 +242,7 @@ private:
     const auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
     if (joint_entity == kNullEntity)
     {
-      ignwarn << "Cabin entity not found" << std::endl;
+      gzwarn << "Cabin entity not found" << std::endl;
       return LiftState::MOTION_STOPPED;
     }
 
@@ -329,7 +321,7 @@ private:
     if (joint_entity != kNullEntity)
     {
       target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
-      ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
+      ecm.Component<components::JointVelocityCmd>(joint_entity)->Data() = {target_vel};
       _last_cmd_vel[joint_entity] = target_vel;
     }
     return target_vel;
@@ -363,7 +355,7 @@ public:
           const auto& available_floors = lift_comp->Data().floors;
           if (available_floors.find(msg->destination_floor) == available_floors.end())
           {
-            ignwarn << "Received request for unavailable floor [" << msg->destination_floor << "]" << std::endl;
+            gzwarn << "Received request for unavailable floor [" << msg->destination_floor << "]" << std::endl;
             return;
           }
           LiftCommand lift_command;
@@ -384,23 +376,28 @@ public:
                 cur_lift_cmd.request_type != msg->request_type ||
                 cur_lift_cmd.session_id != msg->session_id)
             {
-              ignwarn << "Discarding request: [" << msg->lift_name <<"] is busy at the moment" << std::endl;
+              gzwarn << "Discarding request: [" << msg->lift_name <<"] is busy at the moment" << std::endl;
               return;
             }
           }
           else
           {
-            // TODO consistency between rclcpp and gz logger
-            RCLCPP_INFO(_ros_node->get_logger(),
-              "Lift [%s] requested at level [%s]",
-              msg->lift_name.c_str(), msg->destination_floor.c_str());
+            auto it = _last_lift_command.find(entity);
+            if (it != _last_lift_command.end() && (it->second.destination_floor != msg->destination_floor ||
+                it->second.request_type != msg->request_type ||
+                it->second.session_id != msg->session_id))
+            {
+              RCLCPP_INFO(_ros_node->get_logger(),
+                "Lift [%s] requested at level [%s]",
+                msg->lift_name.c_str(), msg->destination_floor.c_str());
+              _last_lift_command[entity] = lift_command;
+              ecm.CreateComponent<components::LiftCmd>(entity, components::LiftCmd(lift_command));
+            }
           }
-          _last_lift_command[entity] = lift_command;
-          ecm.CreateComponent<components::LiftCmd>(entity, components::LiftCmd(lift_command));
         }
         else
         {
-          ignwarn << "Request received for lift " << msg->lift_name <<
+          gzwarn << "Request received for lift " << msg->lift_name <<
             " but it is not being simulated" << std::endl;
         }
       });
@@ -412,38 +409,17 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
     // Read from components that may not have been initialized in configure()
-    if (_first_iteration)
+    if (!_components_initialized)
     {
       initialize_components(ecm);
-      // TODO(luca) restore TPE functionality
-      //fill_physics_engine(_lift_entity, ecm);
-
-      /*
-      double lift_elevation = _lift_common->get_elevation();
-      if (_phys_plugin == PhysEnginePlugin::DEFAULT)
-      {
-        create_joint_components(_cabin_joint, ecm);
-        auto position_cmd = ecm.Component<components::JointPositionReset>(
-          _cabin_joint);
-        position_cmd->Data()[0] = lift_elevation;
-      }
-      else
-      {
-        create_entity_components(_lift_entity, ecm);
-        auto position_cmd = ecm.Component<components::WorldPoseCmd>(
-          _lift_entity);
-        position_cmd->Data().Pos().Z() = lift_elevation;
-      }
-
-      */
-      _first_iteration = false;
+      _components_initialized = true;
       return;
     }
 
-    if (!_read_aabb)
+    if (!_aabb_read)
     {
       read_aabbs(ecm);
-      _read_aabb = true;
+      _aabb_read = true;
     }
 
     rclcpp::spin_some(_ros_node);
@@ -473,10 +449,9 @@ public:
       {
         lift_cmd = _last_lift_command[entity];
       }
-      else {
-        // Default
-        lift_cmd.destination_floor = lift.initial_floor;
-        lift_cmd.door_state = DoorModeCmp::CLOSE;
+      else
+      {
+        return true;
       }
 
       const auto& destination_floor = lift_cmd.destination_floor;
@@ -508,14 +483,12 @@ public:
             auto payloads = get_payloads(ecm, entity);
             for (const Entity& payload : payloads)
             {
-              std::cout << "Payload found" << std::endl;
               if (ecm.EntityHasComponentType(payload,
                 components::LinearVelocityCmd().TypeId()))
               {
                 auto lin_vel_cmd =
                   ecm.Component<components::LinearVelocityCmd>(payload);
                 lin_vel_cmd->Data()[2] = target_velocity;
-                std::cout << "Setting Z velocity of payload to " << target_velocity << std::endl;
               }
             }
           }
@@ -571,41 +544,6 @@ public:
 
       return true;
     });
-    /*
-    // Read from either joint data or model data based on physics engine
-    if (_phys_plugin == PhysEnginePlugin::DEFAULT)
-    {
-      position = ecm.Component<components::JointPosition>(
-        _cabin_joint)->Data()[0];
-      velocity = ecm.Component<components::JointVelocity>(
-        _cabin_joint)->Data()[0];
-    }
-    else
-    {
-      position = ecm.Component<components::Pose>(
-        _lift_entity)->Data().Pos().Z();
-      auto lift_vel_cmd = ecm.Component<components::LinearVelocityCmd>(
-        _lift_entity);
-      velocity = lift_vel_cmd->Data()[2];
-    }
-
-    auto result = _lift_common->update(t, position, velocity);
-
-    // Move either joint or lift cabin based on physics engine used
-    if (_phys_plugin == PhysEnginePlugin::DEFAULT)
-    {
-      auto vel_cmd = ecm.Component<components::JointVelocityCmd>(
-        _cabin_joint);
-      vel_cmd->Data()[0] = result.velocity;
-    }
-    else
-    {
-      auto lift_vel_cmd = ecm.Component<components::LinearVelocityCmd>(
-        _lift_entity);
-      lift_vel_cmd->Data()[2] = result.velocity;
-    }
-
-    */
   }
 };
 
