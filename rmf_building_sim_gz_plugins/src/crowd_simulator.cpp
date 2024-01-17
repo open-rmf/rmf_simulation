@@ -35,7 +35,160 @@ using namespace gz::sim;
 
 namespace crowd_simulation_gz {
 
+static bool _load_model_init_pose(const std::shared_ptr<const sdf::Element>& model_type_element, AgentPose3d& result)
+{
+  std::string pose_str;
+  if (model_type_element->template Get<std::string>(
+      "initial_pose", pose_str, ""))
+  {
+    std::regex ws_re("\\s+"); //whitespace
+    std::vector<std::string> parts(
+      std::sregex_token_iterator(pose_str.begin(), pose_str.end(), ws_re, -1),
+      std::sregex_token_iterator());
+
+    if (parts.size() != 6)
+    {
+      gzerr << "Error loading <initial_pose> in <model_type>, 6 floats (x, y, z, pitch, roll, yaw) expected." << std::endl;
+      return false;
+    }
+
+    result.x(std::stod(parts[0]) );
+    result.y(std::stod(parts[1]) );
+    result.z(std::stod(parts[2]) );
+    result.pitch(std::stod(parts[3]) );
+    result.roll(std::stod(parts[4]) );
+    result.yaw(std::stod(parts[5]) );
+  }
+  return true;
+}
+
+static gz::math::Pose3d get_agent_pose(
+  const AgentPtr agent_ptr, double delta_sim_time)
+{
+  //calculate future position in delta_sim_time. currently in 2d
+  double px = static_cast<double>(agent_ptr->_pos.x()) +
+    static_cast<double>(agent_ptr->_vel.x()) * delta_sim_time;
+  double py = static_cast<double>(agent_ptr->_pos.y()) +
+    static_cast<double>(agent_ptr->_vel.y()) * delta_sim_time;
+
+  double x_rot = static_cast<double>(agent_ptr->_orient.x());
+  double y_rot = static_cast<double>(agent_ptr->_orient.y());
+
+  return gz::math::Pose3d(px, py, 0, 0, 0, std::atan2(y_rot, x_rot));
+}
+
 //=================================================
+bool CrowdSimulatorPlugin::read_sdf(const std::shared_ptr<const sdf::Element>& sdf)
+{
+  char* menge_resource_path = getenv("MENGE_RESOURCE_PATH");
+
+  if (menge_resource_path == nullptr ||
+    strcmp(menge_resource_path, "") == 0)
+  {
+    gzwarn << "MENGE_RESOURCE_PATH env is empty. Crowd simulation is disabled." << std::endl;
+    return true;
+  }
+
+  _enabled = true;
+  _resource_path = std::string(menge_resource_path);
+  gzmsg << "Crowd Sim is enabled! <env MENGE_RESOURCE_PATH> is : " << _resource_path << std::endl;
+
+  if (!sdf->HasElement("behavior_file"))
+  {
+    gzerr << "No behavior file found! <behavior_file> Required!" << std::endl;
+    return false;
+  }
+  _behavior_file =
+    sdf->GetElementImpl("behavior_file")->template Get<std::string>();
+
+  if (!sdf->HasElement("scene_file"))
+  {
+    gzerr << "No scene file found! <scene_file> Required!" << std::endl;
+    return false;
+  }
+  _scene_file =
+    sdf->GetElementImpl("scene_file")->template Get<std::string>();
+
+  if (!sdf->HasElement("update_time_step"))
+  {
+    gzerr << "No update_time_step found! <update_time_step> Required!" << std::endl;
+    return false;
+  }
+  _sim_time_step =
+    sdf->GetElementImpl("update_time_step")->template Get<float>();
+
+  if (!sdf->HasElement("model_type"))
+  {
+    gzerr << "No model type for agents found! <model_type> element Required!" << std::endl;
+    return false;
+  }
+  auto model_type_element = sdf->GetElementImpl("model_type");
+  while (model_type_element)
+  {
+    std::string s;
+    if (!model_type_element->template Get<std::string>("typename", s, ""))
+    {
+      gzerr << "No model type name configured in <model_type>! <typename> Required" << std::endl;
+      return false;
+    }
+
+    auto model_type_ptr = _model_type_db_ptr.emplace(s,
+        std::make_shared<ModelTypeDatabase::Record>() ); //unordered_map
+    model_type_ptr->type_name = s;
+
+    if (!model_type_element->template Get<std::string>("filename",
+      model_type_ptr->file_name, ""))
+    {
+      gzerr << "No actor skin configured in <model_type>! <filename> Required" << std::endl;
+      return false;
+    }
+
+    if (!model_type_element->template Get<std::string>("animation",
+      model_type_ptr->animation, ""))
+    {
+      gzerr << "No animation configured in <model_type>! <animation> Required" << std::endl;
+      return false;
+    }
+
+    if (!model_type_element->template Get<double>("animation_speed",
+      model_type_ptr->animation_speed, 0.0))
+    {
+      gzerr << "No animation speed configured in <model_type>! <animation_speed> Required" << std::endl;
+      return false;
+    }
+
+    if (!model_type_element->HasElement("initial_pose"))
+    {
+      gzerr << "No model initial pose configured in <model_type>! <initial_pose> Required [" << s << "]" << std::endl;
+      return false;
+    }
+    if (!_load_model_init_pose(model_type_element, model_type_ptr->pose))
+    {
+      gzerr << "Error loading model initial pose in <model_type>! Check <initial_pose> in [" << s << "]" << std::endl;
+      return false;
+    }
+
+    model_type_element = model_type_element->GetNextElement(
+      "model_type");
+  }
+
+  if (!sdf->HasElement("external_agent"))
+  {
+    gzwarn << "No external agent provided. <external_agent> is needed with a unique name defined above." << std::endl;
+  }
+  auto external_agent_element = sdf->GetElementImpl("external_agent");
+  while (external_agent_element)
+  {
+    auto ex_agent_name = external_agent_element->template Get<std::string>();
+    gzmsg << "Added external agent: [" << ex_agent_name << "]." << std::endl;
+    _external_agents.emplace_back(ex_agent_name); //just store the name
+    external_agent_element = external_agent_element->GetNextElement(
+      "external_agent");
+  }
+
+  return true;
+}
+
 void CrowdSimulatorPlugin::Configure(
   const Entity& entity,
   const std::shared_ptr<const sdf::Element>& sdf,
@@ -43,37 +196,58 @@ void CrowdSimulatorPlugin::Configure(
   EventManager& /*event_mgr*/)
 {
   _world = std::make_shared<Model>(entity);
-  RCLCPP_INFO(_crowd_sim_interface->logger(),
-    "Initializing world plugin with name: %s",
-    _world->Name(ecm).c_str());
+  gzmsg << "Initializing world plugin with name: " << _world->Name(ecm).c_str() << std::endl;
   _world_name = _world->Name(ecm);
 
-  if (!_crowd_sim_interface->read_sdf(sdf))
+  if (!read_sdf(sdf))
   {
-    RCLCPP_ERROR(_crowd_sim_interface->logger(),
-      "Error loading crowd simulator plugin. Load params failed!");
+    gzerr << "Error loading crowd simulator plugin. Load params failed!" << std::endl;
     exit(EXIT_FAILURE);
   }
 
-  if (!_crowd_sim_interface->enabled())
+  if (!_enabled)
   {
-    RCLCPP_WARN(_crowd_sim_interface->logger(),
-      "CrowdSim is Disabled!");
+    gzmsg << "CrowdSim is Disabled!" << std::endl;
     return;
   }
 
-  if (!_crowd_sim_interface->init_crowd_sim())
+  _menge_handle = MengeHandle::init_and_make(
+    _resource_path,
+    _behavior_file,
+    _scene_file,
+    _sim_time_step);
+
+  //_spawn_object();
+
+  //bool CrowdSimInterface::_spawn_object()
   {
-    RCLCPP_ERROR(_crowd_sim_interface->logger(),
-      "Error loading crowd simulator plugin. Load [ Menge ] failed!");
-    exit(EXIT_FAILURE);
+    //External models are loaded first in scene file
+    size_t external_count = _external_agents.size();
+    size_t total_agent_count = _menge_handle->get_agent_count();
+
+    for (size_t i = 0; i < external_count; ++i)
+    {
+      auto agent_ptr = _menge_handle->get_agent(i);
+      agent_ptr->_external = true;
+      _objects.emplace_back(
+        new Object{agent_ptr, _external_agents[i], agent_ptr->_typeName, true,
+          AnimState::WALK});
+    }
+
+    for (size_t i = external_count; i < total_agent_count; ++i)
+    {
+      auto agent_ptr = _menge_handle->get_agent(i);
+      agent_ptr->_external = false;
+      std::string model_name = "agent" + std::to_string(i);
+      _objects.emplace_back(
+        new Object{agent_ptr, model_name, agent_ptr->_typeName, false,
+          AnimState::WALK});
+    }
   }
 
   if (!_spawn_agents_in_world())
   {
-    RCLCPP_ERROR(
-      _crowd_sim_interface->logger(),
-      "Error loading crowd simulator plugin. Crowd Simulator failed to spawn agents in the world!");
+    gzerr << "Error loading crowd simulator plugin. Crowd Simulator failed to spawn agents in the world!" << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -85,7 +259,7 @@ void CrowdSimulatorPlugin::PreUpdate(
   EntityComponentManager& ecm)
 {
   // check if crowd sim is enabled
-  if (!_crowd_sim_interface->enabled())
+  if (!_enabled)
     return;
 
   // wait for all the models and actors loaded in gz rendering
@@ -106,30 +280,27 @@ void CrowdSimulatorPlugin::PreUpdate(
     _last_sim_time;
   double delta_sim_time = delta_sim_time_tmp.count();
   _last_sim_time = info.simTime;
-  _crowd_sim_interface->one_step_sim(delta_sim_time);
+  _menge_handle->set_sim_time_step(delta_sim_time);
+  _menge_handle->sim_step();
   _update_all_objects(delta_sim_time, ecm);
 }
 
 //==========================================================
 bool CrowdSimulatorPlugin::_spawn_agents_in_world()
 {
-  size_t object_count = this->_crowd_sim_interface->get_num_objects();
-  for (size_t id = 0; id < object_count; ++id)
+  for (size_t id = 0; id < _objects.size(); ++id)
   {
-    auto object_ptr = this->_crowd_sim_interface->get_object_by_id(id);
+    auto object_ptr = _objects[id];
     assert(object_ptr);
     _object_dic[object_ptr->model_name] = id;
 
     if (!object_ptr->is_external)
     {
-      auto type_ptr = _crowd_sim_interface->_model_type_db_ptr->get(
-        object_ptr->type_name);
+      auto type_ptr = _model_type_db_ptr.get(object_ptr->type_name);
       assert(type_ptr);
       if (!this->_create_entity(object_ptr->model_name, type_ptr) )
       {
-        RCLCPP_ERROR(_crowd_sim_interface->logger(),
-          "Failed to insert model [ %s ] in world",
-          object_ptr->model_name.c_str());
+        gzerr << "Failed to insert model [ " << object_ptr->model_name << " ] in world" << std::endl;
         return false;
       }
     }
@@ -143,10 +314,9 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
 {
   // check all the models are in the world
   std::unordered_map<std::string, size_t> objects_name;
-  size_t object_count = _crowd_sim_interface->get_num_objects();
-  for (size_t id = 0; id < object_count; id++)
+  for (size_t id = 0; id < _objects.size(); id++)
   {
-    auto obj = _crowd_sim_interface->get_object_by_id(id);
+    auto obj = _objects[id];
     // already found in the Dic
     if (_entity_dic.find(obj->model_name) != _entity_dic.end())
       continue;
@@ -164,16 +334,14 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
       {
         // update in entityDic
         _entity_dic[name->Data()] = entity;
-        auto obj_ptr =
-        _crowd_sim_interface->get_object_by_id(it_objects_name->second);
+        auto obj_ptr = _objects[it_objects_name->second];
         // config internal spawned agent for custom trajectory
         if (!obj_ptr->is_external)
         {
           _config_spawned_agents(obj_ptr, entity, ecm);
         }
         objects_name.erase(name->Data());
-        RCLCPP_INFO(_crowd_sim_interface->logger(),
-        "Crowd Simulator found agent: %s", name->Data().c_str());
+        gzmsg << "Crowd Simulator found agent: " << name->Data() << std::endl;
       }
       return true;
     }
@@ -190,17 +358,14 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
       {
         // update in entityDic
         _entity_dic[name->Data()] = entity;
-        auto obj_ptr =
-        _crowd_sim_interface->get_object_by_id(it_objects_name->second);
+        auto obj_ptr = _objects[it_objects_name->second];
         // config internal spawned agent for custom trajectory
         if (!obj_ptr->is_external)
         {
           _config_spawned_agents(obj_ptr, entity, ecm);
         }
         objects_name.erase(name->Data());
-        RCLCPP_INFO(_crowd_sim_interface->logger(),
-        "Crowd Simulator found agent: %s",
-        name->Data().c_str());
+        gzmsg << "Crowd Simulator found agent: " << name->Data() << std::endl;
       }
       return true;
     }
@@ -213,15 +378,13 @@ void CrowdSimulatorPlugin::_init_spawned_agents(
     return;
   }
   _initialized = true;
-  RCLCPP_INFO(
-    _crowd_sim_interface->logger(),
-    "Ignition Models are all loaded! Start simulating...");
+  gzmsg << "Gazebo Models are all loaded! Start simulating..." << std::endl;
 }
 
 //===================================================================
 bool CrowdSimulatorPlugin::_create_entity(
   const std::string& model_name,
-  const crowd_simulator::ModelTypeDatabase::RecordPtr model_type_ptr) const
+  const ModelTypeDatabase::RecordPtr model_type_ptr) const
 {
   // Use gz create service to spawn actors
   // calling gz gazebo create service, you can use "ign service -l" to
@@ -242,38 +405,30 @@ bool CrowdSimulatorPlugin::_create_entity(
   {
     if (result && response.data())
     {
-      RCLCPP_INFO(_crowd_sim_interface->logger(),
-        "Requested creation of entity: %s",
-        model_name.c_str());
+      gzmsg << "Requested creation of entity: " << model_name << std::endl;;
       return true;
     }
     else
     {
-      RCLCPP_ERROR(_crowd_sim_interface->logger(),
-        "Failed request to create entity.\n %s",
-        request.DebugString().c_str());
+      gzerr << "Failed request to create entity:" << std::endl <<  request.DebugString() << std::endl;
     }
   }
   else
   {
-    RCLCPP_ERROR(
-      _crowd_sim_interface->logger(),
-      "Request to create entity from service %s timer out ...\n",
-      request.DebugString().c_str());
+    gzerr << "Request to create entity from service " << request.DebugString() << " time out ..." << std::endl;
   }
   return false;
 }
 
 //==================================================
 void CrowdSimulatorPlugin::_config_spawned_agents(
-  const crowd_simulator::CrowdSimInterface::ObjectPtr obj_ptr,
+  const ObjectPtr obj_ptr,
   const Entity& entity,
   EntityComponentManager& ecm) const
 {
   assert(obj_ptr);
   auto agent_ptr = obj_ptr->agent_ptr;
-  auto model_type = _crowd_sim_interface->_model_type_db_ptr->get(
-    obj_ptr->type_name);
+  auto model_type = _model_type_db_ptr.get(obj_ptr->type_name);
   // different from gazebo plugin, the pose component is the origin of the trajPose
   gz::math::Pose3d actor_pose(
     static_cast<double>(agent_ptr->_pos.x()),
@@ -291,7 +446,7 @@ void CrowdSimulatorPlugin::_config_spawned_agents(
   // check idle animation name
   auto actor_comp =
     ecm.Component<components::Actor>(entity);
-  for (auto idle_anim : _crowd_sim_interface->get_switch_anim_name())
+  for (const auto& idle_anim : _idle_animation_names)
   {
     if (actor_comp->Data().AnimationNameExists(idle_anim))
     {
@@ -316,16 +471,13 @@ void CrowdSimulatorPlugin::_update_all_objects(
   double delta_sim_time,
   EntityComponentManager& ecm) const
 {
-  auto objects_count = _crowd_sim_interface->get_num_objects();
-  for (size_t id = 0; id < objects_count; id++)
+  for (size_t id = 0; id < _objects.size(); id++)
   {
-    auto obj_ptr = _crowd_sim_interface->get_object_by_id(id);
+    auto obj_ptr = _objects[id];
     auto it_entity = _entity_dic.find(obj_ptr->model_name);
     if (it_entity == _entity_dic.end())   //safe check
     {
-      RCLCPP_ERROR(_crowd_sim_interface->logger(),
-        "Didn't initialize external agent [ %s ]",
-        obj_ptr->model_name.c_str());
+      gzerr << "Didn't initialize external agent [ " << obj_ptr->model_name << " ]" << std::endl;
       exit(EXIT_FAILURE);
     }
     auto entity = it_entity->second;
@@ -335,8 +487,8 @@ void CrowdSimulatorPlugin::_update_all_objects(
     {
       auto model_pose =
         ecm.Component<components::Pose>(entity)->Data();
-      _crowd_sim_interface->update_external_agent(obj_ptr->agent_ptr,
-        model_pose);
+      obj_ptr->agent_ptr->_pos.setX(model_pose.Pos().X());
+      obj_ptr->agent_ptr->_pos.setY(model_pose.Pos().Y());
       continue;
     }
 
@@ -347,18 +499,14 @@ void CrowdSimulatorPlugin::_update_all_objects(
 
 void CrowdSimulatorPlugin::_update_internal_object(
   double delta_sim_time,
-  const crowd_simulator::CrowdSimInterface::ObjectPtr obj_ptr,
+  const ObjectPtr obj_ptr,
   const Entity& entity,
   EntityComponentManager& ecm) const
 {
-  double animation_speed = _crowd_sim_interface->_model_type_db_ptr->get(
-    obj_ptr->type_name)->animation_speed;
-  gz::math::Pose3d initial_pose =
-    _crowd_sim_interface->_model_type_db_ptr->get(obj_ptr->type_name)->pose.
+  double animation_speed = _model_type_db_ptr.get(obj_ptr->type_name)->animation_speed;
+  gz::math::Pose3d initial_pose = _model_type_db_ptr.get(obj_ptr->type_name)->pose.
     convert_to_ign_math_pose_3d<gz::math::Pose3d>();
-  gz::math::Pose3d agent_pose =
-    _crowd_sim_interface->get_agent_pose<gz::math::Pose3d>(
-    obj_ptr->agent_ptr, delta_sim_time);
+  gz::math::Pose3d agent_pose = get_agent_pose(obj_ptr->agent_ptr, delta_sim_time);
   agent_pose += initial_pose;
 
   // get components to be updated
@@ -376,10 +524,9 @@ void CrowdSimulatorPlugin::_update_internal_object(
   double distance_traveled = distance_traveled_vector.Length();
 
   // switch animation
-  auto model_type = _crowd_sim_interface->_model_type_db_ptr->get(
-    obj_ptr->type_name);
+  auto model_type = _model_type_db_ptr.get(obj_ptr->type_name);
   AnimState next_state = obj_ptr->get_next_state(
-    distance_traveled < _crowd_sim_interface->get_switch_anim_distance_th() &&
+    distance_traveled < ANIMATION_DISTANCE_SWITCH_THRESHOLD &&
     !model_type->idle_animation.empty());
 
   switch (next_state)
@@ -413,6 +560,145 @@ void CrowdSimulatorPlugin::_update_internal_object(
   ecm.SetChanged(entity,
     components::AnimationTime::typeId,
     ComponentState::PeriodicChange);
+}
+
+//============================================
+ModelTypeDatabase::RecordPtr ModelTypeDatabase::emplace(
+  std::string type_name,
+  RecordPtr record_ptr)
+{
+  auto pair = this->_records.emplace(type_name, record_ptr); //return pair<iterator, bool>
+  assert(pair.second);
+  return pair.first->second;
+}
+
+ModelTypeDatabase::RecordPtr ModelTypeDatabase::get(
+  const std::string& type_name)
+const
+{
+  auto it = this->_records.find(type_name);
+  if (it == this->_records.end())
+  {
+    std::cout << "The model type [ " << type_name <<
+      " ] is not defined in scene file!" << std::endl;
+    return nullptr;
+  }
+  return it->second;
+}
+
+size_t ModelTypeDatabase::size() const
+{
+  return this->_records.size();
+}
+
+//================================================================
+std::shared_ptr<MengeHandle> MengeHandle::init_and_make(
+  const std::string& resource_path,
+  const std::string& behavior_file,
+  const std::string& scene_file,
+  const float sim_time_step
+)
+{
+  auto menge_handle = std::make_shared<MengeHandle>(
+    resource_path, behavior_file, scene_file, sim_time_step);
+  if (!menge_handle->_load_simulation())
+  {
+    return nullptr;
+  }
+  return menge_handle;
+}
+
+void MengeHandle::set_sim_time_step(float sim_time_step)
+{
+  this->_sim_time_step = sim_time_step;
+  // Set it if a valid handle is present
+  if (this->_sim)
+  {
+    this->_sim->setTimeStep(sim_time_step);
+  }
+}
+
+float MengeHandle::get_sim_time_step() const
+{
+  return this->_sim_time_step;
+}
+
+size_t MengeHandle::get_agent_count()
+{
+  if (this->_agent_count == 0)
+  {
+    this->_agent_count = this->_sim->getNumAgents();
+  }
+  return this->_agent_count;
+}
+
+void MengeHandle::sim_step() const
+{
+  this->_sim->step();
+}
+
+AgentPtr MengeHandle::get_agent(size_t id) const
+{
+  return AgentPtr(this->_sim->getAgent(id));
+}
+
+std::string MengeHandle::_resource_file_path(const std::string& relative_path)
+const
+{
+  std::string full_path = this->_resource_path + "/" + relative_path;
+  std::cout << "Finding resource file: " << full_path << std::endl;
+  std::ifstream ifile(full_path);
+  if (!static_cast<bool>(ifile))
+  {
+    std::cerr << "File not found! " << full_path << std::endl;
+    assert(static_cast<bool>(ifile));
+  }
+  std::cout << "Found." << std::endl;
+  return full_path;
+}
+
+bool MengeHandle::_load_simulation()
+{
+  Menge::SimulatorDB sim_db;
+  Menge::PluginEngine::CorePluginEngine engine(&sim_db);
+
+  std::cout << "Start CrowdSimulator initializing [Menge]..." << std::endl;
+
+  this->_sim = std::shared_ptr<Menge::Agents::SimulatorInterface>(
+    sim_db.getDBEntry("orca")->getSimulator(
+      this->_agent_count,
+      this->_sim_time_step,
+      0,
+      std::numeric_limits<float>::infinity(),
+      this->_behavior_file,
+      this->_scene_file,
+      "",
+      "",
+      false)
+  );
+
+  if (this->_sim)
+  {
+    std::cout << std::endl << "Crowd Simulator initialized success [Menge]. " <<
+      std::endl;
+    return true;
+  }
+  std::cout <<
+    "Error in provided navmesh. Menge simulator initialized false." <<
+    std::endl;
+  return false;
+}
+
+//=============================================
+AnimState Object::get_next_state(
+  bool condition)
+{
+  if (condition)
+    return AnimState::IDLE;
+  else
+    return AnimState::WALK;
+
+  return current_state;
 }
 
 GZ_ADD_PLUGIN(

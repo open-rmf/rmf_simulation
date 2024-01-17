@@ -44,7 +44,6 @@ set(GZ_RENDERING_VER 8)
 gz_find_package(sdformat14 REQUIRED)
 
 
-find_package(rmf_building_sim_common REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package (Qt5
   COMPONENTS
@@ -65,7 +64,6 @@ add_library(door SHARED src/door.cpp)
 
 target_include_directories(door
   PUBLIC
-    ${rmf_building_sim_common_INCLUDE_DIRS}
     ${rmf_door_msgs_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
@@ -86,7 +84,6 @@ add_library(register_component SHARED src/register_component.cpp)
 
 target_include_directories(register_component
   PUBLIC
-    ${rmf_building_sim_common_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
@@ -129,17 +126,14 @@ add_library(crowd_simulator
 target_include_directories(crowd_simulator
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  ${rmf_building_sim_common_INCLUDE_DIRS}
   ${rclcpp_INCLUDE_DIRS}
   ${menge_vendor_INCLUDE_DIRS}
-  ${GZITION-COMMON_INCLUDE_DIRS}
 )
 
 ament_target_dependencies(crowd_simulator
   gz-sim${GZ_SIM_VER}
   gz-plugin${GZ_PLUGIN_VER}
   rclcpp
-  rmf_building_sim_common
   menge_vendor
 )
 
