@@ -99,4 +99,19 @@ rclcpp::Time simulation_now(double t)
   return rclcpp::Time{t_sec, t_nsec, RCL_ROS_TIME};
 }
 
+// ROS 2 nodes can only have alphanumeric characters and underscores, this
+// function removes special characters and replaces dashes / spaces with
+// underscores to avoid throwing exceptions.
+//==============================================================================
+void sanitize_node_name(std::string& node_name)
+{
+  std::replace(node_name.begin(), node_name.end(), ' ', '_');
+  std::replace(node_name.begin(), node_name.end(), '-', '_');
+  node_name.erase(std::remove_if(node_name.begin(), node_name.end(),
+    [](auto const& c) -> bool
+    {
+      return c != '_' && !std::isalnum(c);
+    }), node_name.end());
+}
+
 } // namespace rmf_plugins_utils
