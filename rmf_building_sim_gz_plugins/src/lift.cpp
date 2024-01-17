@@ -52,8 +52,8 @@ private:
   rclcpp::Publisher<LiftState>::SharedPtr _lift_state_pub;
   rclcpp::Subscription<LiftRequest>::SharedPtr _lift_request_sub;
 
-  std::unordered_map<std::string, gz::math::AxisAlignedBox> _initial_aabbs;
-  std::unordered_map<std::string, gz::math::Pose3d> _initial_poses;
+  std::unordered_map<Entity, gz::math::AxisAlignedBox> _initial_aabbs;
+  std::unordered_map<Entity, gz::math::Pose3d> _initial_poses;
   std::unordered_map<std::string, Entity> _cached_entity_by_names;
 
   std::unordered_map<Entity, double> _last_cmd_vel;
@@ -63,6 +63,7 @@ private:
 
   PhysEnginePlugin _phys_plugin = PhysEnginePlugin::DEFAULT;
   bool _first_iteration = true;
+  bool _read_aabb = false;
 
   void create_entity_components(Entity entity, EntityComponentManager& ecm)
   {
@@ -97,16 +98,21 @@ private:
     }
   }
 
-  std::vector<Entity> get_payloads(EntityComponentManager& ecm)
+  std::vector<Entity> get_payloads(EntityComponentManager& ecm, const Entity& lift_entity)
   {
     std::vector<Entity> payloads;
-    /*
     const auto& lift_pose =
-      ecm.Component<components::Pose>(_lift_entity)->Data();
+      ecm.Component<components::Pose>(lift_entity)->Data();
+    auto pose = _initial_poses.find(lift_entity);
+    if (pose == _initial_poses.end())
+      return payloads;
+    auto aabb_it = _initial_aabbs.find(lift_entity);
+    if (aabb_it == _initial_aabbs.end())
+      return payloads;
     const gz::math::Vector3d displacement =
-      lift_pose.CoordPositionSub(_initial_pose);
+      lift_pose.CoordPositionSub(pose->second);
     // Calculate current AABB of lift assuming it hasn't tilted/deformed
-    gz::math::AxisAlignedBox lift_aabb = _initial_aabb + displacement;
+    gz::math::AxisAlignedBox lift_aabb = aabb_it->second + displacement;
 
     ecm.Each<components::Model, components::Pose>(
       [&](const Entity& entity,
@@ -115,7 +121,7 @@ private:
       ) -> bool
       {
         const auto payload_position = pose->Data().Pos();
-        if (entity != _lift_entity)
+        if (entity != lift_entity)
         { // Could possibly check bounding box intersection too, but this suffices
           if (lift_aabb.Contains(payload_position))
           {
@@ -124,37 +130,35 @@ private:
         }
         return true;
       });
-      */
     return payloads;
   }
 
   void initialize_components(EntityComponentManager& ecm)
   {
-    ecm.Each<components::Lift, components::Name>([&](const Entity& entity, const components::Lift* lift_comp, const components::Name* name_comp) -> bool
+    ecm.Each<components::Lift>([&](const Entity& entity, const components::Lift* lift_comp) -> bool
         {
-          const auto& name = name_comp->Data();
           const auto& lift = lift_comp->Data();
           auto cabin_joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
           create_joint_components(cabin_joint_entity, ecm);
+          enableComponent<components::AxisAlignedBox>(ecm, entity);
+          return true;
+        });
+  }
 
+  void read_aabbs(EntityComponentManager& ecm)
+  {
+    ecm.Each<components::AxisAlignedBox, components::Pose>([&](const Entity& entity, const components::AxisAlignedBox* aabb, const components::Pose* pose) -> bool
+        {
           // Optimization: Read and store lift's pose and AABB whenever available, then
           // delete the AABB component once read. Not deleting it causes rtf to drop by
           // a 3-4x factor whenever the lift moves.
-          const auto& aabb_component =
-            ecm.Component<components::AxisAlignedBox>(entity);
-          const auto& pose_component =
-            ecm.Component<components::Pose>(entity);
-
-          if (aabb_component && pose_component)
+          const double volume = aabb->Data().Volume();
+          if (volume > 0 && volume != std::numeric_limits<double>::infinity())
           {
-            const double volume = aabb_component->Data().Volume();
-            if (volume > 0 && volume != std::numeric_limits<double>::infinity())
-            {
-              // TODO(luca) this could be a component instead of a hash map
-              _initial_aabbs[name] = aabb_component->Data();
-              _initial_poses[name] = pose_component->Data();
-              enableComponent<components::AxisAlignedBox>(ecm, entity, false);
-            }
+            // TODO(luca) this could be a component instead of a hash map
+            _initial_aabbs[entity] = aabb->Data();
+            _initial_poses[entity] = pose->Data();
+            enableComponent<components::AxisAlignedBox>(ecm, entity, false);
           }
           return true;
         });
@@ -318,15 +322,17 @@ private:
       dx, current_velocity, params, dt);
   }
 
-  void command_lift(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, double dt, double target_elevation, double cur_elevation)
+  double command_lift(const Entity& entity, EntityComponentManager& ecm, const LiftData& lift, double dt, double target_elevation, double cur_elevation)
   {
     auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
+    auto target_vel = 0.0;
     if (joint_entity != kNullEntity)
     {
-      auto target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
+      target_vel = calculate_target_velocity(target_elevation, cur_elevation, _last_cmd_vel[joint_entity], dt, lift.params);
       ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd({target_vel}));
       _last_cmd_vel[joint_entity] = target_vel;
     }
+    return target_vel;
   }
 
 public:
@@ -434,6 +440,12 @@ public:
       return;
     }
 
+    if (!_read_aabb)
+    {
+      read_aabbs(ecm);
+      _read_aabb = true;
+    }
+
     rclcpp::spin_some(_ros_node);
 
     // Don't update the pose if the simulation is paused
@@ -489,7 +501,24 @@ public:
         command_doors(ecm, doors, DoorModeCmp::CLOSE);
         if (all_doors_at_state(ecm, doors, DoorModeCmp::CLOSE))
         {
-          command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
+          auto target_velocity = command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
+          // Move payloads as well
+          if (target_velocity != 0.0)
+          {
+            auto payloads = get_payloads(ecm, entity);
+            for (const Entity& payload : payloads)
+            {
+              std::cout << "Payload found" << std::endl;
+              if (ecm.EntityHasComponentType(payload,
+                components::LinearVelocityCmd().TypeId()))
+              {
+                auto lin_vel_cmd =
+                  ecm.Component<components::LinearVelocityCmd>(payload);
+                lin_vel_cmd->Data()[2] = target_velocity;
+                std::cout << "Setting Z velocity of payload to " << target_velocity << std::endl;
+              }
+            }
+          }
         }
       }
 
@@ -531,6 +560,11 @@ public:
         msg.current_mode = msg.MODE_AGV;
         msg.session_id = lift_cmd_comp != nullptr ?
           lift_cmd_comp->Data().session_id : "";
+        auto it = _last_lift_command.find(entity);
+        if (it != _last_lift_command.end())
+        {
+          msg.session_id = it->second.session_id;
+        }
         _lift_state_pub->publish(msg);
         _last_state_pub[name] = t;
       }
@@ -571,23 +605,6 @@ public:
       lift_vel_cmd->Data()[2] = result.velocity;
     }
 
-    // Move any payloads that need to be manually moved
-    // (i.e. have a LinearVelocityCmd component that exists)
-    if (_lift_common->motion_state_changed())
-    {
-      _payloads = get_payloads(ecm);
-    }
-
-    for (const Entity& payload : _payloads)
-    {
-      if (ecm.EntityHasComponentType(payload,
-        components::LinearVelocityCmd().TypeId()))
-      {
-        auto lin_vel_cmd =
-          ecm.Component<components::LinearVelocityCmd>(payload);
-        lin_vel_cmd->Data()[2] = result.velocity;
-      }
-    }
     */
   }
 };
