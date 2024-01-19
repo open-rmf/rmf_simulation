@@ -139,11 +139,12 @@ private:
     }
   }
 
-  void publish_state(const UpdateInfo& info, const std::string& name, const DoorModeCmp& door_state)
+  void publish_state(const UpdateInfo& info, const std::string& name,
+    const DoorModeCmp& door_state)
   {
     double t =
-    (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-    count()) * 1e-9;
+      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+      count()) * 1e-9;
     DoorState msg;
     msg.door_name = name;
     msg.door_time.sec = t;
@@ -181,14 +182,18 @@ public:
 
     // Subscribe to door requests, publish door states
     auto pub_options = rclcpp::PublisherOptions();
-    pub_options.event_callbacks.matched_callback = [this](rclcpp::MatchedInfo& s) {
-      if (s.current_count_change > 0) {
-        // Trigger a status send for all doors
-        _send_all_states = true;
-        _sent_states.clear();
-        gzmsg << "Detected new door subscriber, triggering state publish" << std::endl;
-      }
-    };
+    pub_options.event_callbacks.matched_callback =
+      [this](rclcpp::MatchedInfo& s)
+      {
+        if (s.current_count_change > 0)
+        {
+          // Trigger a status send for all doors
+          _send_all_states = true;
+          _sent_states.clear();
+          gzmsg << "Detected new door subscriber, triggering state publish" <<
+            std::endl;
+        }
+      };
     const auto pub_qos = rclcpp::QoS(200).reliable();
     _door_state_pub = _ros_node->create_publisher<DoorState>(
       "door_states", pub_qos, pub_options);
@@ -269,8 +274,11 @@ public:
       });
 
     // Update states
-    ecm.Each<components::Door, components::DoorStateComp, components::Name>([&](const Entity& entity,
-      const components::Door* door_comp, components::DoorStateComp* door_state_comp, const components::Name* name_comp) -> bool
+    ecm.Each<components::Door, components::DoorStateComp,
+      components::Name>([&](const Entity& entity,
+      const components::Door* door_comp,
+      components::DoorStateComp* door_state_comp,
+      const components::Name* name_comp) -> bool
       {
         const auto& door = door_comp->Data();
         auto& last_mode = door_state_comp->Data();
@@ -289,7 +297,8 @@ public:
     {
       bool keep_sending = false;
       ecm.Each<components::Door, components::DoorStateComp,
-        components::Name>([&](const Entity& e, const components::Door* door_comp,
+        components::Name>([&](const Entity& e,
+        const components::Door* door_comp,
         const components::DoorStateComp* door_state_comp,
         const components::Name* name_comp) -> bool
         {
