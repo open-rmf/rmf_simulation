@@ -41,7 +41,6 @@ class GZ_SIM_VISIBLE LiftPlugin
   public ISystemPreUpdate
 {
 private:
-  static constexpr double STATE_PUB_DT = 1.0;
   rclcpp::Node::SharedPtr _ros_node;
 
   rclcpp::Publisher<LiftState>::SharedPtr _lift_state_pub;
@@ -53,11 +52,13 @@ private:
 
   std::unordered_map<Entity, double> _last_cmd_vel;
   std::unordered_map<Entity, LiftCommand> _last_lift_command;
-
-  std::unordered_map<std::string, double> _last_state_pub;
+  std::unordered_map<Entity, LiftState> _last_states;
 
   bool _components_initialized = false;
   bool _aabb_read = false;
+
+  std::unordered_set<Entity> _sent_states;
+  bool _send_all_states = false;
 
   std::vector<Entity> get_payloads(EntityComponentManager& ecm,
     const Entity& lift_entity)
@@ -357,24 +358,63 @@ private:
     return target_vel;
   }
 
+  LiftState get_current_state(const Entity& entity, EntityComponentManager& ecm,
+    const LiftData& lift,
+    const components::LiftCmd* lift_cmd)
+  {
+    LiftState msg;
+
+    msg.available_floors = get_available_floors(lift);
+    msg.current_floor = get_current_floor(entity, ecm, lift);
+    msg.destination_floor = lift_cmd != nullptr ?
+      lift_cmd->Data().destination_floor : msg.current_floor;
+
+    msg.door_state = get_door_state(entity, ecm, lift);
+    msg.motion_state = lift_cmd != nullptr ?
+      get_motion_state(entity, ecm, lift,
+        lift_cmd->Data().destination_floor) : msg.MOTION_STOPPED;
+    msg.current_mode = msg.MODE_AGV;
+    msg.session_id = lift_cmd != nullptr ?
+      lift_cmd->Data().session_id : "";
+    auto it = _last_lift_command.find(entity);
+    if (it != _last_lift_command.end())
+    {
+      msg.session_id = it->second.session_id;
+    }
+    return msg;
+  }
+
 public:
 
   void Configure(const Entity& /*entity*/,
     const std::shared_ptr<const sdf::Element>& /*sdf*/,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    ignerr << "Entering lift plugin" << std::endl;
     if (!rclcpp::ok())
       rclcpp::init(0, nullptr);
     std::string plugin_name("rmf_simulation_lift_manager");
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     // initialize pub & sub
+    auto pub_options = rclcpp::PublisherOptions();
+    pub_options.event_callbacks.matched_callback =
+      [this](rclcpp::MatchedInfo& s)
+      {
+        if (s.current_count_change > 0)
+        {
+          // Trigger a status send for all lifts
+          _send_all_states = true;
+          _sent_states.clear();
+          gzmsg << "Detected new lift subscriber, triggering state publish" <<
+            std::endl;
+        }
+      };
+    const auto reliable_qos = rclcpp::QoS(200).reliable();
     _lift_state_pub = _ros_node->create_publisher<LiftState>(
-      "lift_states", rclcpp::SystemDefaultsQoS());
+      "lift_states", reliable_qos, pub_options);
 
     _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
-      "lift_requests", rclcpp::SystemDefaultsQoS(),
+      "lift_requests", reliable_qos,
       [&](LiftRequest::UniquePtr msg)
       {
         // Find entity with the name and create a DoorCmd component
@@ -537,14 +577,7 @@ public:
         return true;
       });
 
-    // Clear finished commands
-    for (const auto& e : finished_cmds)
-      enableComponent<components::LiftCmd>(ecm, e, false);
-
-    // Publish state
-    double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
+    // Update states
     ecm.Each<components::Lift,
       components::Name>([&](const Entity& entity,
       const components::Lift* lift_comp,
@@ -555,38 +588,61 @@ public:
 
         const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
 
-        if (_last_state_pub.find(name) == _last_state_pub.end())
-          _last_state_pub[name] = static_cast<double>(std::rand()) / RAND_MAX;
-        if (t - _last_state_pub[name] >= STATE_PUB_DT)
+        auto current_state = get_current_state(entity, ecm, lift,
+        lift_cmd_comp);
+        // Will compare to default initialized last state which should be true at startup
+        if (current_state != _last_states[entity])
         {
-          LiftState msg;
-          msg.lift_time.sec = t;
-          msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
-          msg.lift_name = name;
+          _last_states[entity] = current_state;
+          double t =
+          (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+          count()) * 1e-9;
+          current_state.lift_name = name;
+          current_state.lift_time.sec = t;
+          current_state.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
 
-          msg.available_floors = get_available_floors(lift);
-          msg.current_floor = get_current_floor(entity, ecm, lift);
-          msg.destination_floor = lift_cmd_comp != nullptr ?
-          lift_cmd_comp->Data().destination_floor : msg.current_floor;
-
-          msg.door_state = get_door_state(entity, ecm, lift);
-          msg.motion_state = lift_cmd_comp != nullptr ?
-          get_motion_state(entity, ecm, lift,
-          lift_cmd_comp->Data().destination_floor) : msg.MOTION_STOPPED;
-          msg.current_mode = msg.MODE_AGV;
-          msg.session_id = lift_cmd_comp != nullptr ?
-          lift_cmd_comp->Data().session_id : "";
-          auto it = _last_lift_command.find(entity);
-          if (it != _last_lift_command.end())
-          {
-            msg.session_id = it->second.session_id;
-          }
-          _lift_state_pub->publish(msg);
-          _last_state_pub[name] = t;
+          _lift_state_pub->publish(current_state);
         }
 
         return true;
       });
+
+    // Clear finished commands
+    for (const auto& e : finished_cmds)
+      enableComponent<components::LiftCmd>(ecm, e, false);
+
+    // Publish state
+    if (_send_all_states)
+    {
+      bool keep_sending = false;
+      ecm.Each<components::Lift,
+        components::Name>([&](const Entity& entity,
+        const components::Lift* lift_comp,
+        const components::Name* name_comp) -> bool
+        {
+          if (_sent_states.find(entity) != _sent_states.end())
+            return true;
+          const auto& name = name_comp->Data();
+          const auto& lift = lift_comp->Data();
+
+          const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(
+            entity);
+
+          auto msg = get_current_state(entity, ecm, lift, lift_cmd_comp);
+          _last_states[entity] = msg;
+          double t =
+          (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+          count()) * 1e-9;
+          msg.lift_time.sec = t;
+          msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
+          msg.lift_name = name;
+          _lift_state_pub->publish(msg);
+          _sent_states.insert(entity);
+          keep_sending = true;
+          return true;
+        });
+      _send_all_states = keep_sending;
+    }
   }
 };
 
@@ -599,4 +655,4 @@ GZ_ADD_PLUGIN(
 
 GZ_ADD_PLUGIN_ALIAS(LiftPlugin, "lift")
 
-} // namespace building_sim_ign
+} // namespace building_sim_gz_plugins
