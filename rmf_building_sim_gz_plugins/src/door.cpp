@@ -228,7 +228,9 @@ public:
         for (auto joint : door->Data().joints)
         {
           auto joint_entity = get_joint_entity(ecm, entity, joint.name);
-          enableComponent<components::JointPosition>(ecm, joint_entity);
+          std::vector<double> position = {0.0};
+          ecm.CreateComponent<components::JointPosition>(joint_entity,
+          components::JointPosition(position));
         }
         enableComponent<components::DoorStateComp>(ecm, entity);
         return true;
