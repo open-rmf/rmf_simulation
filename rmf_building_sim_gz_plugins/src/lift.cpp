@@ -107,6 +107,8 @@ private:
         enableComponent<components::AxisAlignedBox>(ecm, entity);
         enableComponent<components::JointPosition>(ecm, cabin_joint_entity);
         enableComponent<components::JointVelocityCmd>(ecm, cabin_joint_entity);
+        ecm.CreateComponent<components::JointVelocityCmd>(cabin_joint_entity,
+        components::JointVelocityCmd({0.0}));
 
         LiftCommand lift_command;
         lift_command.request_type = LiftRequest::REQUEST_AGV_MODE;
