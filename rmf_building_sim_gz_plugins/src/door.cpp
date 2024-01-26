@@ -49,8 +49,8 @@ private:
     auto joint_entity = Model(model_entity).JointByName(ecm, joint_name);
     if (joint_entity == kNullEntity)
     {
-      // Try in the global space
-      joint_entity = ecm.EntityByComponents(components::Name(joint_name));
+      // Try for its parent (i.e. for lift nested cabin doors)
+      joint_entity = Model(ecm.ParentEntity(model_entity)).JointByName(ecm, joint_name);
       if (joint_entity == kNullEntity)
       {
         gzwarn << "Joint " << joint_name << " not found" << std::endl;
