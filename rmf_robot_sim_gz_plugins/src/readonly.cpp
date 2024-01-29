@@ -14,12 +14,12 @@
  * limitations under the License.
  *
 */
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/logger.hpp>
@@ -36,11 +36,11 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/readonly_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
 namespace rmf_robot_sim_gz_plugins {
 
-class IGNITION_GAZEBO_VISIBLE ReadonlyPlugin
+class GZ_SIM_VISIBLE ReadonlyPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -93,13 +93,13 @@ void ReadonlyPlugin::PreUpdate(const UpdateInfo& info,
   _readonly_common->on_update(pose, sim_time);
 }
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   ReadonlyPlugin,
   System,
   ReadonlyPlugin::ISystemConfigure,
   ReadonlyPlugin::ISystemPreUpdate)
 
 // TODO would prefer namespaced
-IGNITION_ADD_PLUGIN_ALIAS(ReadonlyPlugin, "readonly")
+GZ_ADD_PLUGIN_ALIAS(ReadonlyPlugin, "readonly")
 
 } // namespace rmf_robot_sim_gz_plugins

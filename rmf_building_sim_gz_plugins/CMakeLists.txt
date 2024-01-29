@@ -18,31 +18,32 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+find_package(rmf_door_msgs REQUIRED)
+find_package(rmf_lift_msgs REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
-find_package(ignition-cmake2 REQUIRED)
+find_package(gz-cmake3 REQUIRED)
 
-ign_find_package(ignition-gazebo6 REQUIRED)
-set(IGN_GAZEBO_VER 6)
-ign_find_package(ignition-plugin1 REQUIRED COMPONENTS register)
-set(IGN_PLUGIN_VER 1)
-ign_find_package(ignition-common4 REQUIRED)
-set(IGN_COMMON_VER 4)
-ign_find_package(ignition-math6 REQUIRED)
-set(IGN_MATH_VER 6)
-ign_find_package(ignition-gui6 REQUIRED)
-set(IGN_GUI_VER 6)
-ign_find_package(ignition-msgs8 REQUIRED)
-set(IGN_MSGS_VER 8)
-ign_find_package(ignition-transport11 REQUIRED)
-set(IGN_TRANSPORT_VER 11)
-ign_find_package(ignition-rendering6 REQUIRED)
-set(IGN_RENDERING_VER 6)
-ign_find_package(sdformat12 REQUIRED)
+gz_find_package(gz-sim8 REQUIRED)
+set(GZ_SIM_VER 8)
+gz_find_package(gz-plugin2 REQUIRED COMPONENTS register)
+set(GZ_PLUGIN_VER 2)
+gz_find_package(gz-common5 REQUIRED)
+set(GZ_COMMON_VER 5)
+gz_find_package(gz-math7 REQUIRED)
+set(GZ_MATH_VER 7)
+gz_find_package(gz-gui8 REQUIRED)
+set(GZ_GUI_VER 8)
+gz_find_package(gz-msgs10 REQUIRED)
+set(GZ_MSGS_VER 10)
+gz_find_package(gz-transport13 REQUIRED)
+set(GZ_TRANSPORT_VER 13)
+gz_find_package(gz-rendering8 REQUIRED)
+set(GZ_RENDERING_VER 8)
+gz_find_package(sdformat14 REQUIRED)
 
 
-find_package(rmf_building_sim_common REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package (Qt5
   COMPONENTS
@@ -63,17 +64,33 @@ add_library(door SHARED src/door.cpp)
 
 target_include_directories(door
   PUBLIC
-    ${rmf_building_sim_common_INCLUDE_DIRS}
-    ${geometry_msgs_INCLUDE_DIRS}
     ${rmf_door_msgs_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 ament_target_dependencies(door
   PUBLIC
     rclcpp
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
-    rmf_building_sim_common
+    gz-sim${GZ_SIM_VER}
+    gz-plugin${GZ_PLUGIN_VER}
+    rmf_door_msgs
+)
+
+###############################
+# register_component stuff
+###############################
+
+add_library(register_component SHARED src/register_component.cpp)
+
+target_include_directories(register_component
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+ament_target_dependencies(register_component
+  PUBLIC
+    gz-sim${GZ_SIM_VER}
+    gz-plugin${GZ_PLUGIN_VER}
 )
 
 ###############################
@@ -84,16 +101,18 @@ add_library(lift SHARED src/lift.cpp)
 
 target_include_directories(lift
   PUBLIC
-    ${rmf_building_sim_common_INCLUDE_DIRS}
-    ${geometry_msgs_INCLUDE_DIRS}
+    ${rmf_lift_msgs_INCLUDE_DIRS}
+    ${rmf_door_msgs_INCLUDE_DIRS}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 ament_target_dependencies(lift
   PUBLIC
     rclcpp
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
-    rmf_building_sim_common
+    gz-sim${GZ_SIM_VER}
+    gz-plugin${GZ_PLUGIN_VER}
+    rmf_lift_msgs
+    rmf_door_msgs
 )
 
 ###############################
@@ -107,17 +126,14 @@ add_library(crowd_simulator
 target_include_directories(crowd_simulator
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  ${rmf_building_sim_common_INCLUDE_DIRS}
   ${rclcpp_INCLUDE_DIRS}
   ${menge_vendor_INCLUDE_DIRS}
-  ${IGNITION-COMMON_INCLUDE_DIRS}
 )
 
 ament_target_dependencies(crowd_simulator
-  ignition-gazebo${IGN_GAZEBO_VER}
-  ignition-plugin${IGN_PLUGIN_VER}
+  gz-sim${GZ_SIM_VER}
+  gz-plugin${GZ_PLUGIN_VER}
   rclcpp
-  rmf_building_sim_common
   menge_vendor
 )
 
@@ -133,9 +149,9 @@ add_library(toggle_charging SHARED ${headers_MOC}
 )
 
 ament_target_dependencies(toggle_charging
-  ignition-gui${IGN_GUI_VER}
-  ignition-msgs${IGN_MSGS_VER}
-  ignition-transport${IGN_TRANSPORT_VER}
+  gz-gui${GZ_GUI_VER}
+  gz-msgs${GZ_MSGS_VER}
+  gz-transport${GZ_TRANSPORT_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick
@@ -161,12 +177,12 @@ add_library(toggle_floors SHARED ${headers_MOC}
 )
 
 ament_target_dependencies(toggle_floors
-  ignition-gazebo${IGN_GAZEBO_VER}
-  ignition-gui${IGN_GUI_VER}
-  ignition-msgs${IGN_MSGS_VER}
-  ignition-plugin${IGN_PLUGIN_VER}
-  ignition-rendering${IGN_RENDERING_VER}
-  ignition-transport${IGN_TRANSPORT_VER}
+  gz-sim${GZ_SIM_VER}
+  gz-gui${GZ_GUI_VER}
+  gz-msgs${GZ_MSGS_VER}
+  gz-plugin${GZ_PLUGIN_VER}
+  gz-rendering${GZ_RENDERING_VER}
+  gz-transport${GZ_TRANSPORT_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick
@@ -186,7 +202,7 @@ target_include_directories(toggle_floors
 ###############################
 
 install(
-  TARGETS door lift crowd_simulator toggle_charging toggle_floors
+  TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
