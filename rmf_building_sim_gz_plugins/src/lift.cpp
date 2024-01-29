@@ -48,7 +48,7 @@ private:
 
   std::unordered_map<Entity, gz::math::AxisAlignedBox> _initial_aabbs;
   std::unordered_map<Entity, gz::math::Pose3d> _initial_poses;
-  std::unordered_map<std::string, Entity> _cached_entity_by_names;
+  mutable std::unordered_map<std::string, Entity> _cached_entity_by_names;
 
   std::unordered_map<Entity, double> _last_cmd_vel;
   std::unordered_map<Entity, LiftCommand> _last_lift_command;
@@ -214,12 +214,10 @@ private:
     std::vector<Entity> doors;
     for (const auto& door_pair : lift.floors.at(floor_name).doors)
     {
-      const auto shaft_door =
-        ecm.EntityByComponents(components::Name(door_pair.shaft_door));
+      const auto shaft_door = entity_by_name(ecm, door_pair.shaft_door);
       if (shaft_door != kNullEntity)
         doors.push_back(shaft_door);
-      const auto cabin_door =
-        ecm.EntityByComponents(components::Name(door_pair.cabin_door));
+      const auto cabin_door = entity_by_name(ecm, door_pair.cabin_door);
       if (cabin_door != kNullEntity)
         doors.push_back(cabin_door);
     }
@@ -294,7 +292,8 @@ private:
   }
 
   // TODO(luca) move this to a common block and reuse in all plugins
-  Entity entity_by_name(EntityComponentManager& ecm, const std::string& name)
+  Entity entity_by_name(EntityComponentManager& ecm,
+    const std::string& name) const
   {
     // Lookup the cache first
     auto it = _cached_entity_by_names.find(name);
