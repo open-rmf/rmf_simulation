@@ -255,42 +255,30 @@ public:
     std::unordered_set<Entity> finished_cmds;
     // Process commands
     ecm.Each<components::Door, components::DoorCmd,
-      components::DoorStateComp>([&](const Entity& entity,
+      components::DoorStateComp, components::Name>([&](const Entity& entity,
       const components::Door* door_comp,
       const components::DoorCmd* door_cmd_comp,
-      const components::DoorStateComp* door_state_comp) -> bool
+      components::DoorStateComp* door_state_comp,
+      const components::Name* name_comp) -> bool
       {
         double dt =
         (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
         count()) * 1e-9;
+        const auto& name = name_comp->Data();
         const auto& door = door_comp->Data();
         const auto& door_cmd = door_cmd_comp->Data();
-        // TODO(luca) consider reading when the state is equal to the
-        // requested state and remove DoorCmd components when that is
-        // the case to reduce number of times this loop is called
-        command_door(entity, ecm, door, dt, door_cmd);
-        if (door_cmd == door_state_comp->Data())
-        {
-          finished_cmds.insert(entity);
-        }
-        return true;
-      });
-
-    // Update states
-    ecm.Each<components::Door, components::DoorStateComp,
-      components::Name>([&](const Entity& entity,
-      const components::Door* door_comp,
-      components::DoorStateComp* door_state_comp,
-      const components::Name* name_comp) -> bool
-      {
-        const auto& door = door_comp->Data();
         auto& last_mode = door_state_comp->Data();
-        const auto& name = name_comp->Data();
+        command_door(entity, ecm, door, dt, door_cmd);
+        // Publish state if there was a change
         const auto cur_mode = get_current_mode(entity, ecm, door);
         if (cur_mode != door_state_comp->Data())
         {
           last_mode = cur_mode;
           publish_state(info, name, cur_mode);
+        }
+        if (door_cmd == cur_mode)
+        {
+          finished_cmds.insert(entity);
         }
         return true;
       });
