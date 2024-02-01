@@ -51,7 +51,7 @@ public:
 
     // toggle non-static robots
     fleet_state_sub = ros_node->create_subscription<FleetState>(
-      "/fleet_states", rclcpp::SystemDefaultsQoS(),
+      "/fleet_states", rclcpp::SystemDefaultsQoS().keep_last(10),
       [&](FleetState::UniquePtr msg)
       {
         bool visible;
