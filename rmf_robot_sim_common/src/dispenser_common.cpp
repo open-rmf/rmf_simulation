@@ -187,7 +187,7 @@ void TeleportDispenserCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   _fleet_state_sub = ros_node->create_subscription<FleetState>(
     "/fleet_states",
-    rclcpp::SystemDefaultsQoS(),
+    rclcpp::SystemDefaultsQoS().keep_last(10),
     std::bind(&TeleportDispenserCommon::fleet_state_cb, this,
     std::placeholders::_1));
 
@@ -196,7 +196,7 @@ void TeleportDispenserCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   _request_sub = ros_node->create_subscription<DispenserRequest>(
     "/dispenser_requests",
-    rclcpp::SystemDefaultsQoS().reliable(),
+    rclcpp::SystemDefaultsQoS().keep_last(10).reliable(),
     std::bind(&TeleportDispenserCommon::dispenser_request_cb, this,
     std::placeholders::_1));
 
