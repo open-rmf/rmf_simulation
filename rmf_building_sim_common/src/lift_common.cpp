@@ -204,13 +204,13 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
 
   // initialize pub & sub
   _lift_state_pub = _ros_node->create_publisher<LiftState>(
-    "/lift_states", rclcpp::SystemDefaultsQoS());
+    "/lift_states", rclcpp::SystemDefaultsQoS().keep_last(10));
 
   _door_request_pub = _ros_node->create_publisher<DoorRequest>(
-    "/adapter_door_requests", rclcpp::SystemDefaultsQoS());
+    "/adapter_door_requests", rclcpp::SystemDefaultsQoS().keep_last(10));
 
   _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
-    "/lift_requests", rclcpp::SystemDefaultsQoS(),
+    "/lift_requests", rclcpp::SystemDefaultsQoS().keep_last(10),
     [&](LiftRequest::UniquePtr msg)
     {
       if (msg->lift_name != _lift_name)
@@ -225,11 +225,18 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
         return;
       }
 
-      if (_lift_request)  // Lift is still processing a previous request
+      // Trigger an error if a request, different from previous one, comes in
+      // Noop if request is the same
+      if (_lift_request)
       {
-        RCLCPP_INFO(logger(),
-        "Failed to request: [%s] is busy at the moment",
-        _lift_name.c_str());
+        if (_lift_request->destination_floor != msg->destination_floor ||
+        _lift_request->request_type != msg->request_type ||
+        _lift_request->session_id != msg->session_id)
+        {
+          RCLCPP_INFO(logger(),
+          "Discarding request: [%s] is busy at the moment",
+          _lift_name.c_str());
+        }
         return;
       }
 
@@ -240,7 +247,7 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
     });
 
   _door_state_sub = _ros_node->create_subscription<DoorState>(
-    "/door_states", rclcpp::SystemDefaultsQoS(),
+    "/door_states", rclcpp::SystemDefaultsQoS().keep_last(10),
     [&](DoorState::SharedPtr msg)
     {
       std::string name = msg->door_name;

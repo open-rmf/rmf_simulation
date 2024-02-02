@@ -7,12 +7,16 @@ on:
 jobs:
   tsan:
     name: tsan
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-jammy-latest
     steps:
       - name: deps
-        uses: ros-tooling/setup-ros@v0.2
+        uses: ros-tooling/setup-ros@v0.4
         with:
-          required-ros-distributions: galactic
+          required-ros-distributions: humble
+      - name: install_clang
+        run: sudo apt update && sudo apt install -y clang clang-tools lld
       - name: tsan_build_test
         uses: ros-tooling/action-ros-ci@v0.2
         id: tsan_build_test
@@ -20,21 +24,21 @@ jobs:
           CC: clang
           CXX: clang++
         with:
-          target-ros2-distro: galactic
+          target-ros2-distro: humble
           # build all packages listed in the meta package
           package-name: |
             rmf_building_sim_common
-            rmf_building_sim_gazebo_plugins
-            rmf_building_sim_ignition_plugins
+            rmf_building_sim_gz_classic_plugins
+            rmf_building_sim_gz_plugins
             rmf_robot_sim_common
-            rmf_robot_sim_gazebo_plugins
-            rmf_robot_sim_ignition_plugins
+            rmf_robot_sim_gz_classic_plugins
+            rmf_robot_sim_gz_plugins
           vcs-repo-file-url: |
             https://raw.githubusercontent.com/open-rmf/rmf/main/rmf.repos
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["tsan"],
+                "mixin": ["tsan", "lld"],
                 "cmake-args": ["-DCMAKE_BUILD_TYPE=Debug"]
               }
             }
@@ -45,4 +49,3 @@ jobs:
           name: colcon-test-logs
           path: ${{ steps.tsan_build_test.outputs.ros-workspace-directory-name }}/log
         if: always()
-

@@ -1,9 +1,11 @@
 <package format="3">
-  <name>rmf_robot_sim_common</name>
+  <name>rmf_robot_sim_gz_classic_plugins</name>
   <version>2.2.2</version>
   <description>
-    Common utility functions for Gazebo-classic and Gazebo RMF plugins
+    ROS 2 Gazebo-classic plugins for TeleportIngestors, TeleportDispensers and Readonly Objects
   </description>
+  <author>Luca Della Vedova</author>
+  <author>Yadunund</author>
   <author>Aaron Chong</author>
   <author>Rushyendra Maganty</author>
   <maintainer email="luca@openrobotics.org">Luca Della Vedova</maintainer>
@@ -11,17 +13,16 @@
   <license>Apache 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
 
-  <depend>eigen</depend>
   <depend>rclcpp</depend>
+  <depend>gazebo_dev</depend>
+  <depend>gazebo_ros</depend>
+  <depend>eigen</depend>
   <depend>geometry_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2_ros</depend>
   <depend>rmf_fleet_msgs</depend>
-  <depend>rmf_dispenser_msgs</depend>
-  <depend>rmf_ingestor_msgs</depend>
   <depend>rmf_building_map_msgs</depend>
+  <depend>rmf_robot_sim_common</depend>
+
 
   <export>
     <build_type>ament_cmake</build_type>

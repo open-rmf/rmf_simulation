@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2020 Open Source Robotics Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+*/
+
 #include <rmf_robot_sim_common/ingestor_common.hpp>
 
 using namespace rmf_plugins_utils;
@@ -165,7 +182,7 @@ void TeleportIngestorCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   _fleet_state_sub = ros_node->create_subscription<FleetState>(
     "/fleet_states",
-    rclcpp::SystemDefaultsQoS(),
+    rclcpp::SystemDefaultsQoS().keep_last(10),
     std::bind(&TeleportIngestorCommon::fleet_state_cb, this,
     std::placeholders::_1));
 
@@ -174,7 +191,7 @@ void TeleportIngestorCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   _request_sub = ros_node->create_subscription<IngestorRequest>(
     "/ingestor_requests",
-    rclcpp::SystemDefaultsQoS().reliable(),
+    rclcpp::SystemDefaultsQoS().keep_last(10).reliable(),
     std::bind(&TeleportIngestorCommon::ingestor_request_cb, this,
     std::placeholders::_1));
 

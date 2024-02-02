@@ -16,6 +16,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -35,13 +36,14 @@ include(GNUInstallDirs)
 
 add_library(rmf_robot_sim_utils SHARED ${PROJECT_SOURCE_DIR}/src/utils.cpp)
 
-ament_target_dependencies(rmf_robot_sim_utils
-  rclcpp
-  Eigen3
+target_link_libraries(rmf_robot_sim_utils
+  rclcpp::rclcpp
+  ${Eigen3_LIBRARIES}
 )
 
 target_include_directories(rmf_robot_sim_utils
   PUBLIC
+    ${rclcpp_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -53,7 +55,11 @@ target_include_directories(rmf_robot_sim_utils
 
 add_library(ingestor_common SHARED ${PROJECT_SOURCE_DIR}/src/ingestor_common.cpp)
 
-ament_target_dependencies(ingestor_common 
+target_link_libraries(ingestor_common
+    rmf_robot_sim_utils
+)
+
+ament_target_dependencies(ingestor_common
     rmf_fleet_msgs
     rmf_building_map_msgs
     rmf_ingestor_msgs
@@ -62,7 +68,7 @@ ament_target_dependencies(ingestor_common
     Eigen3
 )
 
-target_include_directories(ingestor_common 
+target_include_directories(ingestor_common
   PUBLIC
     ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -75,6 +81,10 @@ target_include_directories(ingestor_common
 
 add_library(dispenser_common SHARED ${PROJECT_SOURCE_DIR}/src/dispenser_common.cpp)
 
+target_link_libraries(dispenser_common
+    rmf_robot_sim_utils
+)
+
 ament_target_dependencies(dispenser_common
     rmf_fleet_msgs
     rmf_building_map_msgs
@@ -84,7 +94,7 @@ ament_target_dependencies(dispenser_common
     Eigen3
 )
 
-target_include_directories(dispenser_common 
+target_include_directories(dispenser_common
   PUBLIC
     ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -96,6 +106,10 @@ target_include_directories(dispenser_common
 ###################################
 
 add_library(readonly_common SHARED ${PROJECT_SOURCE_DIR}/src/readonly_common.cpp)
+
+target_link_libraries(readonly_common
+    rmf_robot_sim_utils
+)
 
 ament_target_dependencies(readonly_common
     rmf_fleet_msgs
@@ -155,10 +169,13 @@ ament_export_dependencies(
 )
 
 ament_export_include_directories(include)
+
+# cmake is sensitive to the order of these ament_export_targets calls
+# each library must be listed after any other libraries that it depends on
+ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(dispenser_common HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
-ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
 ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
 
 install(
@@ -185,6 +202,7 @@ install(
 install(
   TARGETS rmf_robot_sim_utils
   EXPORT rmf_robot_sim_utils
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
