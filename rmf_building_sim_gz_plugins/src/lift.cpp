@@ -9,6 +9,7 @@
 #include <gz/sim/components/Static.hh>
 #include <gz/sim/components/AxisAlignedBox.hh>
 #include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
 #include <gz/sim/components/JointPositionReset.hh>
 #include <gz/sim/components/LinearVelocityCmd.hh>
 #include <gz/sim/components/AngularVelocityCmd.hh>
@@ -105,6 +106,9 @@ private:
         Model(entity).JointByName(ecm, lift.cabin_joint);
         enableComponent<components::AxisAlignedBox>(ecm, entity);
         enableComponent<components::JointPosition>(ecm, cabin_joint_entity);
+        enableComponent<components::JointVelocityCmd>(ecm, cabin_joint_entity);
+        ecm.CreateComponent<components::JointVelocityCmd>(cabin_joint_entity,
+        components::JointVelocityCmd({0.0}));
 
         LiftCommand lift_command;
         lift_command.request_type = LiftRequest::REQUEST_AGV_MODE;
@@ -348,9 +352,8 @@ private:
       target_vel = calculate_target_velocity(target_elevation, cur_elevation,
           _last_cmd_vel[joint_entity], dt,
           lift.params);
-      std::vector<double> joint_position = {cur_elevation + target_vel * dt};
-      ecm.CreateComponent<components::JointPositionReset>(joint_entity,
-        components::JointPositionReset{joint_position});
+      ecm.Component<components::JointVelocityCmd>(joint_entity)->Data() =
+      {target_vel};
       _last_cmd_vel[joint_entity] = target_vel;
     }
     return target_vel;
