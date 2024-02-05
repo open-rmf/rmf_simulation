@@ -20,33 +20,33 @@
 #include <memory>
 #include <string>
 
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/PoseCmd.hh>
-#include <ignition/gazebo/components/Static.hh>
-#include <ignition/gazebo/components/LinearVelocityCmd.hh>
-#include <ignition/gazebo/components/AngularVelocityCmd.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/PoseCmd.hh>
+#include <gz/sim/components/Static.hh>
+#include <gz/sim/components/LinearVelocityCmd.hh>
+#include <gz/sim/components/AngularVelocityCmd.hh>
 
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
 #include <rmf_robot_sim_common/ingestor_common.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 using namespace rmf_ingestor_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
 
-class IGNITION_GAZEBO_VISIBLE TeleportIngestorPlugin
+class GZ_SIM_VISIBLE TeleportIngestorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -72,8 +72,8 @@ private:
   Entity _ingested_entity; // Item that ingestor may contain
 
   rclcpp::Node::SharedPtr _ros_node;
-  ignition::transport::Node _ign_node;
-  ignition::transport::Node::Publisher _item_ingested_pub;
+  gz::transport::Node _gz_node;
+  gz::transport::Node::Publisher _item_ingested_pub;
 
   SimEntity find_nearest_model(const EntityComponentManager& ecm,
     const std::vector<SimEntity>& robot_model_entities,
@@ -198,7 +198,7 @@ void TeleportIngestorPlugin::transport_model(EntityComponentManager& ecm)
 
   // For Ignition slotcar plugin to know when an item has been ingested from it
   // Necessary for TPE Plugin
-  ignition::msgs::Entity ingest_msg;
+  gz::msgs::Entity ingest_msg;
   ingest_msg.set_id(_ingested_entity); // Implicit conversion to protobuf::uint64
   _item_ingested_pub.Publish(ingest_msg);
 }
@@ -222,10 +222,10 @@ void TeleportIngestorPlugin::send_ingested_item_home(
       if (!cmd)
       {
         ecm.CreateComponent(_ingested_entity,
-          components::WorldPoseCmd(ignition::math::Pose3<double>()));
+          components::WorldPoseCmd(gz::math::Pose3<double>()));
       }
       ecm.Component<components::WorldPoseCmd>(_ingested_entity)->Data() =
-        convert_to_pose<ignition::math::v6::Pose3d>(it->second);
+        convert_to_pose<gz::math::Pose3d>(it->second);
     }
     _ingestor_common->ingestor_filled = false;
   }
@@ -282,7 +282,7 @@ void TeleportIngestorPlugin::Configure(const Entity& entity,
 
   // Needed for TPE plugin, so that subscriber knows when to stop moving a payload that
   // has been ingested from it
-  _item_ingested_pub = _ign_node.Advertise<ignition::msgs::Entity>(
+  _item_ingested_pub = _gz_node.Advertise<gz::msgs::Entity>(
     "/item_ingested");
   if (!_item_ingested_pub)
   {
@@ -336,13 +336,13 @@ void TeleportIngestorPlugin::PreUpdate(const UpdateInfo& info,
     get_payload_model_cb, transport_model_cb, send_ingested_item_home_cb);
 }
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   TeleportIngestorPlugin,
   System,
   TeleportIngestorPlugin::ISystemConfigure,
   TeleportIngestorPlugin::ISystemPreUpdate)
 
 // TODO would prefer namespaced
-IGNITION_ADD_PLUGIN_ALIAS(TeleportIngestorPlugin, "teleport_ingestor")
+GZ_ADD_PLUGIN_ALIAS(TeleportIngestorPlugin, "teleport_ingestor")
 
 } // namespace rmf_robot_sim_gz_plugins

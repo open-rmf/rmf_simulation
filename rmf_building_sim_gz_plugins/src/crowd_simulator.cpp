@@ -20,20 +20,20 @@
 
 #include <sdf/Actor.hh>
 
-#include <ignition/math/Pose3.hh>
+#include <gz/math/Pose3.hh>
 
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Actor.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/Static.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Actor.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/Static.hh>
 
 #include "crowd_simulator.hpp"
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 
-namespace crowd_simulation_ign {
+namespace crowd_simulation_gz {
 
 //=================================================
 void CrowdSimulatorPlugin::Configure(
@@ -88,7 +88,7 @@ void CrowdSimulatorPlugin::PreUpdate(
   if (!_crowd_sim_interface->enabled())
     return;
 
-  // wait for all the models and actors loaded in ignition rendering
+  // wait for all the models and actors loaded in gz rendering
   if (!_initialized)
   {
     _init_spawned_agents(ecm);
@@ -99,7 +99,7 @@ void CrowdSimulatorPlugin::PreUpdate(
   if (info.paused)
     return;
 
-  // Note, the update_time_step parameter is ignored in ignition
+  // Note, the update_time_step parameter is ignored in gz
   // through GPU animated actors the performance is good enough that
   // we can afford to update at every iteration and have smooth animations
   std::chrono::duration<double> delta_sim_time_tmp = info.simTime -
@@ -223,17 +223,17 @@ bool CrowdSimulatorPlugin::_create_entity(
   const std::string& model_name,
   const crowd_simulator::ModelTypeDatabase::RecordPtr model_type_ptr) const
 {
-  // Use ignition create service to spawn actors
-  // calling ignition gazebo create service, you can use "ign service -l" to
+  // Use gz create service to spawn actors
+  // calling gz gazebo create service, you can use "ign service -l" to
   // check the service available
   assert(model_type_ptr);
   std::string service = "/world/" + this->_world_name + "/create";
-  ignition::msgs::EntityFactory request;
+  gz::msgs::EntityFactory request;
   request.set_sdf_filename(model_type_ptr->file_name);
   request.set_name(model_name);
-  ignition::math::Pose3d pose(0, 0, 0, 0, 0, 0);
+  gz::math::Pose3d pose(0, 0, 0, 0, 0, 0);
 
-  ignition::msgs::Boolean response;
+  gz::msgs::Boolean response;
   bool result;
   uint32_t timeout = 5000;
   bool executed = this->_transport_node_ptr->Request(service, request, timeout,
@@ -275,7 +275,7 @@ void CrowdSimulatorPlugin::_config_spawned_agents(
   auto model_type = _crowd_sim_interface->_model_type_db_ptr->get(
     obj_ptr->type_name);
   // different from gazebo plugin, the pose component is the origin of the trajPose
-  ignition::math::Pose3d actor_pose(
+  gz::math::Pose3d actor_pose(
     static_cast<double>(agent_ptr->_pos.x()),
     static_cast<double>(agent_ptr->_pos.y()), 0.0,
     0, 0, 0
@@ -353,11 +353,11 @@ void CrowdSimulatorPlugin::_update_internal_object(
 {
   double animation_speed = _crowd_sim_interface->_model_type_db_ptr->get(
     obj_ptr->type_name)->animation_speed;
-  ignition::math::Pose3d initial_pose =
+  gz::math::Pose3d initial_pose =
     _crowd_sim_interface->_model_type_db_ptr->get(obj_ptr->type_name)->pose.
-    convert_to_ign_math_pose_3d<ignition::math::Pose3d>();
-  ignition::math::Pose3d agent_pose =
-    _crowd_sim_interface->get_agent_pose<ignition::math::Pose3d>(
+    convert_to_ign_math_pose_3d<gz::math::Pose3d>();
+  gz::math::Pose3d agent_pose =
+    _crowd_sim_interface->get_agent_pose<gz::math::Pose3d>(
     obj_ptr->agent_ptr, delta_sim_time);
   agent_pose += initial_pose;
 
@@ -368,7 +368,7 @@ void CrowdSimulatorPlugin::_update_internal_object(
     ecm.Component<components::AnimationName>(entity);
   auto anim_time_comp =
     ecm.Component<components::AnimationTime>(entity);
-  ignition::math::Pose3d current_pose = traj_pose_comp->Data();
+  gz::math::Pose3d current_pose = traj_pose_comp->Data();
   auto distance_traveled_vector = agent_pose.Pos() - current_pose.Pos();
   // might need future work on 3D case
   // the center of human has a z_elevation, which will make the human keep walking even if he reached the target
@@ -415,13 +415,13 @@ void CrowdSimulatorPlugin::_update_internal_object(
     ComponentState::PeriodicChange);
 }
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   CrowdSimulatorPlugin,
   System,
   CrowdSimulatorPlugin::ISystemConfigure,
   CrowdSimulatorPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(CrowdSimulatorPlugin,
+GZ_ADD_PLUGIN_ALIAS(CrowdSimulatorPlugin,
   "crowd_simulation")
 
-} //namespace crowd_simulation_ign
+} //namespace crowd_simulation_gz

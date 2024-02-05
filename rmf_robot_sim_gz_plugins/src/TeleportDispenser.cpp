@@ -18,22 +18,22 @@
 #include <vector>
 #include <unordered_map>
 
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/PoseCmd.hh>
-#include <ignition/gazebo/components/Static.hh>
-#include <ignition/gazebo/components/AxisAlignedBox.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/PoseCmd.hh>
+#include <gz/sim/components/Static.hh>
+#include <gz/sim/components/AxisAlignedBox.hh>
 
-#include <ignition/math/AxisAlignedBox.hh>
+#include <gz/math/AxisAlignedBox.hh>
 
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
@@ -41,13 +41,13 @@
 #include <rmf_robot_sim_common/dispenser_common.hpp>
 #include <rmf_robot_sim_common/utils.hpp>
 
-using namespace ignition::gazebo;
+using namespace gz::sim;
 using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
 
-class IGNITION_GAZEBO_VISIBLE TeleportDispenserPlugin
+class GZ_SIM_VISIBLE TeleportDispenserPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -68,12 +68,12 @@ private:
   // Stores params representing state of Dispenser, and handles the main dispenser logic
   std::unique_ptr<TeleportDispenserCommon> _dispenser_common;
 
-  ignition::transport::Node _ign_node;
-  ignition::transport::Node::Publisher _item_dispensed_pub;
+  gz::transport::Node _ign_node;
+  gz::transport::Node::Publisher _item_dispensed_pub;
 
   Entity _dispenser;
   Entity _item_en; // Item that dispenser may contain
-  ignition::math::AxisAlignedBox _dispenser_vicinity_box;
+  gz::math::AxisAlignedBox _dispenser_vicinity_box;
 
   bool tried_fill_dispenser = false; // Set to true if fill_dispenser() has been called at least once
 
@@ -140,12 +140,12 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
 
   // Make service request to Slotcar to get its height instead of accessing
   // it's AABB component directly
-  ignition::msgs::Entity req;
+  gz::msgs::Entity req;
   req.set_id(base);
 
   const unsigned int timeout = 5000;
   bool result = false;
-  ignition::msgs::Double rep;
+  gz::msgs::Double rep;
   const std::string height_srv_name = "/slotcar_height_" + std::to_string(base);
 
   bool executed = _ign_node.Request(height_srv_name, req, timeout, rep, result);
@@ -161,7 +161,7 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
       _dispenser_common->ros_node->get_logger(),
       "Either base entity or item to be dispensed does not have an AxisAlignedBox component. \
       Attempting to dispense item to approximate location.");
-    new_pose += ignition::math::Pose3<double>(0, 0, 0.5, 0, 0, 0);
+    new_pose += gz::math::Pose3<double>(0, 0, 0.5, 0, 0, 0);
   }
 
   enableComponent<components::WorldPoseCmd>(ecm, to_move);
@@ -169,7 +169,7 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
 
   // For Ignition slotcar plugin to know when an item has been dispensed to it
   // Necessary for TPE Plugin
-  ignition::msgs::UInt64_V dispense_msg;
+  gz::msgs::UInt64_V dispense_msg;
   dispense_msg.add_data(google::protobuf::uint64(base)); //Conversion from Entity -> uint64
   dispense_msg.add_data(google::protobuf::uint64(to_move));
   _item_dispensed_pub.Publish(dispense_msg);
@@ -241,11 +241,11 @@ void TeleportDispenserPlugin::create_dispenser_bounding_box(
 {
   const auto dispenser_pos =
     ecm.Component<components::Pose>(_dispenser)->Data().Pos();
-  ignition::math::Vector3d corner_1(dispenser_pos.X() - 0.05,
+  gz::math::Vector3d corner_1(dispenser_pos.X() - 0.05,
     dispenser_pos.Y() - 0.05, dispenser_pos.Z() - 0.05);
-  ignition::math::Vector3d corner_2(dispenser_pos.X() + 0.05,
+  gz::math::Vector3d corner_2(dispenser_pos.X() + 0.05,
     dispenser_pos.Y() + 0.05, dispenser_pos.Z() + 0.05);
-  _dispenser_vicinity_box = ignition::math::AxisAlignedBox(corner_1, corner_2);
+  _dispenser_vicinity_box = gz::math::AxisAlignedBox(corner_1, corner_2);
 }
 
 void TeleportDispenserPlugin::Configure(const Entity& entity,
@@ -269,7 +269,7 @@ void TeleportDispenserPlugin::Configure(const Entity& entity,
 
   // Needed for TPE plugin, so that subscriber knows when to move a payload that
   // has been dispensed to it
-  _item_dispensed_pub = _ign_node.Advertise<ignition::msgs::UInt64_V>(
+  _item_dispensed_pub = _ign_node.Advertise<gz::msgs::UInt64_V>(
     "/item_dispensed");
   if (!_item_dispensed_pub)
   {
@@ -323,13 +323,13 @@ void TeleportDispenserPlugin::PreUpdate(const UpdateInfo& info,
     place_on_entity_cb, check_filled_cb);
 }
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   TeleportDispenserPlugin,
   System,
   TeleportDispenserPlugin::ISystemConfigure,
   TeleportDispenserPlugin::ISystemPreUpdate)
 
 // TODO would prefer namespaced
-IGNITION_ADD_PLUGIN_ALIAS(TeleportDispenserPlugin, "teleport_dispenser")
+GZ_ADD_PLUGIN_ALIAS(TeleportDispenserPlugin, "teleport_dispenser")
 
 } // namespace rmf_robot_sim_gz_plugins
