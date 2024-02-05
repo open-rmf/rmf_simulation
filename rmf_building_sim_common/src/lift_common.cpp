@@ -216,6 +216,26 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
       if (msg->lift_name != _lift_name)
         return;
 
+      if (msg->request_type == LiftRequest::REQUEST_END_SESSION)
+      {
+        if (_lift_state.session_id.empty())
+        {
+          // Redundant end session request, just ignore it
+          return;
+        }
+
+        if (msg->session_id == _lift_state.session_id)
+        {
+          RCLCPP_INFO(
+            logger(),
+            "Ending lift session [%s] for lift [%s]",
+            _lift_state.session_id.c_str(),
+            _lift_name.c_str());
+          _lift_request = std::move(msg);
+          return;
+        }
+      }
+
       if (_floor_name_to_elevation.find(
         msg->destination_floor) == _floor_name_to_elevation.end())
       {
@@ -300,9 +320,14 @@ LiftCommon::LiftUpdateResult LiftCommon::update(const double time,
     std::string desired_floor = _lift_request->destination_floor;
     uint8_t desired_door_state = _lift_request->door_state;
     if (_lift_request->request_type == LiftRequest::REQUEST_END_SESSION)
+    {
       _lift_state.session_id = "";
+      _lift_request = nullptr;
+    }
     else
+    {
       _lift_state.session_id = _lift_request->session_id;
+    }
 
     if ((_lift_state.current_floor == desired_floor) &&
       (_lift_state.door_state == desired_door_state) &&
@@ -348,6 +373,7 @@ LiftCommon::LiftUpdateResult LiftCommon::update(const double time,
       }
     }
   }
+
   // Publish lift state at 1 Hz
   if (time - _last_pub_time >= 1.0)
     pub_lift_state(time);
