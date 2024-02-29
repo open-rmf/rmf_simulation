@@ -201,10 +201,17 @@ target_include_directories(toggle_floors
 # install stuff
 ###############################
 
+ament_export_include_directories(include)
+
 install(
   TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
 )
 
 ament_package()

@@ -22,6 +22,9 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/slotcar_common.hpp>
 
+#include <rmf_building_sim_gz_plugins/components/Door.hpp>
+#include <rmf_building_sim_gz_plugins/components/Lift.hpp>
+
 #include <rmf_fleet_msgs/msg/location.hpp>
 
 using namespace gz::sim;
@@ -189,10 +192,12 @@ void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
         {
           c = ::tolower(c);
         });
-        if (n.find("door") != std::string::npos ||
-        n.find("lift") != std::string::npos ||
+        if (ecm.Component<components::Door>(entity) != nullptr ||
+        ecm.Component<components::Lift>(entity) != nullptr ||
         n.find("dispensable") != std::string::npos)
+        {
           _obstacle_exclusions.insert(entity);
+        }
       }
       return true;
     });

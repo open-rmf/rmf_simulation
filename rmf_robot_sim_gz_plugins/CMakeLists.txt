@@ -46,6 +46,7 @@ find_package(Eigen3 REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
+find_package(rmf_building_sim_gz_plugins REQUIRED)
 find_package (Qt5
   COMPONENTS
     Core
@@ -138,6 +139,7 @@ ament_target_dependencies(slotcar
     gz-sim${GZ_SIM_VER}
     gz-plugin${GZ_PLUGIN_VER}
     rmf_robot_sim_common
+    rmf_building_sim_gz_plugins
     rmf_fleet_msgs
     rclcpp
 )
@@ -149,6 +151,7 @@ target_include_directories(slotcar
     ${rmf_robot_sim_common_INCLUDE_DIRS}
     ${rmf_fleet_msgs_INCLUDE_DIRS}
     ${rmf_building_map_msgs_INCLUDE_DIRS}
+    ${rmf_building_sim_gz_plugins_INCLUDE_DIRS}
 )
 
 ###############################
