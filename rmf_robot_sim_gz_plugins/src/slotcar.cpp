@@ -104,10 +104,12 @@ SlotcarPlugin::SlotcarPlugin()
   }
   // We do rest of initialization during ::Configure
 
-  if (!_ign_node.Subscribe("/slotcar/translation_noise", &SlotcarPlugin::translation_noise_cb,
+  if (!_ign_node.Subscribe("/slotcar/translation_noise",
+    &SlotcarPlugin::translation_noise_cb,
     this))
   {
-    std::cerr << "Error subscribing to topic [/slotcar/translation_noise]" << std::endl;
+    std::cerr << "Error subscribing to topic [/slotcar/translation_noise]" <<
+      std::endl;
   }
 }
 
@@ -122,18 +124,19 @@ void SlotcarPlugin::translation_noise_cb(const ignition::msgs::SensorNoise& msg)
   {
     dataPtr->unset_translation_noise();
   }
-  else 
+  else
   {
     sdf::Noise noise;
-    switch(msg.type()) {
+    switch (msg.type())
+    {
       case 2:
-      noise.SetType(sdf::NoiseType::GAUSSIAN);
-      break;
+        noise.SetType(sdf::NoiseType::GAUSSIAN);
+        break;
       case 3:
-      noise.SetType(sdf::NoiseType::GAUSSIAN_QUANTIZED);
-      break; 
+        noise.SetType(sdf::NoiseType::GAUSSIAN_QUANTIZED);
+        break;
       default:
-      return;
+        return;
     }
     noise.SetMean(msg.mean());
     noise.SetStdDev(msg.stddev());
