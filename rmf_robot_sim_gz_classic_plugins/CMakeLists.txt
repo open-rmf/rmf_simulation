@@ -27,6 +27,8 @@ find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
 
+find_package(ignition-cmake2 REQUIRED)
+ign_find_package(sdformat12 REQUIRED)
 include(GNUInstallDirs)
 
 ###############################

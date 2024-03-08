@@ -1,3 +1,4 @@
+#include <typeinfo>
 #include <unordered_map>
 
 #include <ignition/plugin/Register.hh>
@@ -16,6 +17,7 @@
 
 #include <ignition/math/eigen3.hh>
 #include <ignition/msgs.hh>
+#include <ignition/sensors.hh>
 #include <ignition/transport.hh>
 #include <rclcpp/rclcpp.hpp>
 
@@ -86,6 +88,8 @@ private:
 
   void draw_lookahead_marker();
 
+  void translation_noise_cb(const ignition::msgs::SensorNoise& msg);
+
   ignition::msgs::Marker_V _trajectory_marker_msg;
 };
 
@@ -99,11 +103,51 @@ SlotcarPlugin::SlotcarPlugin()
     std::cerr << "Error subscribing to topic [/charge_state]" << std::endl;
   }
   // We do rest of initialization during ::Configure
+
+  if (!_ign_node.Subscribe("/slotcar/translation_noise", &SlotcarPlugin::translation_noise_cb,
+    this))
+  {
+    std::cerr << "Error subscribing to topic [/slotcar/translation_noise]" << std::endl;
+  }
 }
 
 SlotcarPlugin::~SlotcarPlugin()
 {
 }
+
+
+void SlotcarPlugin::translation_noise_cb(const ignition::msgs::SensorNoise& msg)
+{
+  if (msg.type() == 0)
+  {
+    dataPtr->unset_translation_noise();
+  }
+  else 
+  {
+    sdf::Noise noise;
+    switch(msg.type()) {
+      case 2:
+      noise.SetType(sdf::NoiseType::GAUSSIAN);
+      break;
+      case 3:
+      noise.SetType(sdf::NoiseType::GAUSSIAN_QUANTIZED);
+      break; 
+      default:
+      return;
+    }
+    noise.SetMean(msg.mean());
+    noise.SetStdDev(msg.stddev());
+    noise.SetBiasMean(msg.bias_mean());
+    noise.SetBiasStdDev(msg.bias_stddev());
+    noise.SetPrecision(msg.precision());
+    noise.SetDynamicBiasStdDev(msg.dynamic_bias_stddev());
+    noise.SetDynamicBiasCorrelationTime(msg.dynamic_bias_correlation_time());
+
+    auto noise_ptr = ignition::sensors::NoiseFactory::NewNoiseModel(noise);
+    dataPtr->set_translation_noise(noise_ptr);
+  }
+}
+
 
 void SlotcarPlugin::Configure(const Entity& entity,
   const std::shared_ptr<const sdf::Element>& sdf,

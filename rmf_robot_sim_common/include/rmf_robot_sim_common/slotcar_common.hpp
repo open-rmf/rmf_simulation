@@ -18,6 +18,7 @@
 #ifndef RMF_BUILDING_SIM_COMMON__SLOTCAR_COMMON_HPP
 #define RMF_BUILDING_SIM_COMMON__SLOTCAR_COMMON_HPP
 
+#include <optional>
 #include <sstream>
 
 #include <rclcpp/rclcpp.hpp>
@@ -31,6 +32,8 @@
 #include <rmf_fleet_msgs/msg/pause_request.hpp>
 #include <rmf_fleet_msgs/msg/mode_request.hpp>
 #include <rmf_building_map_msgs/msg/building_map.hpp>
+
+#include <ignition/sensors/Noise.hh>
 
 namespace rmf_robot_sim_common {
 
@@ -105,6 +108,20 @@ public:
 
   void publish_robot_state(const double time);
 
+  /// Add noise to the reported location
+  /// \param[in] noise to be applied
+  void set_translation_noise(ignition::sensors::NoisePtr noise);
+
+  /// Add noise to the reported orientation
+  /// \param[in] noise to be applied
+  void set_rotation_noise(ignition::sensors::NoisePtr noise);
+
+  /// Stop using translation noise
+  void unset_translation_noise();
+
+  /// Stop using rotation noise
+  void unset_rotation_noise();
+
   Eigen::Vector3d get_lookahead_point() const;
 
   bool display_markers = false; // Ignition only: toggles display of waypoint and lookahead markers
@@ -115,6 +132,12 @@ public:
   { _path_request_callback = cb; }
 
 private:
+  // Localization noise - Translation
+  std::optional<ignition::sensors::NoisePtr> _translation_noise;
+
+  // Localization noise - Rotation
+  std::optional<ignition::sensors::NoisePtr> _rotation_noise;
+
   // Parameters needed for power dissipation and charging calculations
   // Default values may be overriden using values from sdf file
   struct PowerParams
@@ -248,7 +271,7 @@ private:
 
   void publish_tf2(const rclcpp::Time& t);
 
-  void publish_state_topic(const rclcpp::Time& t);
+  void publish_state_topic(const rclcpp::Time& t, double dt);
 
   bool path_request_valid(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr msg);

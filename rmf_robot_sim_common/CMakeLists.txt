@@ -16,17 +16,22 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-find_package(eigen3_cmake_module REQUIRED)
-find_package(Eigen3 REQUIRED)
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(eigen3_cmake_module REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rmf_building_map_msgs REQUIRED)
+find_package(rmf_dispenser_msgs REQUIRED)
+find_package(rmf_fleet_msgs REQUIRED)
+find_package(rmf_ingestor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(rmf_fleet_msgs REQUIRED)
-find_package(rmf_dispenser_msgs REQUIRED)
-find_package(rmf_ingestor_msgs REQUIRED)
-find_package(rmf_building_map_msgs REQUIRED)
+
+find_package(ignition-cmake2 REQUIRED)
+ign_find_package(ignition-sensors6 REQUIRED)
+ign_find_package(ignition-common4 REQUIRED)
+ign_find_package(sdformat12 REQUIRED)
 
 include(GNUInstallDirs)
 
@@ -133,6 +138,7 @@ target_include_directories(readonly_common
 add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
 
 ament_target_dependencies(slotcar_common
+  PUBLIC
     Eigen3
     rmf_fleet_msgs
     rmf_building_map_msgs
@@ -147,10 +153,15 @@ target_include_directories(slotcar_common
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     ${EIGEN3_INCLUDE_DIRS}
+    ${IGNITION-SENSORS_INCLUDE_DIRS}
+    ${IGNITION-COMMON_INCLUDE_DIRS}
 )
 
 target_link_libraries(slotcar_common
+  PUBLIC
     rmf_robot_sim_utils
+    #ignition-sensosr6::ignition-sensosr6
+    sdformat12::sdformat12
 )
 
 ###############################
