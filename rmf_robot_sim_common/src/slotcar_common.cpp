@@ -929,6 +929,8 @@ void SlotcarCommon::publish_robot_state(const double time)
   const uint32_t t_nsec =
     static_cast<uint32_t>((time-static_cast<double>(t_sec)) *1e9);
   const rclcpp::Time ros_time{t_sec, t_nsec, RCL_ROS_TIME};
+  double dt = time - _last_update_time;
+
   if ((time - last_tf2_pub) > (1.0 / TF2_RATE))
   {
     // Publish tf2
@@ -938,9 +940,29 @@ void SlotcarCommon::publish_robot_state(const double time)
   if ((time - last_topic_pub) > (1.0 / STATE_TOPIC_RATE))
   {
     // Publish state topic
-    publish_state_topic(ros_time);
+    publish_state_topic(ros_time, dt);
     last_topic_pub = time;
   }
+}
+
+void SlotcarCommon::set_translation_noise(ignition::sensors::NoisePtr noise)
+{
+  _translation_noise = noise;
+}
+
+void SlotcarCommon::set_rotation_noise(ignition::sensors::NoisePtr noise)
+{
+  _rotation_noise = noise;
+}
+
+void SlotcarCommon::unset_translation_noise()
+{
+  _translation_noise = std::nullopt;
+}
+
+void SlotcarCommon::unset_rotation_noise()
+{
+  _rotation_noise = std::nullopt;
 }
 
 void SlotcarCommon::publish_tf2(const rclcpp::Time& t)
@@ -960,7 +982,7 @@ void SlotcarCommon::publish_tf2(const rclcpp::Time& t)
   _tf2_broadcaster->sendTransform(tf_stamped);
 }
 
-void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
+void SlotcarCommon::publish_state_topic(const rclcpp::Time& t, double dt)
 {
   rmf_fleet_msgs::msg::RobotState robot_state_msg;
   robot_state_msg.name = _model_name;
@@ -971,6 +993,22 @@ void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
   robot_state_msg.location.yaw = compute_yaw(_pose);
   robot_state_msg.location.t = t;
   robot_state_msg.location.level_name = get_level_name(_pose.translation()[2]);
+
+  // If noise enabled
+  if (_translation_noise.has_value())
+  {
+    robot_state_msg.location.x =
+      _translation_noise.value()->Apply(robot_state_msg.location.x, dt);
+    robot_state_msg.location.x =
+      _translation_noise.value()->Apply(robot_state_msg.location.y, dt);
+  }
+
+  if (_rotation_noise.has_value())
+  {
+    robot_state_msg.location.yaw =
+      _rotation_noise.value()->Apply(robot_state_msg.location.yaw, dt);
+  }
+
 
   if (robot_state_msg.location.level_name.empty())
   {
