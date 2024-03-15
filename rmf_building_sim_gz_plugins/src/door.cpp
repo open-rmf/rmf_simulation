@@ -37,6 +37,10 @@ private:
   std::unordered_set<Entity> _sent_states;
   bool _send_all_states = false;
 
+  // Records which doors were just requested an action, they will respond by always
+  // reporting their latest state regardless of whether there was a change or not.
+  std::unordered_set<Entity> _queried_doors;
+
   // Used to do open loop joint position control
   std::unordered_map<Entity, double> _last_cmd_vel;
 
@@ -204,6 +208,7 @@ public:
       [&](DoorRequest::UniquePtr msg)
       {
         // Find entity with the name and create a DoorCmd component
+        // TODO(luca) cache this to avoid expensive iteration over all entities?
         auto entity = ecm.EntityByComponents(components::Name(
           msg->door_name));
         if (entity != kNullEntity)
@@ -212,6 +217,7 @@ public:
           DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
           ecm.CreateComponent<components::DoorCmd>(entity,
           components::DoorCmd(door_command));
+          _queried_doors.insert(entity);
         }
         else
         {
@@ -271,10 +277,11 @@ public:
         command_door(entity, ecm, door, dt, door_cmd);
         // Publish state if there was a change
         const auto cur_mode = get_current_mode(entity, ecm, door);
-        if (cur_mode != door_state_comp->Data())
+        if (cur_mode != door_state_comp->Data() || _queried_doors.find(entity) != _queried_doors.end())
         {
           last_mode = cur_mode;
           publish_state(info, name, cur_mode);
+          _queried_doors.erase(entity);
         }
         if (door_cmd == cur_mode)
         {
