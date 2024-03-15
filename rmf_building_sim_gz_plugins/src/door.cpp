@@ -6,7 +6,7 @@
 #include <gz/sim/components/Joint.hh>
 #include <gz/sim/components/JointAxis.hh>
 #include <gz/sim/components/JointPosition.hh>
-#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
 #include <gz/sim/components/Name.hh>
 
 #include <rclcpp/rclcpp.hpp>
@@ -137,8 +137,8 @@ private:
         auto target_vel = calculate_target_velocity(target_pos, cur_pos,
             _last_cmd_vel[joint_entity],
             dt, door.params);
-        ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset(
-            {cur_pos + target_vel * dt}));
+        ecm.CreateComponent<components::JointVelocityCmd>(joint_entity, components::JointVelocityCmd(
+            {target_vel}));
         _last_cmd_vel[joint_entity] = target_vel;
       }
     }
@@ -211,8 +211,14 @@ public:
         // TODO(luca) cache this to avoid expensive iteration over all entities?
         auto entity = ecm.EntityByComponents(components::Name(
           msg->door_name));
-        if (entity != kNullEntity)
+        const auto*  door = ecm.Component<components::Door>(entity);
+        if (entity != kNullEntity || door == nullptr)
         {
+          if (door->Data().ros_interface == false)
+          {
+            gzmsg << "Ignoring door " << msg->door_name << " because it doesn't have a ros interface" << std::endl;
+            return;
+          }
           auto door_command = msg->requested_mode.value == msg->requested_mode.MODE_OPEN ?
           DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
           ecm.CreateComponent<components::DoorCmd>(entity,
@@ -277,11 +283,15 @@ public:
         command_door(entity, ecm, door, dt, door_cmd);
         // Publish state if there was a change
         const auto cur_mode = get_current_mode(entity, ecm, door);
-        if (cur_mode != door_state_comp->Data() || _queried_doors.find(entity) != _queried_doors.end())
+        if (cur_mode != door_state_comp->Data() ||
+        _queried_doors.find(entity) != _queried_doors.end())
         {
           last_mode = cur_mode;
-          publish_state(info, name, cur_mode);
-          _queried_doors.erase(entity);
+          if (door_comp->Data().ros_interface)
+          {
+            publish_state(info, name, cur_mode);
+            _queried_doors.erase(entity);
+          }
         }
         if (door_cmd == cur_mode)
         {

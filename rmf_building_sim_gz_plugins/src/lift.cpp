@@ -106,7 +106,6 @@ private:
         Model(entity).JointByName(ecm, lift.cabin_joint);
         enableComponent<components::AxisAlignedBox>(ecm, entity);
         enableComponent<components::JointPosition>(ecm, cabin_joint_entity);
-        enableComponent<components::JointVelocityCmd>(ecm, cabin_joint_entity);
         ecm.CreateComponent<components::JointVelocityCmd>(cabin_joint_entity,
         components::JointVelocityCmd({0.0}));
 
@@ -140,6 +139,8 @@ private:
         std::vector<double> joint_position = {target_elevation};
         ecm.CreateComponent<components::JointPositionReset>(entity,
         components::JointPositionReset{joint_position});
+        ecm.CreateComponent<components::LiftCmd>(entity,
+        components::LiftCmd{lift_command});
         return true;
       });
   }
@@ -421,7 +422,7 @@ public:
         // Find entity with the name and create a DoorCmd component
         auto entity = entity_by_name(ecm, msg->lift_name);
         const auto* lift_comp = ecm.Component<components::Lift>(entity);
-        if (entity != kNullEntity || lift_comp == nullptr)
+        if (entity != kNullEntity && lift_comp != nullptr)
         {
           const auto& available_floors = lift_comp->Data().floors;
           if (available_floors.find(msg->destination_floor) ==
@@ -505,32 +506,21 @@ public:
 
     std::unordered_set<Entity> finished_cmds;
 
-    // Update state
+    // Command lifts
     double dt =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
       count()) * 1e-9;
     ecm.Each<components::Lift,
-      components::Pose>([&](const Entity& entity,
+      components::Pose,
+      components::LiftCmd>([&](const Entity& entity,
       const components::Lift* lift_comp,
-      const components::Pose* pose_comp) -> bool
+      const components::Pose* pose_comp,
+      const components::LiftCmd* lift_cmd_comp) -> bool
       {
         const auto& lift = lift_comp->Data();
         const auto& pose = pose_comp->Data();
 
-        const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(entity);
-        LiftCommand lift_cmd;
-        if (lift_cmd_comp != nullptr)
-        {
-          lift_cmd = lift_cmd_comp->Data();
-        }
-        else if (_last_lift_command.find(entity) != _last_lift_command.end())
-        {
-          lift_cmd = _last_lift_command[entity];
-        }
-        else
-        {
-          return true;
-        }
+        const auto& lift_cmd = lift_cmd_comp->Data();
 
         const auto& destination_floor = lift_cmd.destination_floor;
         const double target_elevation = lift.floors.at(
@@ -610,7 +600,9 @@ public:
 
     // Clear finished commands
     for (const auto& e : finished_cmds)
+    {
       enableComponent<components::LiftCmd>(ecm, e, false);
+    }
 
     // Publish state
     if (_send_all_states)
