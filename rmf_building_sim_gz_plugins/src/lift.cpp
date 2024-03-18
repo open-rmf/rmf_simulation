@@ -632,7 +632,7 @@ public:
           _lift_state_pub->publish(msg);
           _sent_states.insert(entity);
           keep_sending = true;
-          return true;
+          return false;
         });
       _send_all_states = keep_sending;
     }
