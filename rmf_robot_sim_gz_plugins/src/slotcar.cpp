@@ -378,6 +378,10 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
         _read_aabb_dimensions = false;
       }
     }
+    else
+    {
+      enableComponent<components::AxisAlignedBox>(ecm, _entity);
+    }
   }
 
   // TODO parallel thread executor?
