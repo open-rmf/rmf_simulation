@@ -40,7 +40,7 @@ private:
       !door_element->Get<std::string>("left_joint_name", left_joint_name, "") ||
       !door_element->Get<std::string>("right_joint_name", right_joint_name, ""))
     {
-      ignerr << "Missing required parameters for plugin " << door_name <<
+      gzerr << "Missing required parameters for plugin " << door_name <<
         std::endl;
       return std::nullopt;
     }
@@ -49,7 +49,7 @@ private:
       right_joint_name == "empty_joint") ||
       (left_joint_name.empty() && right_joint_name.empty()))
     {
-      ignerr << "Both door joint names are missing for " << door_name <<
+      gzerr << "Both door joint names are missing for " << door_name <<
         " plugin, at least one"
         " is required" << std::endl;
       return std::nullopt;
@@ -107,7 +107,7 @@ private:
       }
       else
       {
-        ignwarn << "Unsupported joint_name " << joint_name << " Ignoring..." <<
+        gzwarn << "Unsupported joint_name " << joint_name << " Ignoring..." <<
           std::endl;
         continue;
       }
@@ -136,7 +136,7 @@ private:
     auto floor_element = sdf->FindElement("floor");
     if (!floor_element)
     {
-      ignerr << "Missing required floor element for [" << lift_name <<
+      gzerr << "Missing required floor element for [" << lift_name <<
         "] plugin" << std::endl;
       return std::nullopt;
     }
@@ -149,7 +149,7 @@ private:
       if (!floor_element->Get<std::string>("name", floor_name, "") ||
         !floor_element->Get<double>("elevation", floor.elevation, 0.0))
       {
-        ignerr << "Missing required floor name or elevation attributes for [" <<
+        gzerr << "Missing required floor name or elevation attributes for [" <<
           lift_name << "] plugin" << std::endl;
         return std::nullopt;
       }
@@ -166,7 +166,7 @@ private:
           !door_pair_element->Get<std::string>("shaft_door", doors.shaft_door,
           ""))
         {
-          ignerr << "Missing required lift door attributes for [" <<
+          gzerr << "Missing required lift door attributes for [" <<
             lift_name << "] plugin" << std::endl;
           return std::nullopt;
         }
@@ -181,7 +181,7 @@ private:
 
     if (!first_found_floor.has_value())
     {
-      ignerr << "No floors enabled for [" << lift_name << "] plugin" <<
+      gzerr << "No floors enabled for [" << lift_name << "] plugin" <<
         std::endl;
       return std::nullopt;
     }
@@ -190,7 +190,7 @@ private:
 
     if (data.floors.find(data.initial_floor) == data.floors.end())
     {
-      ignerr << "Initial floor [" << data.initial_floor <<
+      gzerr << "Initial floor [" << data.initial_floor <<
         "] not available, changing to default" << std::endl;
       data.initial_floor = *first_found_floor;
     }
@@ -219,7 +219,6 @@ public:
         {
           if (auto data = read_lift_data(name, component_element))
           {
-            ignerr << "Found lift plugin data" << std::endl;
             ecm.CreateComponent(entity, components::Lift(*data));
             // Bounding boxes are needed to move payloads, enable here to
             // simplify logic at the lift plugin level
