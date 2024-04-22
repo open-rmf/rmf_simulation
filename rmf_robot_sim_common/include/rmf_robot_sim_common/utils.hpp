@@ -89,6 +89,8 @@ double compute_desired_rate_of_change(
 
 rclcpp::Time simulation_now(double t);
 
+void sanitize_node_name(std::string& node_name);
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 template<typename SdfPtrT, typename SdfElementPtrT>
 bool get_element_required(

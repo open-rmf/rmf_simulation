@@ -182,7 +182,7 @@ void TeleportIngestorCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   _fleet_state_sub = ros_node->create_subscription<FleetState>(
     "/fleet_states",
-    rclcpp::SystemDefaultsQoS(),
+    rclcpp::SystemDefaultsQoS().keep_last(10),
     std::bind(&TeleportIngestorCommon::fleet_state_cb, this,
     std::placeholders::_1));
 
@@ -191,7 +191,7 @@ void TeleportIngestorCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 
   _request_sub = ros_node->create_subscription<IngestorRequest>(
     "/ingestor_requests",
-    rclcpp::SystemDefaultsQoS().reliable(),
+    rclcpp::SystemDefaultsQoS().keep_last(10).reliable(),
     std::bind(&TeleportIngestorCommon::ingestor_request_cb, this,
     std::placeholders::_1));
 

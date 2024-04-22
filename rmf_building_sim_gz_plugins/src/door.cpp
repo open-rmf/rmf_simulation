@@ -146,6 +146,7 @@ public:
     if (!rclcpp::ok())
       rclcpp::init(0, argv);
     std::string plugin_name("plugin_" + name);
+    sanitize_node_name(plugin_name);
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
     RCLCPP_INFO(_ros_node->get_logger(),
@@ -229,8 +230,10 @@ public:
     {
       const auto it = _joints.find(result.joint_name);
       assert(it != _joints.end());
-      auto cur_pos = ecm.Component<components::JointPosition>(it->second)->Data()[0];
-      ecm.CreateComponent(it->second, components::JointPositionReset ({cur_pos + result.velocity * dt}));
+      auto cur_pos =
+        ecm.Component<components::JointPosition>(it->second)->Data()[0];
+      ecm.CreateComponent(it->second,
+        components::JointPositionReset({cur_pos + result.velocity * dt}));
       _last_velocities[result.joint_name] = result.velocity;
     }
   }
