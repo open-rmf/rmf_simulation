@@ -204,13 +204,13 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
 
   // initialize pub & sub
   _lift_state_pub = _ros_node->create_publisher<LiftState>(
-    "/lift_states", rclcpp::SystemDefaultsQoS());
+    "/lift_states", rclcpp::SystemDefaultsQoS().keep_last(10));
 
   _door_request_pub = _ros_node->create_publisher<DoorRequest>(
-    "/adapter_door_requests", rclcpp::SystemDefaultsQoS());
+    "/adapter_door_requests", rclcpp::SystemDefaultsQoS().keep_last(10));
 
   _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
-    "/lift_requests", rclcpp::SystemDefaultsQoS(),
+    "/lift_requests", rclcpp::SystemDefaultsQoS().keep_last(10),
     [&](LiftRequest::UniquePtr msg)
     {
       if (msg->lift_name != _lift_name)
@@ -247,7 +247,7 @@ LiftCommon::LiftCommon(rclcpp::Node::SharedPtr node,
     });
 
   _door_state_sub = _ros_node->create_subscription<DoorState>(
-    "/door_states", rclcpp::SystemDefaultsQoS(),
+    "/door_states", rclcpp::SystemDefaultsQoS().keep_last(10),
     [&](DoorState::SharedPtr msg)
     {
       std::string name = msg->door_name;
