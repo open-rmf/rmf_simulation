@@ -497,19 +497,35 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     {
       // NOOP, keep the current mode
     }
-    else if (_current_mode.mode == RobotMode::MODE_ATTACHING_CART)
+    else if (_current_mode.mode == RobotMode::MODE_PERFORMING_ACTION)
     {
-      if (_attach_cart_callback != nullptr && _attach_cart_callback(true))
-        _current_mode.mode = RobotMode::MODE_ACTION_COMPLETED;
-      else
+      if (_current_mode.performing_action.empty())
+      {
+        // Return to IDLE mode, no perform action specified
         _current_mode.mode = RobotMode::MODE_IDLE;
-    }
-    else if (_current_mode.mode == RobotMode::MODE_DETACHING_CART)
-    {
-      if (_attach_cart_callback != nullptr && _attach_cart_callback(false))
-        _current_mode.mode = RobotMode::MODE_ACTION_COMPLETED;
+      }
       else
-        _current_mode.mode = RobotMode::MODE_IDLE;
+      {
+        if (_current_mode.performing_action == "attach_cart")
+        {
+          if (_attach_cart_callback != nullptr && _attach_cart_callback(true))
+            _current_mode.mode = RobotMode::MODE_ACTION_COMPLETED;
+          else
+            _current_mode.mode = RobotMode::MODE_IDLE;
+        }
+        else if (_current_mode.performing_action == "detach_cart")
+        {
+          if (_attach_cart_callback != nullptr && _attach_cart_callback(false))
+            _current_mode.mode = RobotMode::MODE_ACTION_COMPLETED;
+          else
+            _current_mode.mode = RobotMode::MODE_IDLE;
+        }
+        else
+        {
+          // Specified performing action not recognized, return to IDLE mode
+          _current_mode.mode = RobotMode::MODE_IDLE;
+        }
+      }
     }
     else if (_current_mode.mode == RobotMode::MODE_ACTION_COMPLETED)
     {
