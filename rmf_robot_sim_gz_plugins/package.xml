@@ -23,7 +23,12 @@
   <depend>libqt5-core</depend>
   <depend>libqt5-qml</depend>
   <depend>libqt5-quick</depend>
-  <!--  <depend>ignition-fortress</depend>-->
+  <depend>gz_gui_vendor</depend>
+  <depend>gz_msgs_vendor</depend>
+  <depend>gz_plugin_vendor</depend>
+  <depend>gz_rendering_vendor</depend>
+  <depend>gz_sim_vendor</depend>
+  <depend>gz_transport_vendor</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -22,25 +22,18 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
-find_package(gz-cmake3 REQUIRED)
-
-gz_find_package(gz-sim8 REQUIRED)
-set(GZ_SIM_VER 8)
-gz_find_package(gz-plugin2 REQUIRED COMPONENTS register)
-set(GZ_PLUGIN_VER 2)
-gz_find_package(gz-common5 REQUIRED)
-set(GZ_COMMON_VER 5)
-gz_find_package(gz-math7 REQUIRED)
-set(GZ_MATH_VER 7)
-gz_find_package(gz-gui8 REQUIRED)
-set(GZ_GUI_VER 8)
-gz_find_package(gz-msgs10 REQUIRED)
-set(GZ_MSGS_VER 10)
-gz_find_package(gz-transport13 REQUIRED)
-set(GZ_TRANSPORT_VER 13)
-gz_find_package(gz-rendering8 REQUIRED)
-set(GZ_RENDERING_VER 8)
-gz_find_package(sdformat14 REQUIRED)
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED)
+find_package(gz_gui_vendor REQUIRED)
+find_package(gz-gui REQUIRED)
+find_package(gz_msgs_vendor REQUIRED)
+find_package(gz-msgs REQUIRED)
+find_package(gz_transport_vendor REQUIRED)
+find_package(gz-transport REQUIRED)
+find_package(gz_rendering_vendor REQUIRED)
+find_package(gz-rendering REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
@@ -63,11 +56,14 @@ include(GNUInstallDirs)
 
 add_library(teleport_ingestor SHARED src/TeleportIngestor.cpp)
 
+target_link_libraries(teleport_ingestor
+  gz-sim::core
+  gz-plugin::core
+  gz-msgs::core
+  gz-transport::core
+)
+
 ament_target_dependencies(teleport_ingestor
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
-    gz-msgs${GZ_MSGS_VER}
-    gz-transport${GZ_TRANSPORT_VER}
     rmf_fleet_msgs
     rclcpp
     rmf_robot_sim_common
@@ -87,11 +83,14 @@ target_include_directories(teleport_ingestor
 
 add_library(teleport_dispenser SHARED src/TeleportDispenser.cpp)
 
+target_link_libraries(teleport_dispenser
+  gz-sim::core
+  gz-plugin::core
+  gz-msgs::core
+  gz-transport::core
+)
+
 ament_target_dependencies(teleport_dispenser
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
-    gz-msgs${GZ_MSGS_VER}
-    gz-transport${GZ_TRANSPORT_VER}
     rmf_fleet_msgs
     rclcpp
     rmf_robot_sim_common
@@ -111,12 +110,15 @@ target_include_directories(teleport_dispenser
 
 add_library(readonly SHARED ${PROJECT_SOURCE_DIR}/src/readonly.cpp)
 
+target_link_libraries(readonly
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(readonly
     rmf_fleet_msgs
     rmf_building_map_msgs
     rclcpp
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
     rmf_robot_sim_common
     Eigen3
 )
@@ -134,14 +136,16 @@ target_include_directories(readonly
 
 add_library(slotcar SHARED ${PROJECT_SOURCE_DIR}/src/slotcar.cpp)
 
+target_link_libraries(slotcar
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(slotcar
-  PUBLIC
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
-    rmf_robot_sim_common
-    rmf_building_sim_gz_plugins
-    rmf_fleet_msgs
-    rclcpp
+  rmf_robot_sim_common
+  rmf_building_sim_gz_plugins
+  rmf_fleet_msgs
+  rclcpp
 )
 
 target_include_directories(slotcar
@@ -165,12 +169,15 @@ add_library(LightTuning SHARED ${headers_MOC}
   ${resources_RCC}
 )
 
+target_link_libraries(LightTuning
+  gz-gui::core
+  gz-sim::core
+  gz-msgs::core
+  gz-transport::core
+  gz-rendering::core
+)
+
 ament_target_dependencies(LightTuning
-  gz-gui${GZ_GUI_VER}
-  gz-sim${GZ_SIM_VER}
-  gz-msgs${GZ_MSGS_VER}
-  gz-transport${GZ_TRANSPORT_VER}
-  gz-rendering${GZ_RENDERING_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick

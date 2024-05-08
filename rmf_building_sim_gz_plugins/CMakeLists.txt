@@ -23,29 +23,21 @@ find_package(rmf_lift_msgs REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
-find_package(gz-cmake3 REQUIRED)
-
-gz_find_package(gz-sim8 REQUIRED)
-set(GZ_SIM_VER 8)
-gz_find_package(gz-plugin2 REQUIRED COMPONENTS register)
-set(GZ_PLUGIN_VER 2)
-gz_find_package(gz-common5 REQUIRED)
-set(GZ_COMMON_VER 5)
-gz_find_package(gz-math7 REQUIRED)
-set(GZ_MATH_VER 7)
-gz_find_package(gz-gui8 REQUIRED)
-set(GZ_GUI_VER 8)
-gz_find_package(gz-msgs10 REQUIRED)
-set(GZ_MSGS_VER 10)
-gz_find_package(gz-transport13 REQUIRED)
-set(GZ_TRANSPORT_VER 13)
-gz_find_package(gz-rendering8 REQUIRED)
-set(GZ_RENDERING_VER 8)
-gz_find_package(sdformat14 REQUIRED)
-
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED)
+find_package(gz_gui_vendor REQUIRED)
+find_package(gz-gui REQUIRED)
+find_package(gz_msgs_vendor REQUIRED)
+find_package(gz-msgs REQUIRED)
+find_package(gz_transport_vendor REQUIRED)
+find_package(gz-transport REQUIRED)
+find_package(gz_rendering_vendor REQUIRED)
+find_package(gz-rendering REQUIRED)
 
 find_package(rmf_fleet_msgs REQUIRED)
-find_package (Qt5
+find_package(Qt5
   COMPONENTS
     Core
     Qml
@@ -68,11 +60,13 @@ target_include_directories(door
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+target_link_libraries(door
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(door
-  PUBLIC
     rclcpp
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
     rmf_door_msgs
 )
 
@@ -87,10 +81,9 @@ target_include_directories(register_component
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-ament_target_dependencies(register_component
-  PUBLIC
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
+target_link_libraries(register_component
+  gz-sim::core
+  gz-plugin::core
 )
 
 ###############################
@@ -106,13 +99,15 @@ target_include_directories(lift
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
+target_link_libraries(lift
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(lift
-  PUBLIC
-    rclcpp
-    gz-sim${GZ_SIM_VER}
-    gz-plugin${GZ_PLUGIN_VER}
-    rmf_lift_msgs
-    rmf_door_msgs
+  rclcpp
+  rmf_lift_msgs
+  rmf_door_msgs
 )
 
 ###############################
@@ -130,9 +125,12 @@ target_include_directories(crowd_simulator
   ${menge_vendor_INCLUDE_DIRS}
 )
 
+target_link_libraries(crowd_simulator
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(crowd_simulator
-  gz-sim${GZ_SIM_VER}
-  gz-plugin${GZ_PLUGIN_VER}
   rclcpp
   menge_vendor
 )
@@ -148,10 +146,13 @@ add_library(toggle_charging SHARED ${headers_MOC}
   ${resources_RCC}
 )
 
+target_link_libraries(toggle_charging
+  gz-sim::core
+  gz-msgs::core
+  gz-transport::core
+)
+
 ament_target_dependencies(toggle_charging
-  gz-gui${GZ_GUI_VER}
-  gz-msgs${GZ_MSGS_VER}
-  gz-transport${GZ_TRANSPORT_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick
@@ -176,13 +177,16 @@ add_library(toggle_floors SHARED ${headers_MOC}
   ${resources_RCC}
 )
 
+target_link_libraries(toggle_floors
+  gz-sim::core
+  gz-gui::core
+  gz-msgs::core
+  gz-plugin::core
+  gz-rendering::core
+  gz-transport::core
+)
+
 ament_target_dependencies(toggle_floors
-  gz-sim${GZ_SIM_VER}
-  gz-gui${GZ_GUI_VER}
-  gz-msgs${GZ_MSGS_VER}
-  gz-plugin${GZ_PLUGIN_VER}
-  gz-rendering${GZ_RENDERING_VER}
-  gz-transport${GZ_TRANSPORT_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick
