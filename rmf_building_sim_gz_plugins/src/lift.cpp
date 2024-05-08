@@ -41,6 +41,8 @@ class GZ_SIM_VISIBLE LiftPlugin
   public ISystemPreUpdate
 {
 private:
+  // TODO(luca) make this a parameter of the lift manager
+  static constexpr double PUBLISH_DT = 1.0;
   rclcpp::Node::SharedPtr _ros_node;
 
   rclcpp::Publisher<LiftState>::SharedPtr _lift_state_pub;
@@ -54,11 +56,11 @@ private:
   std::unordered_map<Entity, LiftCommand> _last_lift_command;
   std::unordered_map<Entity, LiftState> _last_states;
 
+  // Saves the last timestamp a door state was sent
+  std::unordered_map<Entity, double> _last_state_pub;
+
   bool _components_initialized = false;
   bool _aabb_read = false;
-
-  std::unordered_set<Entity> _sent_states;
-  bool _send_all_states = false;
 
   std::vector<Entity> get_payloads(EntityComponentManager& ecm,
     const Entity& lift_entity)
@@ -397,23 +399,9 @@ public:
     std::string plugin_name("rmf_simulation_lift_manager");
     _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
 
-    // initialize pub & sub
-    auto pub_options = rclcpp::PublisherOptions();
-    pub_options.event_callbacks.matched_callback =
-      [this](rclcpp::MatchedInfo& s)
-      {
-        if (s.current_count_change > 0)
-        {
-          // Trigger a status send for all lifts
-          _send_all_states = true;
-          _sent_states.clear();
-          gzmsg << "Detected new lift subscriber, triggering state publish" <<
-            std::endl;
-        }
-      };
-    const auto reliable_qos = rclcpp::QoS(200).reliable();
+    const auto reliable_qos = rclcpp::QoS(100).reliable();
     _lift_state_pub = _ros_node->create_publisher<LiftState>(
-      "lift_states", reliable_qos, pub_options);
+      "lift_states", reliable_qos);
 
     _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
       "lift_requests", reliable_qos,
@@ -482,12 +470,24 @@ public:
       "Starting LiftManager");
   }
 
+  void initialize_pub_times(EntityComponentManager& ecm)
+  {
+    ecm.Each<components::Lift>([&](const Entity& e,
+      const components::Lift*) -> bool
+      {
+        _last_state_pub[e] = ((double) std::rand()) /
+        ((double) RAND_MAX/PUBLISH_DT);
+        return true;
+      });
+  }
+
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
     // Read from components that may not have been initialized in configure()
     if (!_components_initialized)
     {
       initialize_components(ecm);
+      initialize_pub_times(ecm);
       _components_initialized = true;
       return;
     }
@@ -506,10 +506,10 @@ public:
 
     std::unordered_set<Entity> finished_cmds;
 
-    // Command lifts
-    double dt =
+    const double dt =
       (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
       count()) * 1e-9;
+    // Command lifts
     ecm.Each<components::Lift,
       components::Pose,
       components::LiftCmd>([&](const Entity& entity,
@@ -568,6 +568,9 @@ public:
         return true;
       });
 
+    const double t =
+      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+      count()) * 1e-9;
     // Update states
     ecm.Each<components::Lift,
       components::Name>([&](const Entity& entity,
@@ -585,9 +588,6 @@ public:
         if (current_state != _last_states[entity])
         {
           _last_states[entity] = current_state;
-          double t =
-          (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-          count()) * 1e-9;
           current_state.lift_name = name;
           current_state.lift_time.sec = t;
           current_state.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
@@ -605,37 +605,30 @@ public:
     }
 
     // Publish state
-    if (_send_all_states)
-    {
-      bool keep_sending = false;
-      ecm.Each<components::Lift,
-        components::Name>([&](const Entity& entity,
-        const components::Lift* lift_comp,
-        const components::Name* name_comp) -> bool
+    ecm.Each<components::Lift,
+      components::Name>([&](const Entity& e,
+      const components::Lift* lift_comp,
+      const components::Name* name_comp) -> bool
+      {
+        auto it = _last_state_pub.find(e);
+        if (it != _last_state_pub.end() && t - it->second >= PUBLISH_DT)
         {
-          if (_sent_states.find(entity) != _sent_states.end())
-            return true;
+          it->second = t;
           const auto& name = name_comp->Data();
           const auto& lift = lift_comp->Data();
 
           const auto* lift_cmd_comp = ecm.Component<components::LiftCmd>(
-            entity);
+            e);
 
-          auto msg = get_current_state(entity, ecm, lift, lift_cmd_comp);
-          _last_states[entity] = msg;
-          double t =
-          (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-          count()) * 1e-9;
+          auto msg = get_current_state(e, ecm, lift, lift_cmd_comp);
+          _last_states[e] = msg;
           msg.lift_time.sec = t;
           msg.lift_time.nanosec = (t - static_cast<int>(t)) * 1e9;
           msg.lift_name = name;
           _lift_state_pub->publish(msg);
-          _sent_states.insert(entity);
-          keep_sending = true;
-          return false;
-        });
-      _send_all_states = keep_sending;
-    }
+        }
+        return true;
+      });
   }
 };
 

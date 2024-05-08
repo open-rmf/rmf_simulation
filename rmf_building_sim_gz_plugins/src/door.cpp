@@ -30,19 +30,17 @@ class GZ_SIM_VISIBLE DoorPlugin
   public ISystemPreUpdate
 {
 private:
+  // TODO(luca) make this a parameter of the door manager
+  static constexpr double PUBLISH_DT = 1.0;
   rclcpp::Node::SharedPtr _ros_node;
   rclcpp::Publisher<DoorState>::SharedPtr _door_state_pub;
   rclcpp::Subscription<DoorRequest>::SharedPtr _door_request_sub;
 
-  std::unordered_set<Entity> _sent_states;
-  bool _send_all_states = false;
-
-  // Records which doors were just requested an action, they will respond by always
-  // reporting their latest state regardless of whether there was a change or not.
-  std::unordered_set<Entity> _queried_doors;
-
   // Used to do open loop joint position control
   std::unordered_map<Entity, double> _last_cmd_vel;
+
+  // Saves the last timestamp a door state was sent
+  std::unordered_map<Entity, double> _last_state_pub;
 
   bool _first_iteration = true;
 
@@ -144,12 +142,9 @@ private:
     }
   }
 
-  void publish_state(const UpdateInfo& info, const std::string& name,
+  void publish_state(const double t, const std::string& name,
     const DoorModeCmp& door_state)
   {
-    double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
     DoorState msg;
     msg.door_name = name;
     msg.door_time.sec = t;
@@ -186,22 +181,9 @@ public:
       "Loading DoorManager");
 
     // Subscribe to door requests, publish door states
-    auto pub_options = rclcpp::PublisherOptions();
-    pub_options.event_callbacks.matched_callback =
-      [this](rclcpp::MatchedInfo& s)
-      {
-        if (s.current_count_change > 0)
-        {
-          // Trigger a status send for all doors
-          _send_all_states = true;
-          _sent_states.clear();
-          gzmsg << "Detected new door subscriber, triggering state publish" <<
-            std::endl;
-        }
-      };
-    const auto pub_qos = rclcpp::QoS(200).reliable();
+    const auto pub_qos = rclcpp::QoS(100).reliable();
     _door_state_pub = _ros_node->create_publisher<DoorState>(
-      "door_states", pub_qos, pub_options);
+      "door_states", pub_qos);
 
     _door_request_sub = _ros_node->create_subscription<DoorRequest>(
       "door_requests", rclcpp::SystemDefaultsQoS(),
@@ -223,7 +205,6 @@ public:
           DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
           ecm.CreateComponent<components::DoorCmd>(entity,
           components::DoorCmd(door_command));
-          _queried_doors.insert(entity);
         }
         else
         {
@@ -250,6 +231,19 @@ public:
       });
   }
 
+  void initialize_pub_times(EntityComponentManager& ecm)
+  {
+    ecm.Each<components::Door>([&](const Entity& e,
+      const components::Door* door_comp) -> bool
+      {
+        if (door_comp->Data().ros_interface == false)
+          return true;
+        _last_state_pub[e] = ((double) std::rand()) /
+        ((double) RAND_MAX/PUBLISH_DT);
+        return true;
+      });
+  }
+
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
     rclcpp::spin_some(_ros_node);
@@ -257,6 +251,7 @@ public:
     {
       _first_iteration = false;
       initialize_components(ecm);
+      initialize_pub_times(ecm);
       return;
     }
 
@@ -264,6 +259,9 @@ public:
     if (info.paused)
       return;
 
+    const double t =
+      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
+      count()) * 1e-9;
     std::unordered_set<Entity> finished_cmds;
     // Process commands
     ecm.Each<components::Door, components::DoorCmd,
@@ -283,14 +281,12 @@ public:
         command_door(entity, ecm, door, dt, door_cmd);
         // Publish state if there was a change
         const auto cur_mode = get_current_mode(entity, ecm, door);
-        if (cur_mode != door_state_comp->Data() ||
-        _queried_doors.find(entity) != _queried_doors.end())
+        if (cur_mode != door_state_comp->Data())
         {
           last_mode = cur_mode;
           if (door_comp->Data().ros_interface)
           {
-            publish_state(info, name, cur_mode);
-            _queried_doors.erase(entity);
+            publish_state(t, name, cur_mode);
           }
         }
         if (door_cmd == cur_mode)
@@ -301,27 +297,22 @@ public:
       });
 
     // Publish states
-    if (_send_all_states)
-    {
-      bool keep_sending = false;
-      ecm.Each<components::Door, components::DoorStateComp,
-        components::Name>([&](const Entity& e,
-        const components::Door* door_comp,
-        const components::DoorStateComp* door_state_comp,
-        const components::Name* name_comp) -> bool
+    ecm.Each<components::Door, components::DoorStateComp,
+      components::Name>([&](const Entity& e,
+      const components::Door* door_comp,
+      const components::DoorStateComp* door_state_comp,
+      const components::Name* name_comp) -> bool
+      {
+        if (door_comp->Data().ros_interface == false)
+          return true;
+        auto it = _last_state_pub.find(e);
+        if (it != _last_state_pub.end() && t - it->second >= PUBLISH_DT)
         {
-          if (_sent_states.find(e) != _sent_states.end())
-            return true;
-          if (door_comp->Data().ros_interface == false)
-            return true;
-          publish_state(info, name_comp->Data(), door_state_comp->Data());
-          _sent_states.insert(e);
-          // Mark to keep sending but stop doing so for now
-          keep_sending = true;
-          return false;
-        });
-      _send_all_states = keep_sending;
-    }
+          it->second = t;
+          publish_state(t, name_comp->Data(), door_state_comp->Data());
+        }
+        return true;
+      });
 
     for (const auto& entity: finished_cmds)
     {
@@ -337,4 +328,3 @@ GZ_ADD_PLUGIN(
   DoorPlugin::ISystemPreUpdate)
 
 GZ_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
-
