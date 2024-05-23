@@ -117,7 +117,7 @@ private:
         // Set the initial floor
         const auto target_it = lift.floors.find(lift.initial_floor);
         auto initial_floor = std::string("");
-        auto target_elevation = 0.0;
+        auto target_elevation = std::numeric_limits<double>::max();
         if (target_it != lift.floors.end())
         {
           initial_floor = target_it->first;
@@ -136,18 +136,13 @@ private:
             }
           }
 
-          if (!lift.floors.empty())
-          {
-            target_elevation = lift.floors.at(0).elevation;
-          }
-          else
+          if (lift.floors.empty())
           {
             gzwarn << "The lift [" << lift.name << "] does not support any "
                    << "floors. This is probably an error in your building "
                    << "configuration." << std::endl;
             target_elevation = 0.0;
           }
-          target_elevation = lift.floors.at(0).elevation;
         }
         lift_command.destination_floor = initial_floor;
         _last_lift_command[entity] = lift_command;
