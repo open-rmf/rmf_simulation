@@ -126,7 +126,7 @@ private:
         else
         {
           gzwarn << "Initial floor not found for lift [" << lift.name
-            << "], setting elevation to first floor" << std::endl;
+                 << "], setting elevation to first floor" << std::endl;
           for (const auto& [name, floor]: lift.floors)
           {
             if (floor.elevation < target_elevation)
@@ -143,8 +143,8 @@ private:
           else
           {
             gzwarn << "The lift [" << lift.name << "] does not support any "
-              << "floors. This is probably an error in your building "
-              << "configuration." << std::endl;
+                   << "floors. This is probably an error in your building "
+                   << "configuration." << std::endl;
             target_elevation = 0.0;
           }
           target_elevation = lift.floors.at(0).elevation;
