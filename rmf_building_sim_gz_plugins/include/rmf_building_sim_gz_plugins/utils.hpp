@@ -1,6 +1,8 @@
 #ifndef RMF_BUILDING_SIM_GZ_PLUGINS_UTILS_HPP
 #define RMF_BUILDING_SIM_GZ_PLUGINS_UTILS_HPP
 
+#include <chrono>
+
 namespace rmf_building_sim_gz_plugins {
 
 struct MotionParams
@@ -57,6 +59,13 @@ double compute_desired_rate_of_change(
 
   // Flip the sign to the correct direction before returning the value
   return sign * v_next;
+}
+
+/// Convert a duration into a double value representing seconds.
+inline double to_seconds(const std::chrono::nanoseconds delta_t)
+{
+  using Sec64 = std::chrono::duration<double>;
+  return std::chrono::duration_cast<Sec64>(delta_t).count();
 }
 
 }

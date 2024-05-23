@@ -171,7 +171,7 @@ private:
 };
 
 
-class GZ_SIM_VISIBLE CrowdSimulatorPlugin
+class CrowdSimulatorPlugin
   : public gz::sim::System,
   public gz::sim::ISystemConfigure,
   public gz::sim::ISystemPreUpdate

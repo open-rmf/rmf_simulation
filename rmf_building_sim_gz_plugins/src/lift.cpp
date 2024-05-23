@@ -20,6 +20,7 @@
 
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
+#include <rmf_building_sim_gz_plugins/utils.hpp>
 
 #include <rmf_door_msgs/msg/door_mode.hpp>
 #include <rmf_lift_msgs/msg/lift_request.hpp>
@@ -35,7 +36,7 @@ namespace rmf_building_sim_gz_plugins {
 
 //==============================================================================
 
-class GZ_SIM_VISIBLE LiftPlugin
+class LiftPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -116,7 +117,7 @@ private:
         // Set the initial floor
         const auto target_it = lift.floors.find(lift.initial_floor);
         auto initial_floor = std::string("");
-        auto target_elevation = std::numeric_limits<double>::min();
+        auto target_elevation = 0.0;
         if (target_it != lift.floors.end())
         {
           initial_floor = target_it->first;
@@ -124,7 +125,8 @@ private:
         }
         else
         {
-          gzwarn << "Initial floor not found, setting elevation to first floor" << std::endl;
+          gzwarn << "Initial floor not found for lift [" << lift.name
+            << "], setting elevation to first floor" << std::endl;
           for (const auto& [name, floor]: lift.floors)
           {
             if (floor.elevation < target_elevation)
@@ -132,6 +134,18 @@ private:
               target_elevation = floor.elevation;
               initial_floor = name;
             }
+          }
+
+          if (!lift.floors.empty())
+          {
+            target_elevation = lift.floors.at(0).elevation;
+          }
+          else
+          {
+            gzwarn << "The lift [" << lift.name << "] does not support any "
+              << "floors. This is probably an error in your building "
+              << "configuration." << std::endl;
+            target_elevation = 0.0;
           }
           target_elevation = lift.floors.at(0).elevation;
         }
@@ -158,7 +172,7 @@ private:
         // delete the AABB component once read. Not deleting it causes rtf to drop by
         // a 3-4x factor whenever the lift moves.
         const double volume = aabb->Data().Volume();
-        if (volume > 0 && volume != std::numeric_limits<double>::infinity())
+        if (volume > 0 && std::isfinite(volume))
         {
           // TODO(luca) this could be a component instead of a hash map
           _initial_aabbs[entity] = aabb->Data();
@@ -195,7 +209,7 @@ private:
     const auto lift_pos =
       ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
 
-    double smallest_error = std::numeric_limits<double>::max();
+    double smallest_error = std::numeric_limits<double>::infinity();
     std::string closest_floor_name;
     for (const auto& [name, floor] : lift.floors)
     {
@@ -215,7 +229,13 @@ private:
     const std::string& floor_name) const
   {
     std::vector<Entity> doors;
-    for (const auto& door_pair : lift.floors.at(floor_name).doors)
+    const auto floor_it = lift.floors.find(floor_name);
+    if (floor_it == lift.floors.end())
+    {
+      return doors;
+    }
+
+    for (const auto& door_pair : floor_it->second.doors)
     {
       const auto shaft_door = entity_by_name(ecm, door_pair.shaft_door);
       if (shaft_door != kNullEntity)
@@ -405,11 +425,11 @@ public:
 
     _lift_request_sub = _ros_node->create_subscription<LiftRequest>(
       "lift_requests", reliable_qos,
-      [&](LiftRequest::UniquePtr msg)
+      [this, ecm = &ecm](LiftRequest::UniquePtr msg)
       {
         // Find entity with the name and create a DoorCmd component
-        auto entity = entity_by_name(ecm, msg->lift_name);
-        const auto* lift_comp = ecm.Component<components::Lift>(entity);
+        auto entity = entity_by_name(*ecm, msg->lift_name);
+        const auto* lift_comp = ecm->Component<components::Lift>(entity);
         if (entity != kNullEntity && lift_comp != nullptr)
         {
           const auto& available_floors = lift_comp->Data().floors;
@@ -430,7 +450,7 @@ public:
 
           // Trigger an error if a request, different from previous one, comes in
           const auto* cur_lift_cmd_comp =
-          ecm.Component<components::LiftCmd>(entity);
+          ecm->Component<components::LiftCmd>(entity);
           if (cur_lift_cmd_comp)
           {
             const auto& cur_lift_cmd = cur_lift_cmd_comp->Data();
@@ -454,7 +474,7 @@ public:
               "Lift [%s] requested at level [%s]",
               msg->lift_name.c_str(), msg->destination_floor.c_str());
               _last_lift_command[entity] = lift_command;
-              ecm.CreateComponent<components::LiftCmd>(entity,
+              ecm->CreateComponent<components::LiftCmd>(entity,
               components::LiftCmd(lift_command));
             }
           }
@@ -506,9 +526,7 @@ public:
 
     std::unordered_set<Entity> finished_cmds;
 
-    const double dt =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
-      count()) * 1e-9;
+    const double dt = to_seconds(info.dt);
     // Command lifts
     ecm.Each<components::Lift,
       components::Pose,
@@ -568,9 +586,7 @@ public:
         return true;
       });
 
-    const double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
+    const double t = to_seconds(info.simTime);
     // Update states
     ecm.Each<components::Lift,
       components::Name>([&](const Entity& entity,

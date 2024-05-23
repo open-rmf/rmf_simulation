@@ -16,6 +16,7 @@
 #include <rmf_door_msgs/msg/door_request.hpp>
 
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
+#include <rmf_building_sim_gz_plugins/utils.hpp>
 
 using namespace gz::sim;
 
@@ -24,7 +25,7 @@ using DoorMode = rmf_door_msgs::msg::DoorMode;
 using DoorState = rmf_door_msgs::msg::DoorState;
 using DoorRequest = rmf_door_msgs::msg::DoorRequest;
 
-class GZ_SIM_VISIBLE DoorPlugin
+class DoorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
@@ -187,14 +188,14 @@ public:
 
     _door_request_sub = _ros_node->create_subscription<DoorRequest>(
       "door_requests", rclcpp::SystemDefaultsQoS(),
-      [&](DoorRequest::UniquePtr msg)
+      [ecm = &ecm](DoorRequest::UniquePtr msg)
       {
         // Find entity with the name and create a DoorCmd component
         // TODO(luca) cache this to avoid expensive iteration over all entities?
-        auto entity = ecm.EntityByComponents(components::Name(
+        auto entity = ecm->EntityByComponents(components::Name(
           msg->door_name));
-        const auto*  door = ecm.Component<components::Door>(entity);
-        if (entity != kNullEntity || door == nullptr)
+        const auto* door = ecm->Component<components::Door>(entity);
+        if (entity != kNullEntity && door != nullptr)
         {
           if (door->Data().ros_interface == false)
           {
@@ -203,7 +204,7 @@ public:
           }
           auto door_command = msg->requested_mode.value == msg->requested_mode.MODE_OPEN ?
           DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
-          ecm.CreateComponent<components::DoorCmd>(entity,
+          ecm->CreateComponent<components::DoorCmd>(entity,
           components::DoorCmd(door_command));
         }
         else
@@ -259,9 +260,7 @@ public:
     if (info.paused)
       return;
 
-    const double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
+    const double t = to_seconds(info.simTime);
     std::unordered_set<Entity> finished_cmds;
     // Process commands
     ecm.Each<components::Door, components::DoorCmd,
@@ -271,9 +270,7 @@ public:
       components::DoorStateComp* door_state_comp,
       const components::Name* name_comp) -> bool
       {
-        double dt =
-        (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
-        count()) * 1e-9;
+        double dt = to_seconds(info.dt);
         const auto& name = name_comp->Data();
         const auto& door = door_comp->Data();
         const auto& door_cmd = door_cmd_comp->Data();

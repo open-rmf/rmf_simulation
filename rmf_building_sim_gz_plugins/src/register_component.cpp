@@ -19,7 +19,7 @@ namespace rmf_building_sim_gz_plugins {
 
 //==============================================================================
 
-class GZ_SIM_VISIBLE RegisterComponentPlugin
+class RegisterComponentPlugin
   : public System,
   public ISystemConfigure
 {
