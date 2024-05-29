@@ -27,11 +27,8 @@ jobs:
           target-ros2-distro: humble
           # build all packages listed in the meta package
           package-name: |
-            rmf_building_sim_common
-            rmf_building_sim_gz_classic_plugins
             rmf_building_sim_gz_plugins
             rmf_robot_sim_common
-            rmf_robot_sim_gz_classic_plugins
             rmf_robot_sim_gz_plugins
           vcs-repo-file-url: |
             https://raw.githubusercontent.com/open-rmf/rmf/main/rmf.repos
