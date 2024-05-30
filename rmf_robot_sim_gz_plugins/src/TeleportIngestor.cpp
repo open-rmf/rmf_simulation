@@ -239,7 +239,8 @@ void TeleportIngestorPlugin::init_non_static_models_poses(
     {
       if (!is_static->Data() && name->Data() != _ingestor_common->_guid)
       {
-        _ingestor_common->non_static_models_init_poses[name->Data()] = convert_pose(
+        _ingestor_common->non_static_models_init_poses[name->Data()] =
+        convert_pose(
           pose->Data());
       }
       return true;

@@ -297,10 +297,10 @@ void TeleportDispenserPlugin::PreUpdate(const UpdateInfo& info,
       std::ref(ecm), std::placeholders::_1, _item_en);
 
   std::function<bool(void)> check_filled_cb = [&]()
-    {
-      return _dispenser_vicinity_box.Contains(
-        ecm.Component<components::Pose>(_item_en)->Data().Pos());
-    };
+  {
+    return _dispenser_vicinity_box.Contains(
+      ecm.Component<components::Pose>(_item_en)->Data().Pos());
+  };
 
   _dispenser_common->on_update(fill_robot_list_cb, find_nearest_model_cb,
     place_on_entity_cb, check_filled_cb);

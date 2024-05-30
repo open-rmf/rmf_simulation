@@ -15,5 +15,4 @@ jobs:
         rmf_building_sim_gz_plugins
         rmf_robot_sim_common
         rmf_robot_sim_gz_plugins
-      # Foxy and Galactic are deprecated for this package because of the dependency to old gazebo packages
-      dist-matrix: '[{"ros_distribution": "jazzy", "ubuntu_distribution": "noble"}, {"ros_distribution": "rolling", "ubuntu_distribution": "noble"}]'
+      dist-matrix: '[{"ros_distribution": "rolling", "ubuntu_distribution": "noble"}]'

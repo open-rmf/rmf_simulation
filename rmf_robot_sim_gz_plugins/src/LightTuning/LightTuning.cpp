@@ -44,25 +44,25 @@ std::string create_light_marker_str(const std::string& name,
 {
   std::ostringstream ss;
   ss << std::string(
-      "<?xml version=\"1.0\"?>"
-      "<sdf version=\"1.7\">");
+    "<?xml version=\"1.0\"?>"
+    "<sdf version=\"1.7\">");
   ss << "<model name=\"" << name << "\">" << std::endl;
   ss << "<pose>" << pose << "</pose>" << std::endl;
   ss << std::string(
-      "<static>true</static>"
-      "<link name=\"box_link\">"
-      "<visual name=\"box_visual\">"
-      "<cast_shadows>false</cast_shadows>"
-      "<transparency>0.5</transparency>"
-      "<geometry>"
-      "<box>"
-      "<size>0.5 0.5 0.5</size>"
-      "</box>"
-      "</geometry>"
-      "</visual>"
-      "</link>"
-      "</model>"
-      "</sdf>");
+    "<static>true</static>"
+    "<link name=\"box_link\">"
+    "<visual name=\"box_visual\">"
+    "<cast_shadows>false</cast_shadows>"
+    "<transparency>0.5</transparency>"
+    "<geometry>"
+    "<box>"
+    "<size>0.5 0.5 0.5</size>"
+    "</box>"
+    "</geometry>"
+    "</visual>"
+    "</link>"
+    "</model>"
+    "</sdf>");
   return ss.str();
 }
 
@@ -186,7 +186,7 @@ std::ostream& operator<<(std::ostream& os, const sdf::Light& light)
 {
   os << "<light type=\""
      << (light.Type() == sdf::LightType::POINT ? "point" :
-    (light.Type() == sdf::LightType::DIRECTIONAL ? "directional" : "spot"))
+  (light.Type() == sdf::LightType::DIRECTIONAL ? "directional" : "spot"))
      << "\" name=\"" << light.Name() << "\"> \n";
   os << "<cast_shadows>"
      << (light.CastShadows() ? "true" : "false") << "</cast_shadows> \n";
