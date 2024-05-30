@@ -15,4 +15,4 @@ jobs:
         rmf_building_sim_gz_plugins
         rmf_robot_sim_common
         rmf_robot_sim_gz_plugins
-      dist-matrix: '[{"ros_distribution": "humble", "ubuntu_distribution": "jammy"}]'
+      dist-matrix: '[{"ros_distribution": "rolling", "ubuntu_distribution": "noble"}]'
