@@ -1,251 +1,330 @@
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/gazebo/System.hh>
-#include <ignition/gazebo/Model.hh>
-#include <ignition/gazebo/Util.hh>
-#include <ignition/gazebo/components/JointAxis.hh>
-#include <ignition/gazebo/components/JointPosition.hh>
-#include <ignition/gazebo/components/JointPositionReset.hh>
+#include <gz/sim/System.hh>
+#include <gz/sim/Model.hh>
+#include <gz/sim/Util.hh>
+#include <gz/sim/components/Joint.hh>
+#include <gz/sim/components/JointAxis.hh>
+#include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/Name.hh>
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <rmf_building_sim_common/utils.hpp>
-#include <rmf_building_sim_common/door_common.hpp>
+#include <rmf_door_msgs/msg/door_mode.hpp>
+#include <rmf_door_msgs/msg/door_state.hpp>
+#include <rmf_door_msgs/msg/door_request.hpp>
 
-using namespace ignition::gazebo;
+#include <rmf_building_sim_gz_plugins/components/Door.hpp>
+#include <rmf_building_sim_gz_plugins/utils.hpp>
 
-using namespace rmf_building_sim_common;
+using namespace gz::sim;
 
-namespace rmf_building_sim_gz_plugins {
+using namespace rmf_building_sim_gz_plugins;
+using DoorMode = rmf_door_msgs::msg::DoorMode;
+using DoorState = rmf_door_msgs::msg::DoorState;
+using DoorRequest = rmf_door_msgs::msg::DoorRequest;
 
-//==============================================================================
-
-class IGNITION_GAZEBO_VISIBLE DoorPlugin
+class DoorPlugin
   : public System,
   public ISystemConfigure,
   public ISystemPreUpdate
 {
 private:
+  // TODO(luca) make this a parameter of the door manager
+  static constexpr double PUBLISH_DT = 1.0;
   rclcpp::Node::SharedPtr _ros_node;
-  std::unordered_map<std::string, Entity> _joints;
+  rclcpp::Publisher<DoorState>::SharedPtr _door_state_pub;
+  rclcpp::Subscription<DoorRequest>::SharedPtr _door_request_sub;
 
-  std::unordered_map<std::string, double> _last_velocities;
+  // Used to do open loop joint position control
+  std::unordered_map<Entity, double> _last_cmd_vel;
 
-  std::shared_ptr<DoorCommon> _door_common = nullptr;
+  // Saves the last timestamp a door state was sent
+  std::unordered_map<Entity, double> _last_state_pub;
 
-  bool _initialized = false;
   bool _first_iteration = true;
 
-  void create_entity_components(Entity entity, EntityComponentManager& ecm)
+  Entity get_joint_entity(const EntityComponentManager& ecm,
+    const Entity& model_entity,
+    const std::string& joint_name) const
   {
-    enableComponent<components::JointPosition>(ecm, entity);
+    auto joint_entity = Model(model_entity).JointByName(ecm, joint_name);
+    if (joint_entity == kNullEntity)
+    {
+      // Try for its parent (i.e. for lift nested cabin doors)
+      joint_entity = Model(ecm.ParentEntity(model_entity)).JointByName(ecm,
+          joint_name);
+      if (joint_entity == kNullEntity)
+      {
+        gzwarn << "Joint " << joint_name << " not found" << std::endl;
+      }
+    }
+    return joint_entity;
   }
 
-  std::optional<DoorCommon::Doors> get_doors(
-    Model& model,
-    const std::string& door_name,
-    const std::shared_ptr<const sdf::Element>& sdf,
-    EntityComponentManager& ecm)
+  bool is_joint_at_position(double joint_position, double dx_min,
+    double target_position) const
   {
-    // We work with a clone to avoid const correctness issues with
-    // get_sdf_param functions in utils.hpp
-    auto sdf_clone = sdf->Clone();
-    std::string left_door_joint_name;
-    std::string right_door_joint_name;
-    std::string door_type;
+    return std::abs(target_position - joint_position) < dx_min;
+  }
 
-    auto door_element = sdf_clone;
-    if (!get_element_required(sdf_clone, "door", door_element) ||
-      !get_sdf_attribute_required<std::string>(
-        door_element, "left_joint_name", left_door_joint_name) ||
-      !get_sdf_attribute_required<std::string>(
-        door_element, "right_joint_name", right_door_joint_name) ||
-      !get_sdf_attribute_required<std::string>(
-        door_element, "type", door_type))
+  DoorModeCmp get_current_mode(const Entity& entity,
+    EntityComponentManager& ecm,
+    const DoorData& door) const
+  {
+    bool all_open = true;
+    bool all_closed = true;
+    for (const auto& joint : door.joints)
     {
-      RCLCPP_ERROR(_ros_node->get_logger(),
-        " -- Missing required parameters for [%s] plugin",
-        door_name.c_str());
-      return std::nullopt;
-    }
-
-    if ((left_door_joint_name == "empty_joint" &&
-      right_door_joint_name == "empty_joint") ||
-      (left_door_joint_name.empty() && right_door_joint_name.empty()))
-    {
-      RCLCPP_ERROR(_ros_node->get_logger(),
-        " -- Both door joint names are missing for [%s] plugin, at least one"
-        " is required", door_name.c_str());
-      return std::nullopt;
-    }
-
-    std::unordered_set<std::string> joint_names;
-    if (!left_door_joint_name.empty()
-      && left_door_joint_name != "empty_joint")
-      joint_names.insert(left_door_joint_name);
-    if (!right_door_joint_name.empty()
-      && right_door_joint_name != "empty_joint")
-      joint_names.insert(right_door_joint_name);
-
-    DoorCommon::Doors doors;
-    for (auto joint_name: joint_names)
-    {
-      auto joint_entity = model.JointByName(ecm, joint_name);
+      auto joint_entity = get_joint_entity(ecm, entity, joint.name);
       if (joint_entity == kNullEntity)
       {
         continue;
       }
-      const auto* joint_axis =
-        ecm.Component<components::JointAxis>(joint_entity);
-
-      double lower_limit = -1.57;
-      double upper_limit = 0.0;
-      if (joint_axis != nullptr)
+      const auto* joint_component =
+        ecm.Component<components::JointPosition>(joint_entity);
+      const double joint_position = joint_component->Data()[0];
+      if (!is_joint_at_position(joint_position, door.params.dx_min,
+        joint.open_position))
       {
-        lower_limit = joint_axis->Data().Lower();
-        upper_limit = joint_axis->Data().Upper();
+        all_open = false;
       }
-
-      DoorCommon::DoorElement door_element;
-      if (joint_name == right_door_joint_name)
+      if (!is_joint_at_position(joint_position, door.params.dx_min,
+        joint.closed_position))
       {
-        door_element = DoorCommon::DoorElement{lower_limit, upper_limit, true};
+        all_closed = false;
       }
-      else if (joint_name == left_door_joint_name)
-      {
-        door_element = DoorCommon::DoorElement{lower_limit, upper_limit};
-      }
-      else
-      {
-        RCLCPP_WARN(
-          _ros_node->get_logger(),
-          "Unsupported joint_name %s. Ignoring...", joint_name.c_str()
-        );
-        continue;
-      }
-
-      doors.insert({joint_name, door_element});
     }
-    return doors;
-  }
-public:
-  DoorPlugin()
-  {
+    if (all_open)
+      return DoorModeCmp::OPEN;
+    else if (all_closed)
+      return DoorModeCmp::CLOSE;
+    return DoorModeCmp::MOVING;
   }
 
-  void Configure(const Entity& entity,
-    const std::shared_ptr<const sdf::Element>& sdf,
+  double calculate_target_velocity(
+    const double target,
+    const double current_position,
+    const double current_velocity,
+    const double dt,
+    const MotionParams& params) const
+  {
+    double dx = target - current_position;
+    if (std::abs(dx) < params.dx_min / 2.0)
+      dx = 0.0;
+
+    double door_v = compute_desired_rate_of_change(
+      dx, current_velocity, params, dt);
+
+    return door_v;
+  }
+
+  void command_door(const Entity& entity, EntityComponentManager& ecm,
+    const DoorData& door, double dt, DoorModeCmp cmd)
+  {
+    auto model = Model(entity);
+    for (const auto& joint : door.joints)
+    {
+      auto joint_entity = get_joint_entity(ecm, entity, joint.name);
+      if (joint_entity != kNullEntity)
+      {
+        auto cur_pos =
+          ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
+        auto target_pos = cmd ==
+          DoorModeCmp::OPEN ? joint.open_position : joint.closed_position;
+        auto target_vel = calculate_target_velocity(target_pos, cur_pos,
+            _last_cmd_vel[joint_entity],
+            dt, door.params);
+        ecm.CreateComponent<components::JointPositionReset>(joint_entity,
+          components::JointPositionReset(
+            {cur_pos + target_vel * dt}));
+        _last_cmd_vel[joint_entity] = target_vel;
+      }
+    }
+  }
+
+  void publish_state(const double t, const std::string& name,
+    const DoorModeCmp& door_state)
+  {
+    DoorState msg;
+    msg.door_name = name;
+    msg.door_time.sec = t;
+    msg.door_time.nanosec = (t - static_cast<int>(t)) * 1e9;
+    switch (door_state)
+    {
+      case DoorModeCmp::OPEN: {
+        msg.current_mode.value = msg.current_mode.MODE_OPEN;
+        break;
+      }
+      case DoorModeCmp::MOVING: {
+        msg.current_mode.value = msg.current_mode.MODE_MOVING;
+        break;
+      }
+      case DoorModeCmp::CLOSE: {
+        msg.current_mode.value = msg.current_mode.MODE_CLOSED;
+        break;
+      }
+    }
+    _door_state_pub->publish(msg);
+  }
+
+public:
+  void Configure(const Entity& /*entity*/,
+    const std::shared_ptr<const sdf::Element>& /*sdf*/,
     EntityComponentManager& ecm, EventManager& /*_eventMgr*/) override
   {
-    // TODO proper rclcpp init (only once and pass args)
-    auto model = Model(entity);
-    char const** argv = NULL;
-    std::string name;
-    auto door_ele = sdf->GetElementImpl("door");
-    get_sdf_attribute_required<std::string>(door_ele, "name", name);
     if (!rclcpp::ok())
-      rclcpp::init(0, argv);
-    std::string plugin_name("plugin_" + name);
-    sanitize_node_name(plugin_name);
-    _ros_node = std::make_shared<rclcpp::Node>(plugin_name);
+      rclcpp::init(0, nullptr);
+
+    _ros_node = std::make_shared<rclcpp::Node>("rmf_simulation_door_manager");
 
     RCLCPP_INFO(_ros_node->get_logger(),
-      "Loading DoorPlugin for [%s]",
-      name.c_str());
+      "Loading DoorManager");
 
-    auto doors = get_doors(model, name, sdf, ecm);
+    // Subscribe to door requests, publish door states
+    const auto pub_qos = rclcpp::QoS(100).reliable();
+    _door_state_pub = _ros_node->create_publisher<DoorState>(
+      "door_states", pub_qos);
 
-    if (!doors.has_value())
-      return;
-
-    _door_common = DoorCommon::make(
-      name,
-      _ros_node,
-      sdf,
-      doors.value());
-
-    if (!_door_common)
-      return;
-
-    for (const auto& joint_name : _door_common->joint_names())
-    {
-      const auto joint = model.JointByName(ecm, joint_name);
-      if (!joint)
+    _door_request_sub = _ros_node->create_subscription<DoorRequest>(
+      "door_requests", rclcpp::SystemDefaultsQoS(),
+      [ecm = &ecm](DoorRequest::UniquePtr msg)
       {
-        RCLCPP_ERROR(_ros_node->get_logger(),
-          " -- Model is missing the joint [%s]",
-          joint_name.c_str());
-        return;
-      }
-      create_entity_components(joint, ecm);
-      _joints.insert({joint_name, joint});
-    }
+        // Find entity with the name and create a DoorCmd component
+        // TODO(luca) cache this to avoid expensive iteration over all entities?
+        auto entity = ecm->EntityByComponents(components::Name(
+          msg->door_name));
+        const auto* door = ecm->Component<components::Door>(entity);
+        if (entity != kNullEntity && door != nullptr)
+        {
+          if (door->Data().ros_interface == false)
+          {
+            gzmsg << "Ignoring door " << msg->door_name <<
+              " because it doesn't have a ros interface" << std::endl;
+            return;
+          }
+          auto door_command = msg->requested_mode.value ==
+          msg->requested_mode.MODE_OPEN ?
+          DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
+          ecm->CreateComponent<components::DoorCmd>(entity,
+          components::DoorCmd(door_command));
+        }
+        else
+        {
+          gzwarn << "Request received for door " << msg->door_name <<
+            " but it is not being simulated" << std::endl;
+        }
+      });
+  }
 
-    _initialized = true;
+  void initialize_components(EntityComponentManager& ecm)
+  {
+    ecm.Each<components::Door>([&](const Entity& entity,
+      const components::Door* door) -> bool
+      {
+        for (auto joint : door->Data().joints)
+        {
+          auto joint_entity = get_joint_entity(ecm, entity, joint.name);
+          std::vector<double> position = {0.0};
+          ecm.CreateComponent<components::JointPosition>(joint_entity,
+          components::JointPosition(position));
+        }
+        enableComponent<components::DoorStateComp>(ecm, entity);
+        return true;
+      });
+  }
 
-    RCLCPP_INFO(_ros_node->get_logger(),
-      "Finished loading [%s]",
-      name.c_str());
+  void initialize_pub_times(EntityComponentManager& ecm)
+  {
+    ecm.Each<components::Door>([&](const Entity& e,
+      const components::Door* door_comp) -> bool
+      {
+        if (door_comp->Data().ros_interface == false)
+          return true;
+        _last_state_pub[e] = ((double) std::rand()) /
+        ((double) RAND_MAX/PUBLISH_DT);
+        return true;
+      });
   }
 
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override
   {
     rclcpp::spin_some(_ros_node);
-    // JointPosition and JointVelocity components are populated by Physics
-    // system in Update, hence they are uninitialized in the first PreUpdate.
-    if (!_initialized || _first_iteration)
+    if (_first_iteration)
     {
       _first_iteration = false;
+      initialize_components(ecm);
+      initialize_pub_times(ecm);
       return;
     }
 
-    // Don't update the pose if the simulation is paused
+    // Don't update if the simulation is paused
     if (info.paused)
       return;
 
-    double t =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).
-      count()) * 1e-9;
-    double dt =
-      (std::chrono::duration_cast<std::chrono::nanoseconds>(info.dt).
-      count()) * 1e-9;
+    const double t = to_seconds(info.simTime);
+    std::unordered_set<Entity> finished_cmds;
+    // Process commands
+    ecm.Each<components::Door, components::DoorCmd,
+      components::DoorStateComp, components::Name>([&](const Entity& entity,
+      const components::Door* door_comp,
+      const components::DoorCmd* door_cmd_comp,
+      components::DoorStateComp* door_state_comp,
+      const components::Name* name_comp) -> bool
+      {
+        double dt = to_seconds(info.dt);
+        const auto& name = name_comp->Data();
+        const auto& door = door_comp->Data();
+        const auto& door_cmd = door_cmd_comp->Data();
+        auto& last_mode = door_state_comp->Data();
+        command_door(entity, ecm, door, dt, door_cmd);
+        // Publish state if there was a change
+        const auto cur_mode = get_current_mode(entity, ecm, door);
+        if (cur_mode != door_state_comp->Data())
+        {
+          last_mode = cur_mode;
+          if (door_comp->Data().ros_interface)
+          {
+            publish_state(t, name, cur_mode);
+          }
+        }
+        if (door_cmd == cur_mode)
+        {
+          finished_cmds.insert(entity);
+        }
+        return true;
+      });
 
-    // Create DoorUpdateRequest
-    std::vector<DoorCommon::DoorUpdateRequest> requests;
-    for (const auto& joint : _joints)
+    // Publish states
+    ecm.Each<components::Door, components::DoorStateComp,
+      components::Name>([&](const Entity& e,
+      const components::Door* door_comp,
+      const components::DoorStateComp* door_state_comp,
+      const components::Name* name_comp) -> bool
+      {
+        if (door_comp->Data().ros_interface == false)
+          return true;
+        auto it = _last_state_pub.find(e);
+        if (it != _last_state_pub.end() && t - it->second >= PUBLISH_DT)
+        {
+          it->second = t;
+          publish_state(t, name_comp->Data(), door_state_comp->Data());
+        }
+        return true;
+      });
+
+    for (const auto& entity: finished_cmds)
     {
-      DoorCommon::DoorUpdateRequest request;
-      request.joint_name = joint.first;
-      request.position = ecm.Component<components::JointPosition>(
-        joint.second)->Data()[0];
-      // Open loop velocity control, similar to slotcar
-      request.velocity = _last_velocities[request.joint_name];
-      requests.push_back(request);
-    }
-
-    auto results = _door_common->update(t, requests);
-
-    // Apply motions to the joints
-    for (const auto& result : results)
-    {
-      const auto it = _joints.find(result.joint_name);
-      assert(it != _joints.end());
-      auto cur_pos =
-        ecm.Component<components::JointPosition>(it->second)->Data()[0];
-      ecm.CreateComponent(it->second,
-        components::JointPositionReset({cur_pos + result.velocity * dt}));
-      _last_velocities[result.joint_name] = result.velocity;
+      enableComponent<components::DoorCmd>(ecm, entity, false);
     }
   }
-
 };
 
-IGNITION_ADD_PLUGIN(
+GZ_ADD_PLUGIN(
   DoorPlugin,
   System,
   DoorPlugin::ISystemConfigure,
   DoorPlugin::ISystemPreUpdate)
 
-IGNITION_ADD_PLUGIN_ALIAS(DoorPlugin, "door")
-
-} // namespace rmf_building_sim_gz_plugins
+GZ_ADD_PLUGIN_ALIAS(DoorPlugin, "door")

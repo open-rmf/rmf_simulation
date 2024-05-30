@@ -659,12 +659,12 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     pause_request.type == pause_request.TYPE_PAUSE_IMMEDIATELY;
 
   const bool e_stop = [&]() -> bool
-    {
-      if (result.target_linear_speed_now > 0.0)
-        return emergency_stop(obstacle_positions, current_heading);
+  {
+    if (result.target_linear_speed_now > 0.0)
+      return emergency_stop(obstacle_positions, current_heading);
 
-      return false;
-    } ();
+    return false;
+  } ();
 
   const bool stop = immediate_pause || e_stop;
   if (immediate_pause)
@@ -811,53 +811,55 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
           _pose.translation()(0),
           _pose.translation()(1),
           _lookahead_distance
-        );
+          );
 
-        if (intersections.size() == 0)
-        {
-          // No intersections; head towards closest point on the path segment.
-          auto point_P = _pose.translation().head<2>();
-          target = get_closest_point_on_line_segment(point_A, point_B, point_P);
-        }
-        else if (intersections.size() == 1)
-        {
-          target = intersections.at(0);
-        }
-        else if (intersections.size() == 2)
-        {
-          // Select the intersection closer to B.
-          auto distance_0 = (point_B.head<2>() - intersections.at(0)).norm();
-          auto distance_1 = (point_B.head<2>() - intersections.at(1)).norm();
-          target = intersections.at(distance_0 < distance_1 ? 0 : 1);
-        }
+          if (intersections.size() == 0)
+          {
+            // No intersections; head towards closest point on the path segment.
+            auto point_P = _pose.translation().head<2>();
+            target = get_closest_point_on_line_segment(point_A, point_B,
+                point_P);
+          }
+          else if (intersections.size() == 1)
+          {
+            target = intersections.at(0);
+          }
+          else if (intersections.size() == 2)
+          {
+            // Select the intersection closer to B.
+            auto distance_0 = (point_B.head<2>() - intersections.at(0)).norm();
+            auto distance_1 = (point_B.head<2>() - intersections.at(1)).norm();
+            target = intersections.at(distance_0 < distance_1 ? 0 : 1);
+          }
       }
 
       _lookahead_point = Eigen::Vector3d(target(0), target(1),
           trajectory.at(_traj_wp_idx).pose.translation()(2));
 
-      Eigen::Vector3d d_target = _lookahead_point - _pose.translation();
+          Eigen::Vector3d d_target = _lookahead_point - _pose.translation();
 
-      result.v = d_target.norm();
+          result.v = d_target.norm();
 
-      auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx).pose);
-      double dir = 1.0;
-      result.w = compute_change_in_rotation(
-        current_heading, d_target, &goal_heading, &dir);
+          auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx).pose);
+          double dir = 1.0;
+          result.w = compute_change_in_rotation(
+            current_heading, d_target, &goal_heading, &dir);
 
-      // As turning yaw increases, slow down more.
-      double turning = fabs(result.w) / M_PI;
-      double slowdown = std::min(0.8, turning);   // Minimum speed 20%
-      result.target_linear_speed_now =
-        std::min(result.max_speed.value(), _nominal_drive_speed) *
-        (1 - slowdown);
-      result.target_linear_speed_destination = result.target_linear_speed_now;
+          // As turning yaw increases, slow down more.
+          double turning = fabs(result.w) / M_PI;
+          double slowdown = std::min(0.8, turning);   // Minimum speed 20%
+          result.target_linear_speed_now =
+            std::min(result.max_speed.value(), _nominal_drive_speed) *
+            (1 - slowdown);
+          result.target_linear_speed_destination =
+            result.target_linear_speed_now;
 
-      if (_traj_wp_idx == trajectory.size() - 1 &&
-        dpos_mag < _lookahead_distance)
-      {
-        // if near the last waypoint, slow to a stop nicely
-        result.target_linear_speed_destination = 0;
-      }
+          if (_traj_wp_idx == trajectory.size() - 1 &&
+            dpos_mag < _lookahead_distance)
+          {
+            // if near the last waypoint, slow to a stop nicely
+            result.target_linear_speed_destination = 0;
+          }
     }
   }
   else
@@ -896,10 +898,10 @@ bool SlotcarCommon::emergency_stop(
     // TODO get collision object name
     if (need_to_stop)
       RCLCPP_INFO_STREAM(logger(), "Stopping [" << _model_name <<
-          "] to avoid a collision");
+        "] to avoid a collision");
     else
       RCLCPP_INFO_STREAM(logger(), "No more obstacles; resuming course for [" <<
-          _model_name << "]");
+        _model_name << "]");
   }
 
   return _emergency_stop;

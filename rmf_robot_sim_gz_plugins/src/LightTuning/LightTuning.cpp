@@ -19,50 +19,50 @@
 #include <string>
 #include <iostream>
 
-#include <ignition/gazebo/gui/GuiSystem.hh>
-#include <ignition/gazebo/gui/GuiEvents.hh>
-#include <ignition/gazebo/SdfEntityCreator.hh>
-#include <ignition/gazebo/components/Light.hh>
-#include <ignition/gazebo/components/Model.hh>
-#include <ignition/gazebo/components/Name.hh>
-#include <ignition/gazebo/components/Pose.hh>
-#include <ignition/gazebo/components/World.hh>
+#include <gz/sim/gui/GuiSystem.hh>
+#include <gz/sim/gui/GuiEvents.hh>
+#include <gz/sim/SdfEntityCreator.hh>
+#include <gz/sim/components/Light.hh>
+#include <gz/sim/components/Model.hh>
+#include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
+#include <gz/sim/components/World.hh>
 
-#include <ignition/gui/Application.hh>
-#include <ignition/gui/GuiEvents.hh>
-#include <ignition/gui/MainWindow.hh>
+#include <gz/gui/Application.hh>
+#include <gz/gui/GuiEvents.hh>
+#include <gz/gui/MainWindow.hh>
 
-#include <ignition/plugin/Register.hh>
+#include <gz/plugin/Register.hh>
 
-#include <ignition/msgs.hh>
-#include <ignition/rendering.hh>
-#include <ignition/transport.hh>
+#include <gz/msgs.hh>
+#include <gz/rendering.hh>
+#include <gz/transport.hh>
 
 // Helper function that creates a simple cube sdf model string
 std::string create_light_marker_str(const std::string& name,
-  const ignition::math::Pose3d& pose)
+  const gz::math::Pose3d& pose)
 {
   std::ostringstream ss;
   ss << std::string(
-      "<?xml version=\"1.0\"?>"
-      "<sdf version=\"1.7\">");
+    "<?xml version=\"1.0\"?>"
+    "<sdf version=\"1.7\">");
   ss << "<model name=\"" << name << "\">" << std::endl;
   ss << "<pose>" << pose << "</pose>" << std::endl;
   ss << std::string(
-      "<static>true</static>"
-      "<link name=\"box_link\">"
-      "<visual name=\"box_visual\">"
-      "<cast_shadows>false</cast_shadows>"
-      "<transparency>0.5</transparency>"
-      "<geometry>"
-      "<box>"
-      "<size>0.5 0.5 0.5</size>"
-      "</box>"
-      "</geometry>"
-      "</visual>"
-      "</link>"
-      "</model>"
-      "</sdf>");
+    "<static>true</static>"
+    "<link name=\"box_link\">"
+    "<visual name=\"box_visual\">"
+    "<cast_shadows>false</cast_shadows>"
+    "<transparency>0.5</transparency>"
+    "<geometry>"
+    "<box>"
+    "<size>0.5 0.5 0.5</size>"
+    "</box>"
+    "</geometry>"
+    "</visual>"
+    "</link>"
+    "</model>"
+    "</sdf>");
   return ss.str();
 }
 
@@ -86,14 +86,14 @@ std::optional<sdf::LightType> parse_light_type(const std::string& type)
   return std::nullopt;
 }
 
-std::optional<ignition::math::Pose3d> parse_pose(const std::string& pose_str)
+std::optional<gz::math::Pose3d> parse_pose(const std::string& pose_str)
 {
   std::stringstream ss(pose_str);
   double x, y, z, roll, pitch, yaw;
   ss >> x >> y >> z >> roll >> pitch >> yaw;
   if (!ss.fail())
   {
-    return ignition::math::Pose3d(x, y, z, roll, pitch, yaw);
+    return gz::math::Pose3d(x, y, z, roll, pitch, yaw);
   }
   else
   {
@@ -103,14 +103,14 @@ std::optional<ignition::math::Pose3d> parse_pose(const std::string& pose_str)
   }
 }
 
-std::optional<ignition::math::Color> parse_color(const std::string& color_str)
+std::optional<gz::math::Color> parse_color(const std::string& color_str)
 {
   std::stringstream ss(color_str);
   float r, g, b, a;
   ss >> r >> g >> b >> a;
   if (!ss.fail())
   {
-    return ignition::math::Color(r, g, b, a);
+    return gz::math::Color(r, g, b, a);
   }
   else
   {
@@ -137,7 +137,7 @@ std::optional<double> parse_double(const std::string& double_str)
   }
 }
 
-std::optional<ignition::math::Vector3d> parse_vector(
+std::optional<gz::math::Vector3d> parse_vector(
   const std::string& vector_str)
 {
   std::stringstream ss(vector_str);
@@ -145,7 +145,7 @@ std::optional<ignition::math::Vector3d> parse_vector(
   ss >> x >> y >> z;
   if (!ss.fail())
   {
-    return ignition::math::Vector3d(x, y, z);
+    return gz::math::Vector3d(x, y, z);
   }
   else
   {
@@ -155,7 +155,7 @@ std::optional<ignition::math::Vector3d> parse_vector(
   }
 }
 
-std::optional<ignition::math::Angle> parse_angle(
+std::optional<gz::math::Angle> parse_angle(
   const std::string& angle_str)
 {
   std::stringstream ss(angle_str);
@@ -163,7 +163,7 @@ std::optional<ignition::math::Angle> parse_angle(
   ss >> angle;
   if (!ss.fail())
   {
-    return ignition::math::Angle(angle);
+    return gz::math::Angle(angle);
   }
   else
   {
@@ -186,7 +186,7 @@ std::ostream& operator<<(std::ostream& os, const sdf::Light& light)
 {
   os << "<light type=\""
      << (light.Type() == sdf::LightType::POINT ? "point" :
-    (light.Type() == sdf::LightType::DIRECTIONAL ? "directional" : "spot"))
+  (light.Type() == sdf::LightType::DIRECTIONAL ? "directional" : "spot"))
      << "\" name=\"" << light.Name() << "\"> \n";
   os << "<cast_shadows>"
      << (light.CastShadows() ? "true" : "false") << "</cast_shadows> \n";
@@ -258,7 +258,7 @@ public:
   const QVector<sdf::Light>& get_lights() const;
 
   // Fill _existing_names with names from the ecm
-  void populate_names(ignition::gazebo::EntityComponentManager& ecm);
+  void populate_names(gz::sim::EntityComponentManager& ecm);
 
 private:
   // Collection of lights, each with a unique name (enforced by
@@ -420,11 +420,11 @@ const QVector<sdf::Light>& LightsModel::get_lights() const
   return _lights;
 }
 
-void LightsModel::populate_names(ignition::gazebo::EntityComponentManager& ecm)
+void LightsModel::populate_names(gz::sim::EntityComponentManager& ecm)
 {
-  ecm.Each<ignition::gazebo::components::Name>(
-    [&](const ignition::gazebo::Entity&,
-    const ignition::gazebo::components::Name* name)
+  ecm.Each<gz::sim::components::Name>(
+    [&](const gz::sim::Entity&,
+    const gz::sim::components::Name* name)
     -> bool
     {
       _pre_existing_names.insert(name->Data());
@@ -434,7 +434,7 @@ void LightsModel::populate_names(ignition::gazebo::EntityComponentManager& ecm)
 
 // Class that handles all GUI interactions and their associated
 // light creations/deletions
-class LightTuning : public ignition::gazebo::GuiSystem
+class LightTuning : public gz::sim::GuiSystem
 {
   Q_OBJECT
 
@@ -442,8 +442,8 @@ public:
   virtual void LoadConfig(const tinyxml2::XMLElement* _pluginElem)
   override;
 
-  void Update(const ignition::gazebo::UpdateInfo& _info,
-    ignition::gazebo::EntityComponentManager& _ecm) override;
+  void Update(const gz::sim::UpdateInfo& _info,
+    gz::sim::EntityComponentManager& _ecm) override;
 
 signals:
   void poseChanged(QString nm, QString new_pose);
@@ -476,9 +476,9 @@ private:
   const std::string sdf_close_tag = "</sdf>";
 
   std::string _world_name;
-  ignition::transport::Node _node;
+  gz::transport::Node _node;
   LightsModel _model;
-  ignition::rendering::ScenePtr scene_ptr;
+  gz::rendering::ScenePtr scene_ptr;
 
   // Contains an Entity that serves as a physical representation of
   // the light on the screen, so that a user can move it around to set the
@@ -486,8 +486,8 @@ private:
   struct LightMarker
   {
     std::string name; // Name of the LightMarker
-    ignition::gazebo::Entity en;
-    ignition::math::Pose3d last_set_pose;
+    gz::sim::Entity en;
+    gz::math::Pose3d last_set_pose;
   };
   // List of pairs of light name and corresponding marker name being spawned
   std::vector<std::pair<std::string, std::string>> _markers_spawn_pipeline;
@@ -506,7 +506,7 @@ private:
   // Sends a service request to render the LightMarker corresponding to the light
   // with name `light_name` using Ignition transport
   void create_marker_service(
-    const std::string& light_name, const ignition::math::Pose3d& pose);
+    const std::string& light_name, const gz::math::Pose3d& pose);
   // Sends a service request to remove the LightMarker corresponding to the light
   // with name `light_name` using Ignition transport
   void remove_marker_service(const std::string& light_name);
@@ -527,27 +527,27 @@ void LightTuning::LoadConfig(const tinyxml2::XMLElement*)
     this->title = "Light Tuning";
 
   // To monitor and intercept rendering and entity selection events
-  ignition::gui::App()->findChild<
-    ignition::gui::MainWindow*>()->installEventFilter(this);
+  gz::gui::App()->findChild<
+    gz::gui::MainWindow*>()->installEventFilter(this);
 
   // Connect data model to view
   this->Context()->setContextProperty(
     "LightsModel", &this->_model);
 }
 
-void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
-  ignition::gazebo::EntityComponentManager& ecm)
+void LightTuning::Update(const gz::sim::UpdateInfo&,
+  gz::sim::EntityComponentManager& ecm)
 {
 
   if (first_update_call)
   {
     // Get world name for sending create/remove requests later.
     // Assumes there is only 1 world in the simulation
-    ecm.Each<ignition::gazebo::components::World,
-      ignition::gazebo::components::Name>(
-      [&](const ignition::gazebo::Entity&,
-      const ignition::gazebo::components::World*,
-      const ignition::gazebo::components::Name* name)
+    ecm.Each<gz::sim::components::World,
+      gz::sim::components::Name>(
+      [&](const gz::sim::Entity&,
+      const gz::sim::components::World*,
+      const gz::sim::components::Name* name)
       -> bool
       {
         _world_name = name->Data();
@@ -568,14 +568,14 @@ void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
     std::string& marker_name = _new_markers_it->second;
 
     auto marker_en = ecm.EntityByComponents(
-      ignition::gazebo::components::Name(marker_name),
-      ignition::gazebo::components::Model());
-    if (marker_en != ignition::gazebo::kNullEntity)
+      gz::sim::components::Name(marker_name),
+      gz::sim::components::Model());
+    if (marker_en != gz::sim::kNullEntity)
     {
       auto pose_component =
-        ecm.Component<ignition::gazebo::components::Pose>(marker_en);
+        ecm.Component<gz::sim::components::Pose>(marker_en);
       auto pose =
-        pose_component ? pose_component->Data() : ignition::math::Pose3d();
+        pose_component ? pose_component->Data() : gz::math::Pose3d();
       _markers[light_name] = LightMarker {marker_name, marker_en, pose};
       _new_markers_it = _markers_spawn_pipeline.erase(_new_markers_it);
     }
@@ -588,7 +588,7 @@ void LightTuning::Update(const ignition::gazebo::UpdateInfo&,
 
 bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
 {
-  if (_event->type() == ignition::gui::events::Render::kType)
+  if (_event->type() == gz::gui::events::Render::kType)
   {
     if (!scene_ptr)
     {
@@ -599,13 +599,13 @@ bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
     render_lights();
   }
   else if (_event->type() ==
-    ignition::gazebo::gui::events::EntitiesSelected::kType)
+    gz::sim::gui::events::EntitiesSelected::kType)
   {
     auto event =
-      reinterpret_cast<ignition::gazebo::gui::events::EntitiesSelected*>(_event);
+      reinterpret_cast<gz::sim::gui::events::EntitiesSelected*>(_event);
     if (event && !event->Data().empty())
     {
-      const ignition::gazebo::Entity en = *event->Data().begin();
+      const gz::sim::Entity en = *event->Data().begin();
       auto it = std::find_if(_markers.begin(), _markers.end(),
           [&en](const std::pair<std::string, LightMarker>& marker)
           {
@@ -626,7 +626,7 @@ bool LightTuning::eventFilter(QObject* _obj, QEvent* _event)
 
 void LightTuning::load_scene()
 {
-  auto loadedEngNames = ignition::rendering::loadedEngines();
+  auto loadedEngNames = gz::rendering::loadedEngines();
   if (loadedEngNames.empty())
     return;
 
@@ -638,7 +638,7 @@ void LightTuning::load_scene()
       "Grid config plugin will use engine [" <<
       engineName << "]" << std::endl;
   }
-  auto engine = ignition::rendering::engine(engineName);
+  auto engine = gz::rendering::engine(engineName);
   if (!engine)
   {
     ignerr << "Internal error: failed to load engine [" << engineName <<
@@ -690,7 +690,7 @@ void LightTuning::render_lights()
       auto marker_it = _markers.find(light_queue_it->first);
       if (marker_it == _markers.end())
       {
-        create_marker_service(light_queue_it->first, ignition::math::Pose3d());
+        create_marker_service(light_queue_it->first, gz::math::Pose3d());
       }
     }
     else
@@ -703,18 +703,18 @@ void LightTuning::render_lights()
   }
 }
 
-sdf::LightType get_light_ptr_type(const ignition::rendering::LightPtr light_ptr)
+sdf::LightType get_light_ptr_type(const gz::rendering::LightPtr light_ptr)
 {
-  if (std::dynamic_pointer_cast<ignition::rendering::DirectionalLight>(
+  if (std::dynamic_pointer_cast<gz::rendering::DirectionalLight>(
       light_ptr))
   {
     return sdf::LightType::DIRECTIONAL;
   }
-  else if (std::dynamic_pointer_cast<ignition::rendering::PointLight>(light_ptr))
+  else if (std::dynamic_pointer_cast<gz::rendering::PointLight>(light_ptr))
   {
     return sdf::LightType::POINT;
   }
-  else if (std::dynamic_pointer_cast<ignition::rendering::SpotLight>(light_ptr))
+  else if (std::dynamic_pointer_cast<gz::rendering::SpotLight>(light_ptr))
   {
     return sdf::LightType::SPOT;
   }
@@ -766,7 +766,7 @@ void LightTuning::create_light_rendering(const std::string& name)
     case sdf::LightType::SPOT:
     {
       auto spot_light =
-        std::dynamic_pointer_cast<ignition::rendering::SpotLight>(light_ptr);
+        std::dynamic_pointer_cast<gz::rendering::SpotLight>(light_ptr);
       spot_light->SetInnerAngle(light.SpotInnerAngle());
       spot_light->SetOuterAngle(light.SpotOuterAngle());
       spot_light->SetFalloff(light.SpotFalloff());
@@ -775,7 +775,7 @@ void LightTuning::create_light_rendering(const std::string& name)
     case sdf::LightType::DIRECTIONAL:
     {
       auto dir_light =
-        std::dynamic_pointer_cast<ignition::rendering::DirectionalLight>(
+        std::dynamic_pointer_cast<gz::rendering::DirectionalLight>(
         light_ptr);
       dir_light->SetDirection(light.Direction());
       break;
@@ -816,16 +816,16 @@ std::string LightTuning::light_to_sdf_string(const sdf::Light& light)
   return ss.str();
 }
 
-void marker_service_cb(const ignition::msgs::Boolean&, const bool)
+void marker_service_cb(const gz::msgs::Boolean&, const bool)
 {
 }
 
 void LightTuning::create_marker_service(
-  const std::string& light_name, const ignition::math::Pose3d& pose)
+  const std::string& light_name, const gz::math::Pose3d& pose)
 {
   // Assumes name is unique
   std::string marker_name = light_name + "_marker";
-  ignition::msgs::EntityFactory create_marker_req;
+  gz::msgs::EntityFactory create_marker_req;
   create_marker_req.set_sdf(create_light_marker_str(marker_name, pose));
   _node.Request("/world/" + _world_name + "/create",
     create_marker_req, marker_service_cb);
@@ -845,9 +845,9 @@ void LightTuning::remove_marker_service(const std::string& light_name)
   }
   const std::string& marker_name = it->second.name;
 
-  ignition::msgs::Entity remove_marker_req;
+  gz::msgs::Entity remove_marker_req;
   remove_marker_req.set_name(marker_name);
-  remove_marker_req.set_type(ignition::msgs::Entity_Type_MODEL);
+  remove_marker_req.set_type(gz::msgs::Entity_Type_MODEL);
   _node.Request("/world/" + _world_name + "/remove",
     remove_marker_req, marker_service_cb);
 
@@ -954,7 +954,7 @@ void LightTuning::OnSaveLightsBtnPress(const QString& url,
 }
 
 // Register this plugin
-IGNITION_ADD_PLUGIN(LightTuning,
-  ignition::gui::Plugin)
+GZ_ADD_PLUGIN(LightTuning,
+  gz::gui::Plugin)
 
 #include "LightTuning.moc"

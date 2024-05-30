@@ -12,10 +12,7 @@ jobs:
     with:
       # NOTE: Avoid adding comments in the package lines, this can break some of the called scripts in github actions
       packages: |
-        rmf_building_sim_common
-        rmf_building_sim_gz_classic_plugins
         rmf_building_sim_gz_plugins
         rmf_robot_sim_common
-        rmf_robot_sim_gz_classic_plugins
         rmf_robot_sim_gz_plugins
-      dist-matrix: '[{"ros_distribution": "humble", "ubuntu_distribution": "jammy"}]'
+      dist-matrix: '[{"ros_distribution": "rolling", "ubuntu_distribution": "noble"}]'

@@ -22,30 +22,24 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
-find_package(ignition-cmake2 REQUIRED)
-
-ign_find_package(ignition-gazebo6 REQUIRED)
-set(IGN_GAZEBO_VER 6)
-ign_find_package(ignition-plugin1 REQUIRED COMPONENTS register)
-set(IGN_PLUGIN_VER 1)
-ign_find_package(ignition-common4 REQUIRED)
-set(IGN_COMMON_VER 4)
-ign_find_package(ignition-math6 REQUIRED)
-set(IGN_MATH_VER 6)
-ign_find_package(ignition-gui6 REQUIRED)
-set(IGN_GUI_VER 6)
-ign_find_package(ignition-msgs8 REQUIRED)
-set(IGN_MSGS_VER 8)
-ign_find_package(ignition-transport11 REQUIRED)
-set(IGN_TRANSPORT_VER 11)
-ign_find_package(ignition-rendering6 REQUIRED)
-set(IGN_RENDERING_VER 6)
-ign_find_package(sdformat12 REQUIRED)
+find_package(gz_sim_vendor REQUIRED)
+find_package(gz-sim REQUIRED)
+find_package(gz_plugin_vendor REQUIRED)
+find_package(gz-plugin REQUIRED)
+find_package(gz_gui_vendor REQUIRED)
+find_package(gz-gui REQUIRED)
+find_package(gz_msgs_vendor REQUIRED)
+find_package(gz-msgs REQUIRED)
+find_package(gz_transport_vendor REQUIRED)
+find_package(gz-transport REQUIRED)
+find_package(gz_rendering_vendor REQUIRED)
+find_package(gz-rendering REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
+find_package(rmf_building_sim_gz_plugins REQUIRED)
 find_package (Qt5
   COMPONENTS
     Core
@@ -62,11 +56,14 @@ include(GNUInstallDirs)
 
 add_library(teleport_ingestor SHARED src/TeleportIngestor.cpp)
 
+target_link_libraries(teleport_ingestor
+  gz-sim::core
+  gz-plugin::core
+  gz-msgs::core
+  gz-transport::core
+)
+
 ament_target_dependencies(teleport_ingestor
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
-    ignition-msgs${IGN_MSGS_VER}
-    ignition-transport${IGN_TRANSPORT_VER}
     rmf_fleet_msgs
     rclcpp
     rmf_robot_sim_common
@@ -86,11 +83,14 @@ target_include_directories(teleport_ingestor
 
 add_library(teleport_dispenser SHARED src/TeleportDispenser.cpp)
 
+target_link_libraries(teleport_dispenser
+  gz-sim::core
+  gz-plugin::core
+  gz-msgs::core
+  gz-transport::core
+)
+
 ament_target_dependencies(teleport_dispenser
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
-    ignition-msgs${IGN_MSGS_VER}
-    ignition-transport${IGN_TRANSPORT_VER}
     rmf_fleet_msgs
     rclcpp
     rmf_robot_sim_common
@@ -110,12 +110,15 @@ target_include_directories(teleport_dispenser
 
 add_library(readonly SHARED ${PROJECT_SOURCE_DIR}/src/readonly.cpp)
 
+target_link_libraries(readonly
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(readonly
     rmf_fleet_msgs
     rmf_building_map_msgs
     rclcpp
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
     rmf_robot_sim_common
     Eigen3
 )
@@ -133,13 +136,16 @@ target_include_directories(readonly
 
 add_library(slotcar SHARED ${PROJECT_SOURCE_DIR}/src/slotcar.cpp)
 
+target_link_libraries(slotcar
+  gz-sim::core
+  gz-plugin::core
+)
+
 ament_target_dependencies(slotcar
-  PUBLIC
-    ignition-gazebo${IGN_GAZEBO_VER}
-    ignition-plugin${IGN_PLUGIN_VER}
-    rmf_robot_sim_common
-    rmf_fleet_msgs
-    rclcpp
+  rmf_robot_sim_common
+  rmf_building_sim_gz_plugins
+  rmf_fleet_msgs
+  rclcpp
 )
 
 target_include_directories(slotcar
@@ -149,6 +155,7 @@ target_include_directories(slotcar
     ${rmf_robot_sim_common_INCLUDE_DIRS}
     ${rmf_fleet_msgs_INCLUDE_DIRS}
     ${rmf_building_map_msgs_INCLUDE_DIRS}
+    ${rmf_building_sim_gz_plugins_INCLUDE_DIRS}
 )
 
 ###############################
@@ -162,12 +169,15 @@ add_library(LightTuning SHARED ${headers_MOC}
   ${resources_RCC}
 )
 
+target_link_libraries(LightTuning
+  gz-gui::core
+  gz-sim::core
+  gz-msgs::core
+  gz-transport::core
+  gz-rendering::core
+)
+
 ament_target_dependencies(LightTuning
-  ignition-gui${IGN_GUI_VER}
-  ignition-gazebo${IGN_GAZEBO_VER}
-  ignition-msgs${IGN_MSGS_VER}
-  ignition-transport${IGN_TRANSPORT_VER}
-  ignition-rendering${IGN_RENDERING_VER}
   Qt5Core
   Qt5Qml
   Qt5Quick
