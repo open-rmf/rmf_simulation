@@ -1025,7 +1025,8 @@ void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
   robot_state_msg.path = _remaining_path;
   robot_state_msg.mode = _current_mode;
   // Pick the higher (most recent) one
-  robot_state_msg.mode.mode_request_id = std::max(pause_request.mode_request_id, _current_mode.mode_request_id);
+  robot_state_msg.mode.mode_request_id = std::max(pause_request.mode_request_id,
+      _current_mode.mode_request_id);
 
   if (_adapter_error)
   {
