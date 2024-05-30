@@ -116,7 +116,6 @@ bool SlotcarPlugin::attach_cart(bool attach)
   if (attach)
   {
     // Find _dispensable_position closest to _pose
-    std::cout << "Attaching cart" << std::endl;
     if (_dispensable_positions.size() == 0)
       return false;
     auto min_entity = _dispensable_positions.begin()->first;
@@ -138,7 +137,6 @@ bool SlotcarPlugin::attach_cart(bool attach)
   }
   else
   {
-    std::cout << "Detaching cart" << std::endl;
     return detach_entity();
   }
   return false;
@@ -163,7 +161,7 @@ bool SlotcarPlugin::attach_entity(const Entity& entity)
       components::Link());
   if (robot_link_entities.size() != 1)
   {
-    ignwarn << "Robot should only have one link, using first" << std::endl;
+    gzwarn << "Robot should only have one link, using first" << std::endl;
   }
   auto robot_link_entity = robot_link_entities[0];
 
@@ -171,7 +169,7 @@ bool SlotcarPlugin::attach_entity(const Entity& entity)
       components::Link());
   if (cart_link_entities.size() != 1)
   {
-    ignwarn << "Cart should only have one link, using first" << std::endl;
+    gzwarn << "Cart should only have one link, using first" << std::endl;
   }
   auto cart_link_entity = cart_link_entities[0];
 
