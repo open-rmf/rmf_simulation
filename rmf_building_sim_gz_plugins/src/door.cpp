@@ -136,7 +136,8 @@ private:
         auto target_vel = calculate_target_velocity(target_pos, cur_pos,
             _last_cmd_vel[joint_entity],
             dt, door.params);
-        ecm.CreateComponent<components::JointPositionReset>(joint_entity, components::JointPositionReset(
+        ecm.CreateComponent<components::JointPositionReset>(joint_entity,
+          components::JointPositionReset(
             {cur_pos + target_vel * dt}));
         _last_cmd_vel[joint_entity] = target_vel;
       }
@@ -199,10 +200,12 @@ public:
         {
           if (door->Data().ros_interface == false)
           {
-            gzmsg << "Ignoring door " << msg->door_name << " because it doesn't have a ros interface" << std::endl;
+            gzmsg << "Ignoring door " << msg->door_name <<
+              " because it doesn't have a ros interface" << std::endl;
             return;
           }
-          auto door_command = msg->requested_mode.value == msg->requested_mode.MODE_OPEN ?
+          auto door_command = msg->requested_mode.value ==
+          msg->requested_mode.MODE_OPEN ?
           DoorModeCmp::OPEN : DoorModeCmp::CLOSE;
           ecm->CreateComponent<components::DoorCmd>(entity,
           components::DoorCmd(door_command));

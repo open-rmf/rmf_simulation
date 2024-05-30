@@ -102,7 +102,8 @@ void toggle_floors::get_plugin_config()
   const std::string WORLD_NAME = "sim_world";
 
   gz::msgs::GUI res;
-  std::string service = gz::transport::TopicUtils::AsValidTopic("/world/" + WORLD_NAME +
+  std::string service = gz::transport::TopicUtils::AsValidTopic("/world/" +
+      WORLD_NAME +
       "/gui/info");
 
   node.Request(service, timeout, res, result);
@@ -126,18 +127,18 @@ void toggle_floors::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
     this->title = "Toggle Floors";
 
   const tinyxml2::XMLElement* plugin_config = [&]
+  {
+    if (_pluginElem->FirstChildElement("floor"))
     {
-      if (_pluginElem->FirstChildElement("floor"))
-      {
-        return _pluginElem->FirstChildElement("floor");
-      }
-      else
-      {
-        get_plugin_config();
-        const tinyxml2::XMLElement* p = _config_xml.RootElement();
-        return p;
-      }
-    } ();
+      return _pluginElem->FirstChildElement("floor");
+    }
+    else
+    {
+      get_plugin_config();
+      const tinyxml2::XMLElement* p = _config_xml.RootElement();
+      return p;
+    }
+  } ();
 
   if (plugin_config)
   {

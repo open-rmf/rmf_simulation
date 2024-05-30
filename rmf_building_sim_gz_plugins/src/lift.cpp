@@ -431,13 +431,15 @@ public:
           if (available_floors.find(msg->destination_floor) ==
           available_floors.end())
           {
-            gzwarn << "Received request for unavailable floor [" << msg->destination_floor << "]" << std::endl;
+            gzwarn << "Received request for unavailable floor [" <<
+              msg->destination_floor << "]" << std::endl;
             return;
           }
           LiftCommand lift_command;
           lift_command.request_type = msg->request_type;
           lift_command.destination_floor = msg->destination_floor;
-          lift_command.session_id = msg->request_type == msg->REQUEST_END_SESSION ?
+          lift_command.session_id = msg->request_type ==
+          msg->REQUEST_END_SESSION ?
           "" : msg->session_id;
 
           lift_command.door_state = msg->door_state == msg->DOOR_OPEN ?
@@ -453,7 +455,8 @@ public:
             cur_lift_cmd.request_type != msg->request_type ||
             cur_lift_cmd.session_id != msg->session_id)
             {
-              gzwarn << "Discarding request: [" << msg->lift_name <<"] is busy at the moment" << std::endl;
+              gzwarn << "Discarding request: [" << msg->lift_name <<
+                "] is busy at the moment" << std::endl;
               return;
             }
           }
