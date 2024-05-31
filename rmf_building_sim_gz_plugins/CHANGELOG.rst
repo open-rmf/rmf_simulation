@@ -2,6 +2,12 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Port outdated actions to Noble (`#122 <https://github.com/open-rmf/rmf_simulation/pull/122>`_)
+* Refactor plugins in an ECS based way and migrate to Harmonic (`#114 <https://github.com/open-rmf/rmf_simulation/pull/114>`_)
+* Contributors: Arjo Chakravarty, Grey, Luca Della Vedova
+
 2.2.2 (2023-12-20)
 ------------------
 * Sanitize node names to avoid plugin exceptions (`#110 <https://github.com/open-rmf/rmf_simulation/pull/110>`_)
