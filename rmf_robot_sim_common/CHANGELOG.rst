@@ -2,6 +2,12 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2024-06-01)
+------------------
+* Port outdated actions to Noble (`#122 <https://github.com/open-rmf/rmf_simulation/pull/122>`_)
+* Explicitly specify all qos depth (`#116 <https://github.com/open-rmf/rmf_simulation/pull/116>`_)
+* Contributors: Luca Della Vedova, Teo Koon Peng
+
 2.2.2 (2023-12-20)
 ------------------
 * Sanitize node names to avoid plugin exceptions (`#110 <https://github.com/open-rmf/rmf_simulation/pull/110>`_)
