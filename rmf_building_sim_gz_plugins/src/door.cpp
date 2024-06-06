@@ -112,7 +112,7 @@ private:
   {
     double dx = target - current_position;
     if (std::abs(dx) < params.dx_min / 2.0)
-      return 0.0;
+      dx = 0.0;
 
     double door_v = compute_desired_rate_of_change(
       dx, current_velocity, params, dt);
@@ -231,7 +231,7 @@ public:
           components::JointPosition(position));
         }
         enableComponent<components::DoorStateComp>(ecm, entity);
-        ecm->CreateComponent<components::DoorCmd>(entity,
+        ecm.CreateComponent<components::DoorCmd>(entity,
         components::DoorCmd(DoorModeCmp::CLOSE));
         return true;
       });
@@ -283,13 +283,14 @@ public:
         const auto cur_mode = get_current_mode(entity, ecm, door);
         if (door_comp->Data().ros_interface)
         {
-          auto it = _last_state_pub.find(e);
+          auto it = _last_state_pub.find(entity);
           if (it != _last_state_pub.end() && t - it->second >= PUBLISH_DT)
           {
             it->second = t;
             publish_state(t, name, cur_mode);
           }
         }
+        door_state_comp->Data() = cur_mode;
         return true;
       });
   }
