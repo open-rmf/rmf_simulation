@@ -55,6 +55,10 @@ GZ_SIM_REGISTER_COMPONENT("rmf_components.Door", Door)
 /// \brief A component used to command an RMF door to open / close.
 using DoorCmd = Component<DoorModeCmp, class DoorCmdTag>;
 GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorCmd", DoorCmd)
+
+/// \brief A component used to show the state of an RMF door.
+using DoorStateComp = Component<DoorModeCmp, class DoorStateTag>;
+GZ_SIM_REGISTER_COMPONENT("rmf_components.DoorStateComp", DoorStateComp)
 }
 }
 }
