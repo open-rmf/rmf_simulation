@@ -230,7 +230,6 @@ public:
           ecm.CreateComponent<components::JointPosition>(joint_entity,
           components::JointPosition(position));
         }
-        enableComponent<components::DoorStateComp>(ecm, entity);
         ecm->CreateComponent<components::DoorCmd>(entity,
         components::DoorCmd(DoorModeCmp::CLOSE));
         return true;
@@ -268,10 +267,9 @@ public:
     const double t = to_seconds(info.simTime);
     // Process commands
     ecm.Each<components::Door, components::DoorCmd,
-      components::DoorStateComp, components::Name>([&](const Entity& entity,
+      components::Name>([&](const Entity& entity,
       const components::Door* door_comp,
       const components::DoorCmd* door_cmd_comp,
-      components::DoorStateComp* door_state_comp,
       const components::Name* name_comp) -> bool
       {
         double dt = to_seconds(info.dt);
