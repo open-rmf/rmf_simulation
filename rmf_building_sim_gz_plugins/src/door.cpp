@@ -231,6 +231,8 @@ public:
           components::JointPosition(position));
         }
         enableComponent<components::DoorStateComp>(ecm, entity);
+        ecm.CreateComponent<components::DoorCmd>(entity,
+        components::DoorCmd(DoorModeCmp::CLOSE));
         return true;
       });
   }
@@ -264,7 +266,6 @@ public:
       return;
 
     const double t = to_seconds(info.simTime);
-    std::unordered_set<Entity> finished_cmds;
     // Process commands
     ecm.Each<components::Door, components::DoorCmd,
       components::DoorStateComp, components::Name>([&](const Entity& entity,
@@ -277,47 +278,21 @@ public:
         const auto& name = name_comp->Data();
         const auto& door = door_comp->Data();
         const auto& door_cmd = door_cmd_comp->Data();
-        auto& last_mode = door_state_comp->Data();
         command_door(entity, ecm, door, dt, door_cmd);
-        // Publish state if there was a change
+        // Publish state if we are past the deadline
         const auto cur_mode = get_current_mode(entity, ecm, door);
-        if (cur_mode != door_state_comp->Data())
+        if (door_comp->Data().ros_interface)
         {
-          last_mode = cur_mode;
-          if (door_comp->Data().ros_interface)
+          auto it = _last_state_pub.find(entity);
+          if (it != _last_state_pub.end() && t - it->second >= PUBLISH_DT)
           {
+            it->second = t;
             publish_state(t, name, cur_mode);
           }
         }
-        if (door_cmd == cur_mode)
-        {
-          finished_cmds.insert(entity);
-        }
+        door_state_comp->Data() = cur_mode;
         return true;
       });
-
-    // Publish states
-    ecm.Each<components::Door, components::DoorStateComp,
-      components::Name>([&](const Entity& e,
-      const components::Door* door_comp,
-      const components::DoorStateComp* door_state_comp,
-      const components::Name* name_comp) -> bool
-      {
-        if (door_comp->Data().ros_interface == false)
-          return true;
-        auto it = _last_state_pub.find(e);
-        if (it != _last_state_pub.end() && t - it->second >= PUBLISH_DT)
-        {
-          it->second = t;
-          publish_state(t, name_comp->Data(), door_state_comp->Data());
-        }
-        return true;
-      });
-
-    for (const auto& entity: finished_cmds)
-    {
-      enableComponent<components::DoorCmd>(ecm, entity, false);
-    }
   }
 };
 
