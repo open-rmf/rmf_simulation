@@ -136,9 +136,22 @@ private:
         auto target_vel = calculate_target_velocity(target_pos, cur_pos,
             _last_cmd_vel[joint_entity],
             dt, door.params);
+
+        const auto position = cur_pos + target_vel * dt;
         ecm.CreateComponent<components::JointPositionReset>(joint_entity,
           components::JointPositionReset(
-            {cur_pos + target_vel * dt}));
+            {position}));
+        RCLCPP_INFO(
+          _ros_node->get_logger(),
+          "Setting joint position of [%s] to %f. cur_pos: %f, target_pos: %f, "
+          "_last_cmd_vel: %f, target_vel: %f",
+          joint.name.c_str(),
+          position,
+          cur_pos,
+          target_pos,
+          _last_cmd_vel[joint_entity],
+          target_vel
+        );
         _last_cmd_vel[joint_entity] = target_vel;
       }
     }
@@ -278,6 +291,11 @@ public:
         const auto& name = name_comp->Data();
         const auto& door = door_comp->Data();
         const auto& door_cmd = door_cmd_comp->Data();
+        RCLCPP_INFO(
+          _ros_node->get_logger(),
+          "Commanding door from [%d]",
+          __LINE__
+        );
         command_door(entity, ecm, door, dt, door_cmd);
         // Publish state if we are past the deadline
         const auto cur_mode = get_current_mode(entity, ecm, door);

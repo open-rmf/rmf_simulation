@@ -548,6 +548,11 @@ public:
 
         if (std::abs(pose.Z() - target_elevation) < lift.params.dx_min)
         {
+          RCLCPP_INFO(
+            _ros_node->get_logger(),
+            "Commanding door from [%d]",
+            __LINE__
+          );
           // Just command the doors to the target state
           command_doors(ecm, doors, target_door_state);
           // Clear the command if it was finished
@@ -557,6 +562,11 @@ public:
         }
         else
         {
+          RCLCPP_INFO(
+            _ros_node->get_logger(),
+            "Commanding door from [%d]",
+            __LINE__
+          );
           // Make sure doors are closed before moving to next floor
           command_doors(ecm, doors, DoorModeCmp::CLOSE);
           if (all_doors_at_state(ecm, doors, DoorModeCmp::CLOSE))
