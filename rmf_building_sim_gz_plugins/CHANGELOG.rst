@@ -2,6 +2,11 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.1 (2024-06-12)
+------------------
+* Fix door drift in simulation (`#126 <https://github.com/open-rmf/rmf_simulation/pull/126>`_)
+* Contributors: Luca Della Vedova
+
 2.3.0 (2024-06-01)
 ------------------
 * Port outdated actions to Noble (`#122 <https://github.com/open-rmf/rmf_simulation/pull/122>`_)
