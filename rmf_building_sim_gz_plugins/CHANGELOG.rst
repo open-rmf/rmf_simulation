@@ -2,8 +2,8 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.1 (2024-06-12)
+------------------
 * Fix door drift in simulation (`#126 <https://github.com/open-rmf/rmf_simulation/pull/126>`_)
 * Contributors: Luca Della Vedova
 
