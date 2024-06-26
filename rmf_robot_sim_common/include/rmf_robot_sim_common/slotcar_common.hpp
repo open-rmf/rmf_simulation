@@ -78,6 +78,10 @@ public:
 
   void init_ros_node(const rclcpp::Node::SharedPtr node);
 
+  using AttachCartCallback = std::function<bool(bool)>;
+  void set_attach_cart_callback(AttachCartCallback cb)
+  { _attach_cart_callback = cb; }
+
   UpdateResult update(const Eigen::Isometry3d& pose,
     const std::vector<Eigen::Vector3d>& obstacle_positions,
     const double time);
@@ -231,12 +235,11 @@ private:
   // Straight line distance to charging waypoint within which charging can occur
   static constexpr double _charger_dist_thres = 0.3;
 
-  bool _docking = false;
-
   Eigen::Vector3d _lookahead_point;
   double _lookahead_distance = 8.0;
 
   PathRequestCallback _path_request_callback = nullptr;
+  AttachCartCallback _attach_cart_callback = nullptr;
 
   std::string get_level_name(const double z);
 

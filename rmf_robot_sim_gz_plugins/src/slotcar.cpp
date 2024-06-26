@@ -5,6 +5,8 @@
 #include <gz/sim/System.hh>
 #include <gz/sim/Model.hh>
 #include <gz/sim/Util.hh>
+#include <gz/sim/components/DetachableJoint.hh>
+#include <gz/sim/components/Link.hh>
 #include <gz/sim/components/Model.hh>
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/Pose.hh>
@@ -44,16 +46,22 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
+  // Distance to attach cart, if none is found attaching will fail
+  static constexpr float MIN_ATTACHING_DIST = 1.0;
   std::unique_ptr<rmf_robot_sim_common::SlotcarCommon> dataPtr;
   gz::transport::Node _gz_node;
   rclcpp::Node::SharedPtr _ros_node;
 
+  EntityComponentManager* _ecm;
+
   Entity _entity;
+  Entity _joint_entity = kNullEntity;
+  Eigen::Isometry3d _pose;
   std::unordered_set<Entity> _obstacle_exclusions;
+  std::unordered_map<Entity, Eigen::Vector3d> _dispensable_positions;
   double _height = 0;
 
   bool _read_aabb_dimensions = true;
-  bool _remove_world_pose_cmd = false;
 
   // Previous velocities, used to do open loop velocity control
   double _prev_v_command = 0.0;
@@ -70,11 +78,17 @@ private:
   void init_obstacle_exclusions(EntityComponentManager& ecm);
   bool get_slotcar_height(const gz::msgs::Entity& req,
     gz::msgs::Double& rep);
-  std::vector<Eigen::Vector3d> get_obstacle_positions(
-    EntityComponentManager& ecm);
+  std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity,
+    Eigen::Vector3d>>
+  get_obstacle_positions(EntityComponentManager& ecm);
 
   void path_request_marker_update(
     const rmf_fleet_msgs::msg::PathRequest::SharedPtr);
+
+  bool attach_cart(bool attach);
+
+  bool attach_entity(const Entity& entity);
+  bool detach_entity();
 
   void draw_lookahead_marker();
 
@@ -97,15 +111,88 @@ SlotcarPlugin::~SlotcarPlugin()
 {
 }
 
+bool SlotcarPlugin::attach_cart(bool attach)
+{
+  if (attach)
+  {
+    // Find _dispensable_position closest to _pose
+    if (_dispensable_positions.size() == 0)
+      return false;
+    auto min_entity = _dispensable_positions.begin()->first;
+    auto min_dist = (_pose.translation() -
+      _dispensable_positions.begin()->second).norm();
+    for (const auto& [entity, pose] : _dispensable_positions)
+    {
+      auto dist = (_pose.translation() - pose).norm();
+      if (dist < min_dist)
+      {
+        min_dist = dist;
+        min_entity = entity;
+      }
+    }
+    if (min_dist > MIN_ATTACHING_DIST)
+      return false;
+
+    return attach_entity(min_entity);
+  }
+  else
+  {
+    return detach_entity();
+  }
+  return false;
+}
+
+bool SlotcarPlugin::detach_entity()
+{
+  _ecm->RequestRemoveEntity(_joint_entity);
+  _joint_entity = kNullEntity;
+  return true;
+}
+
+bool SlotcarPlugin::attach_entity(const Entity& entity)
+{
+  // A cart was already attached
+  if (_joint_entity != kNullEntity)
+    return true;
+
+  _joint_entity = _ecm->CreateEntity();
+
+  auto robot_link_entities = _ecm->ChildrenByComponents(_entity,
+      components::Link());
+  if (robot_link_entities.size() != 1)
+  {
+    gzwarn << "Robot should only have one link, using first" << std::endl;
+  }
+  auto robot_link_entity = robot_link_entities[0];
+
+  auto cart_link_entities = _ecm->ChildrenByComponents(entity,
+      components::Link());
+  if (cart_link_entities.size() != 1)
+  {
+    gzwarn << "Cart should only have one link, using first" << std::endl;
+  }
+  auto cart_link_entity = cart_link_entities[0];
+
+  _ecm->CreateComponent(
+    _joint_entity,
+    components::DetachableJoint({robot_link_entity,
+      cart_link_entity, "fixed"}));
+  return true;
+}
+
 void SlotcarPlugin::Configure(const Entity& entity,
   const std::shared_ptr<const sdf::Element>& sdf,
   EntityComponentManager& ecm, EventManager&)
 {
   _entity = entity;
+  _ecm = &ecm;
   auto model = Model(entity);
   std::string model_name = model.Name(ecm);
   dataPtr->set_model_name(model_name);
   dataPtr->read_sdf(sdf);
+  dataPtr->set_attach_cart_callback(std::bind(&SlotcarPlugin::
+    attach_cart,
+    this, std::placeholders::_1));
 
   // TODO proper argc argv
   char const** argv = NULL;
@@ -205,32 +292,41 @@ void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
   _obstacle_exclusions.insert(_entity);
 }
 
-std::vector<Eigen::Vector3d> SlotcarPlugin::get_obstacle_positions(
-  EntityComponentManager& ecm)
+std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity,
+  Eigen::Vector3d>>
+SlotcarPlugin::get_obstacle_positions(EntityComponentManager& ecm)
 {
   std::vector<Eigen::Vector3d> obstacle_positions;
+  std::unordered_map<Entity, Eigen::Vector3d> dispensable_positions;
   ecm.Each<components::Model, components::Name, components::Pose,
     components::Static>(
     [&](const Entity& entity,
     const components::Model*,
-    const components::Name*,
+    const components::Name* name,
     const components::Pose* pose,
     const components::Static* is_static
     ) -> bool
     {
+      const auto& n = name->Data();
       // Object should not be static
       // It should not be part of obstacle exclusions (doors/lifts/dispensables)
       // And it should be closer than the "stop" range (checked by common)
-      const auto obstacle_position = pose->Data().Pos();
+      const auto object_position = pose->Data().Pos();
       if (is_static->Data() == false &&
       _obstacle_exclusions.find(entity) == _obstacle_exclusions.end())
       {
         obstacle_positions.push_back(rmf_plugins_utils::convert_vec(
-          obstacle_position));
+          object_position));
+      }
+      // It is a dispensable object
+      if (n.find("dispensable") != std::string::npos)
+      {
+        dispensable_positions.insert({entity, rmf_plugins_utils::convert_vec(
+            object_position)});
       }
       return true;
     });
-  return obstacle_positions;
+  return {obstacle_positions, dispensable_positions};
 }
 
 void SlotcarPlugin::charge_state_cb(const gz::msgs::Selection& msg)
@@ -403,12 +499,13 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     (std::chrono::duration_cast<std::chrono::nanoseconds>(info.simTime).count())
     * 1e-9;
 
-  auto pose = ecm.Component<components::Pose>(_entity)->Data();
-  auto obstacle_positions = get_obstacle_positions(ecm);
+  _pose = rmf_plugins_utils::convert_pose(
+    ecm.Component<components::Pose>(_entity)->Data());
+  auto [obstacle_positions,
+    dispensable_positions] = get_obstacle_positions(ecm);
+  _dispensable_positions = std::move(dispensable_positions);
 
-  auto update_result =
-    dataPtr->update(rmf_plugins_utils::convert_pose(pose),
-      obstacle_positions, time);
+  auto update_result = dataPtr->update(_pose, obstacle_positions, time);
 
   send_control_signals(ecm, {update_result.v, update_result.w}, dt,
     update_result.target_linear_speed_now,

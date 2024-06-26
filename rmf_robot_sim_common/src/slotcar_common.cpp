@@ -165,6 +165,7 @@ static Eigen::Vector2d get_closest_point_on_line_segment(
 }
 
 using SlotcarCommon = rmf_robot_sim_common::SlotcarCommon;
+using RobotMode = rmf_fleet_msgs::msg::RobotMode;
 
 SlotcarCommon::SlotcarCommon()
 {
@@ -195,7 +196,7 @@ std::string SlotcarCommon::model_name() const
 
 void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 {
-  _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
+  _current_mode.mode = RobotMode::MODE_MOVING;
   _ros_node = std::move(node);
 
   _tf2_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(_ros_node);
@@ -490,19 +491,53 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     if (stationary && in_charger_vicinity &&
       (_enable_instant_charge || _enable_charge))
     {
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_CHARGING;
+      _current_mode.mode = RobotMode::MODE_CHARGING;
     }
-    else if (_docking)
+    else if (_current_mode.mode == RobotMode::MODE_DOCKING)
     {
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_DOCKING;
+      // NOOP, keep the current mode
+    }
+    else if (_current_mode.mode == RobotMode::MODE_PERFORMING_ACTION)
+    {
+      if (_current_mode.performing_action.empty())
+      {
+        // Return to IDLE mode, no perform action specified
+        _current_mode.mode = RobotMode::MODE_IDLE;
+      }
+      else
+      {
+        if (_current_mode.performing_action == "attach_cart")
+        {
+          if (_attach_cart_callback != nullptr && _attach_cart_callback(true))
+            _current_mode.mode = RobotMode::MODE_ACTION_COMPLETED;
+          else
+            _current_mode.mode = RobotMode::MODE_IDLE;
+        }
+        else if (_current_mode.performing_action == "detach_cart")
+        {
+          if (_attach_cart_callback != nullptr && _attach_cart_callback(false))
+            _current_mode.mode = RobotMode::MODE_ACTION_COMPLETED;
+          else
+            _current_mode.mode = RobotMode::MODE_IDLE;
+        }
+        else
+        {
+          // Specified performing action not recognized, return to IDLE mode
+          _current_mode.mode = RobotMode::MODE_IDLE;
+        }
+      }
+    }
+    else if (_current_mode.mode == RobotMode::MODE_ACTION_COMPLETED)
+    {
+      // Do nothing
     }
     else if (stationary)
     {
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_IDLE;
+      _current_mode.mode = RobotMode::MODE_IDLE;
     }
     else
     {
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
+      _current_mode.mode = RobotMode::MODE_MOVING;
     }
     _old_lin_vel = lin_vel;
     _old_ang_vel = ang_vel;
@@ -565,7 +600,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
           current_heading, goal_heading);
       }
       result.target_linear_speed_now = 0.0;
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_PAUSED;
+      _current_mode.mode = RobotMode::MODE_PAUSED;
     }
     else if (close_enough)
     {
@@ -678,9 +713,9 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_ackermann(
     bool stationary = lin_vel.norm() < eps && std::abs(ang_vel) < eps;
 
     if (stationary)
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_IDLE;
+      _current_mode.mode = RobotMode::MODE_IDLE;
     else
-      _current_mode.mode = rmf_fleet_msgs::msg::RobotMode::MODE_MOVING;
+      _current_mode.mode = RobotMode::MODE_MOVING;
 
     _old_lin_vel = lin_vel;
     _old_ang_vel = ang_vel;
@@ -989,12 +1024,14 @@ void SlotcarCommon::publish_state_topic(const rclcpp::Time& t)
   robot_state_msg.task_id = _current_task_id;
   robot_state_msg.path = _remaining_path;
   robot_state_msg.mode = _current_mode;
-  robot_state_msg.mode.mode_request_id = pause_request.mode_request_id;
+  // Pick the higher (most recent) one
+  robot_state_msg.mode.mode_request_id = std::max(pause_request.mode_request_id,
+      _current_mode.mode_request_id);
 
   if (_adapter_error)
   {
     robot_state_msg.mode.mode =
-      rmf_fleet_msgs::msg::RobotMode::MODE_ADAPTER_ERROR;
+      RobotMode::MODE_ADAPTER_ERROR;
   }
 
   robot_state_msg.seq = ++_sequence;
@@ -1009,10 +1046,6 @@ void SlotcarCommon::mode_request_cb(
     return;
 
   _current_mode = msg->mode;
-  if (msg->mode.mode == msg->mode.MODE_DOCKING)
-    _docking = true;
-  else
-    _docking = false;
 }
 
 void SlotcarCommon::map_cb(
