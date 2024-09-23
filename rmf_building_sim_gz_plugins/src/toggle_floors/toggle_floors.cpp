@@ -31,7 +31,7 @@
 #include <gz/rendering/RenderEngine.hh>
 #include <gz/rendering/RenderingIface.hh>
 #include <gz/rendering/Scene.hh>
-#include <gz/transport.hh>
+#include <gz/transport/Node.hh>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>

@@ -15,13 +15,14 @@
  *
 */
 
+#include "LightTuning.hpp"
+
 #include <queue>
 #include <string>
 #include <iostream>
 
 #include <gz/sim/gui/GuiSystem.hh>
 #include <gz/sim/gui/GuiEvents.hh>
-#include <gz/sim/SdfEntityCreator.hh>
 #include <gz/sim/components/Light.hh>
 #include <gz/sim/components/Model.hh>
 #include <gz/sim/components/Name.hh>
@@ -34,9 +35,9 @@
 
 #include <gz/plugin/Register.hh>
 
-#include <gz/msgs.hh>
-#include <gz/rendering.hh>
-#include <gz/transport.hh>
+#include <gz/msgs/boolean.pb.h>
+#include <gz/msgs/entity.pb.h>
+#include <gz/msgs/entity_factory.pb.h>
 
 // Helper function that creates a simple cube sdf model string
 std::string create_light_marker_str(const std::string& name,
@@ -81,7 +82,7 @@ std::optional<sdf::LightType> parse_light_type(const std::string& type)
   {
     return sdf::LightType::SPOT;
   }
-  ignwarn << "Unable to parse \"" << type <<
+  gzwarn << "Unable to parse \"" << type <<
     "\" as a light type. Using previous value." << std::endl;
   return std::nullopt;
 }
@@ -97,7 +98,7 @@ std::optional<gz::math::Pose3d> parse_pose(const std::string& pose_str)
   }
   else
   {
-    ignwarn << "Unable to parse \"" << pose_str <<
+    gzwarn << "Unable to parse \"" << pose_str <<
       "\" as a pose. Using previous value." << std::endl;
     return std::nullopt;
   }
@@ -114,7 +115,7 @@ std::optional<gz::math::Color> parse_color(const std::string& color_str)
   }
   else
   {
-    ignwarn << "Unable to parse \"" << color_str <<
+    gzwarn << "Unable to parse \"" << color_str <<
       "\" as a color. Using previous value." << std::endl;
     return std::nullopt;
   }
@@ -131,7 +132,7 @@ std::optional<double> parse_double(const std::string& double_str)
   }
   else
   {
-    ignwarn << "Unable to parse \"" << double_str <<
+    gzwarn << "Unable to parse \"" << double_str <<
       "\" as a double. Using previous value." << std::endl;
     return std::nullopt;
   }
@@ -149,7 +150,7 @@ std::optional<gz::math::Vector3d> parse_vector(
   }
   else
   {
-    ignwarn << "Unable to parse \"" << vector_str <<
+    gzwarn << "Unable to parse \"" << vector_str <<
       "\" as a vector. Using previous value." << std::endl;
     return std::nullopt;
   }
@@ -167,7 +168,7 @@ std::optional<gz::math::Angle> parse_angle(
   }
   else
   {
-    ignwarn << "Unable to parse \"" << angle_str <<
+    gzwarn << "Unable to parse \"" << angle_str <<
       "\" as an angle in radians. Using previous value." << std::endl;
     return std::nullopt;
   }
@@ -208,67 +209,6 @@ std::ostream& operator<<(std::ostream& os, const sdf::Light& light)
   os << "</light>\n";
   return os;
 }
-
-// Data model representing a list of lights. Provides data for delegates to display
-// in QML via a series of roles which the delegates bind to.
-class LightsModel : public QAbstractListModel
-{
-  Q_OBJECT
-  Q_ENUMS(Roles)
-
-public:
-  enum Roles
-  {
-    NameRole = Qt::UserRole + 1,
-    PoseRole,
-    IndexRole,
-    DiffuseRole,
-    SpecularRole,
-    AttenuationRangeRole,
-    AttenuationConstantRole,
-    AttenuationLinearRole,
-    AttenuationQuadraticRole,
-    DirectionRole,
-    SpotInnerAngleRole,
-    SpotOuterAngleRole,
-    SpotFalloffRole
-  };
-
-  QHash<int, QByteArray> roleNames() const override;
-  int rowCount(const QModelIndex& parent = QModelIndex()) const override;
-  QVariant data(const QModelIndex& index,
-    int role = Qt::DisplayRole) const override;
-  // Note: We do not need to override and define the setData() function since
-  // we only update our model from the GUI in `LightTuning::OnCreateLight`
-
-  // Inserts a default light with the name specified in `name_qstr`,
-  // if it does not exist
-  void add_new_light(const QString& name_qstr);
-  // Deletes the light from LightsModel at index `idx` if it exists
-  void remove_light(int idx);
-
-  // Returns a reference to the light at index `idx` in `_lights`.
-  // Assumes `idx` is valid.
-  sdf::Light& get_light(int idx);
-  // Returns a reference to the light with name `name` in `_lights`.
-  // Assumes `name` is a valid name belonging to some light in `_lights`.
-  sdf::Light& get_light(const std::string& name);
-  // Returns a const reference to a QVector of all lights in the LightsModel
-  // object
-  const QVector<sdf::Light>& get_lights() const;
-
-  // Fill _existing_names with names from the ecm
-  void populate_names(gz::sim::EntityComponentManager& ecm);
-
-private:
-  // Collection of lights, each with a unique name (enforced by
-  // add_new_light)
-  QVector<sdf::Light> _lights;
-
-  // Set of existing names in the simulation. Used to ensure no name collisions
-  // when creating new lights
-  std::unordered_set<std::string> _pre_existing_names;
-};
 
 QHash<int, QByteArray> LightsModel::roleNames() const
 {
@@ -374,7 +314,7 @@ void LightsModel::add_new_light(const QString& name_qstr)
   if (pre_existing_it != _pre_existing_names.end()
     || lights_it != _lights.end() || name.size() < 1)
   {
-    ignerr << "Light names must be unique and at least 1 character long." <<
+    gzerr << "Light names must be unique and at least 1 character long." <<
       std::endl;
     return;
   }
@@ -390,7 +330,7 @@ void LightsModel::remove_light(int idx)
 {
   if (idx >= _lights.size())
   {
-    ignerr << "Light to remove does not exist." << std::endl;
+    gzerr << "Light to remove does not exist." << std::endl;
     return;
   }
 
@@ -432,94 +372,6 @@ void LightsModel::populate_names(gz::sim::EntityComponentManager& ecm)
     });
 }
 
-// Class that handles all GUI interactions and their associated
-// light creations/deletions
-class LightTuning : public gz::sim::GuiSystem
-{
-  Q_OBJECT
-
-public:
-  virtual void LoadConfig(const tinyxml2::XMLElement* _pluginElem)
-  override;
-
-  void Update(const gz::sim::UpdateInfo& _info,
-    gz::sim::EntityComponentManager& _ecm) override;
-
-signals:
-  void poseChanged(QString nm, QString new_pose);
-  void markerSelected(QString nm);
-
-public slots:
-  void OnLightTypeSelect(sdf::Light& light, const QString& type);
-  void OnCreateLightBtnPress(
-    int idx, bool cast_shadow, const QString& type,
-    const QString& name, const QString& pose_str,
-    const QString& diffuse_str, const QString& specular_str,
-    const QString& attentuation_range_str,
-    const QString& attentuation_constant_str,
-    const QString& attentuation_linear_str,
-    const QString& attentuation_quadratic_str,
-    const QString& direction_str,
-    const QString& spot_inner_angle_str,
-    const QString& spot_outer_angle_str,
-    const QString& spot_falloff_str);
-  void OnRemoveLightBtnPress(int idx, const QString& name);
-  void OnAddLightFormBtnPress(const QString& name);
-  void OnSaveLightsBtnPress(const QString& url, bool save_all = true,
-    int idx = -1);
-
-protected: bool eventFilter(QObject* _obj, QEvent* _event) override;
-
-private:
-  bool first_update_call = true;
-  const std::string sdf_open_tag = "<sdf version=\"1.7\"> \n";
-  const std::string sdf_close_tag = "</sdf>";
-
-  std::string _world_name;
-  gz::transport::Node _node;
-  LightsModel _model;
-  gz::rendering::ScenePtr scene_ptr;
-
-  // Contains an Entity that serves as a physical representation of
-  // the light on the screen, so that a user can move it around to set the
-  // light pose
-  struct LightMarker
-  {
-    std::string name; // Name of the LightMarker
-    gz::sim::Entity en;
-    gz::math::Pose3d last_set_pose;
-  };
-  // List of pairs of light name and corresponding marker name being spawned
-  std::vector<std::pair<std::string, std::string>> _markers_spawn_pipeline;
-  // Map from light name to its corresponding marker
-  std::unordered_map<std::string, LightMarker> _markers;
-
-  enum class Action {REMOVE, CREATE};
-  // Map from a light name to the latest update/creation/removal request
-  // for that corresponding light
-  std::unordered_map<std::string, Action> actions;
-
-  // Returns a string representation of the specified light in the
-  // SDF v1.7 format
-  std::string light_to_sdf_string(const sdf::Light&);
-
-  // Sends a service request to render the LightMarker corresponding to the light
-  // with name `light_name` using Ignition transport
-  void create_marker_service(
-    const std::string& light_name, const gz::math::Pose3d& pose);
-  // Sends a service request to remove the LightMarker corresponding to the light
-  // with name `light_name` using Ignition transport
-  void remove_marker_service(const std::string& light_name);
-
-  // Gets and stores a pointer to scene from the Rendering singleton
-  void load_scene();
-  // Handles light creation/update/deletion requests stored in `actions`
-  void render_lights();
-  // Displays the light in `_model` that has the name `light_name`
-  void create_light_rendering(const std::string& light_name);
-  // Removes from the scene the light with name `light_name`
-  void remove_light_rendering(const std::string& light_name);
-};
 
 void LightTuning::LoadConfig(const tinyxml2::XMLElement*)
 {
@@ -634,14 +486,14 @@ void LightTuning::load_scene()
   const std::string& engineName = loadedEngNames[0];
   if (loadedEngNames.size() > 1)
   {
-    igndbg << "More than one engine is available. " <<
+    gzdbg << "More than one engine is available. " <<
       "Grid config plugin will use engine [" <<
       engineName << "]" << std::endl;
   }
   auto engine = gz::rendering::engine(engineName);
   if (!engine)
   {
-    ignerr << "Internal error: failed to load engine [" << engineName <<
+    gzerr << "Internal error: failed to load engine [" << engineName <<
       "]. Grid plugin won't work." << std::endl;
     return;
   }
@@ -658,7 +510,7 @@ void LightTuning::render_lights()
   if (!scene_ptr || !scene_ptr->IsInitialized()
     || nullptr == scene_ptr->RootVisual())
   {
-    ignerr << "Internal error: scene is null." << std::endl;
+    gzerr << "Internal error: scene is null." << std::endl;
     return;
   }
 
@@ -754,7 +606,7 @@ void LightTuning::create_light_rendering(const std::string& name)
 
     if (!light_ptr)
     {
-      ignerr << "Unable to create or update light with name " <<
+      gzerr << "Unable to create or update light with name " <<
         name << std::endl;
       return;
     }
@@ -839,7 +691,7 @@ void LightTuning::remove_marker_service(const std::string& light_name)
     _markers.find(light_name);
   if (it == _markers.end())
   {
-    ignwarn << "Unable to remove any marker belonging to light with name " <<
+    gzwarn << "Unable to remove any marker belonging to light with name " <<
       light_name << std::endl;
     return;
   }
@@ -927,7 +779,7 @@ void LightTuning::OnSaveLightsBtnPress(const QString& url,
   std::ofstream file(path);
   if (!file)
   {
-    ignerr << "Unable to open file for writing." << std::endl;
+    gzerr << "Unable to open file for writing." << std::endl;
     return;
   }
 
@@ -947,14 +799,12 @@ void LightTuning::OnSaveLightsBtnPress(const QString& url,
   }
   else
   {
-    ignerr << "Invalid index given. No light saved to file." << std::endl;
+    gzerr << "Invalid index given. No light saved to file." << std::endl;
   }
   file.close();
-  ignmsg << "File saved to: " << path << std::endl;
+  gzmsg << "File saved to: " << path << std::endl;
 }
 
 // Register this plugin
 GZ_ADD_PLUGIN(LightTuning,
   gz::gui::Plugin)
-
-#include "LightTuning.moc"

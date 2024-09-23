@@ -22,8 +22,8 @@
 #include <gz/gui/qt.h>
 #include <gz/gui/Plugin.hh>
 
-#include <gz/msgs.hh>
-#include <gz/transport.hh>
+#include <gz/msgs/selection.pb.h>
+#include <gz/transport/Node.hh>
 
 using namespace gz;
 using namespace gui;

@@ -160,7 +160,7 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
       _dispenser_common->ros_node->get_logger(),
       "Either base entity or item to be dispensed does not have an AxisAlignedBox component. \
       Attempting to dispense item to approximate location.");
-    new_pose += gz::math::Pose3<double>(0, 0, 0.5, 0, 0, 0);
+    new_pose = gz::math::Pose3<double>(0, 0, 0.5, 0, 0, 0) * new_pose;
   }
 
   enableComponent<components::WorldPoseCmd>(ecm, to_move);
@@ -251,7 +251,7 @@ void TeleportDispenserPlugin::Configure(const Entity& entity,
   _dispenser = entity;
   _dispenser_common->guid =
     ecm.Component<components::Name>(_dispenser)->Data();
-  ignwarn << "Initializing plugin with name " << _dispenser_common->guid <<
+  gzwarn << "Initializing plugin with name " << _dispenser_common->guid <<
     std::endl;
 
   _ros_node = std::make_shared<rclcpp::Node>(_dispenser_common->guid);
