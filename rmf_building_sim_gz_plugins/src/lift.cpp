@@ -457,7 +457,8 @@ public:
             cur_lift_cmd.request_type != msg->request_type ||
             cur_lift_cmd.session_id != msg->session_id)
             {
-              gzwarn << "Discarding request to go to [" << msg->destination_floor
+              gzwarn << "Discarding request to go to ["
+                << msg->destination_floor
                 << "] for [" << msg->session_id << "]. Lift ["
                 << msg->lift_name << "] is busy going to ["
                 << cur_lift_cmd.destination_floor << "] for ["
