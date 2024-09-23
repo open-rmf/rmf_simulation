@@ -135,83 +135,98 @@ ament_target_dependencies(crowd_simulator
   menge_vendor
 )
 
-###############################
-# toggle charging
-###############################
+if (SKIP_BUILDING_QT_PLUGINS)
+  ###############################
+  # install stuff
+  ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging.qrc)
+  ament_export_include_directories(include)
 
-add_library(toggle_charging SHARED ${headers_MOC}
-  src/toggle_charging/toggle_charging.cpp
-  ${resources_RCC}
-)
+  install(
+    TARGETS door lift crowd_simulator register_component
+    LIBRARY DESTINATION lib/${PROJECT_NAME}
+    ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  )
+else()
+  ###############################
+  # toggle charging
+  ###############################
 
-target_link_libraries(toggle_charging
-  gz-sim::core
-  gz-msgs::core
-  gz-transport::core
-)
+  QT5_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging.qrc)
 
-ament_target_dependencies(toggle_charging
-  Qt5Core
-  Qt5Qml
-  Qt5Quick
-  rclcpp
-)
+  add_library(toggle_charging SHARED ${headers_MOC}
+    src/toggle_charging/toggle_charging.cpp
+    ${resources_RCC}
+  )
 
-target_include_directories(toggle_charging
-  PUBLIC
-  ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  ${Qt5Quick_INCLUDE_DIRS}
-)
+  target_link_libraries(toggle_charging
+    gz-sim::core
+    gz-msgs::core
+    gz-transport::core
+  )
 
-###############################
-# toggle floors
-###############################
+  ament_target_dependencies(toggle_charging
+    Qt5Core
+    Qt5Qml
+    Qt5Quick
+    rclcpp
+  )
 
-QT5_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors.qrc)
+  target_include_directories(toggle_charging
+    PUBLIC
+    ${Qt5Core_INCLUDE_DIRS}
+    ${Qt5Qml_INCLUDE_DIRS}
+    ${Qt5Quick_INCLUDE_DIRS}
+  )
 
-add_library(toggle_floors SHARED ${headers_MOC}
-  src/toggle_floors/toggle_floors.cpp
-  ${resources_RCC}
-)
+  ###############################
+  # toggle floors
+  ###############################
 
-target_link_libraries(toggle_floors
-  gz-sim::core
-  gz-gui::core
-  gz-msgs::core
-  gz-plugin::core
-  gz-rendering::core
-  gz-transport::core
-)
+  QT5_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors.qrc)
 
-ament_target_dependencies(toggle_floors
-  Qt5Core
-  Qt5Qml
-  Qt5Quick
-  rclcpp
-  rmf_fleet_msgs
-)
+  add_library(toggle_floors SHARED ${headers_MOC}
+    src/toggle_floors/toggle_floors.cpp
+    ${resources_RCC}
+  )
 
-target_include_directories(toggle_floors
-  PUBLIC
-  ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  ${Qt5Quick_INCLUDE_DIRS}
-)
+  target_link_libraries(toggle_floors
+    gz-sim::core
+    gz-gui::core
+    gz-msgs::core
+    gz-plugin::core
+    gz-rendering::core
+    gz-transport::core
+  )
 
-###############################
-# install stuff
-###############################
+  ament_target_dependencies(toggle_floors
+    Qt5Core
+    Qt5Qml
+    Qt5Quick
+    rclcpp
+    rmf_fleet_msgs
+  )
+
+  target_include_directories(toggle_floors
+    PUBLIC
+    ${Qt5Core_INCLUDE_DIRS}
+    ${Qt5Qml_INCLUDE_DIRS}
+    ${Qt5Quick_INCLUDE_DIRS}
+  )
+
+  ###############################
+  # install stuff
+  ###############################
+
+  install(
+    TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
+    LIBRARY DESTINATION lib/${PROJECT_NAME}
+    ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  )
+
+endif()
 
 ament_export_include_directories(include)
-
-install(
-  TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
-  LIBRARY DESTINATION lib/${PROJECT_NAME}
-  ARCHIVE DESTINATION lib/${PROJECT_NAME}
-)
 
 install(
   DIRECTORY include/
