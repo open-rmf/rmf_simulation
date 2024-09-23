@@ -158,52 +158,68 @@ target_include_directories(slotcar
     ${rmf_building_sim_gz_plugins_INCLUDE_DIRS}
 )
 
-###############################
-# LightTuning
-###############################
+if (SKIP_QT_MOC_PLUGINS)
+  ###############################
+  # Install Targets
+  ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/LightTuning/LightTuning.qrc)
+  install(
+    TARGETS
+      teleport_dispenser
+      teleport_ingestor
+      readonly
+      slotcar
+    LIBRARY DESTINATION lib/${PROJECT_NAME}
+    ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  )
+else()
+  ###############################
+  # LightTuning
+  ###############################
 
-add_library(LightTuning SHARED ${headers_MOC}
-  src/LightTuning/LightTuning.cpp
-  ${resources_RCC}
-)
+  QT5_ADD_RESOURCES(resources_RCC src/LightTuning/LightTuning.qrc)
 
-target_link_libraries(LightTuning
-  gz-gui::core
-  gz-sim::core
-  gz-msgs::core
-  gz-transport::core
-  gz-rendering::core
-)
+  add_library(LightTuning SHARED ${headers_MOC}
+    src/LightTuning/LightTuning.cpp
+    ${resources_RCC}
+  )
 
-ament_target_dependencies(LightTuning
-  Qt5Core
-  Qt5Qml
-  Qt5Quick
-  rclcpp
-)
+  target_link_libraries(LightTuning
+    gz-gui::core
+    gz-sim::core
+    gz-msgs::core
+    gz-transport::core
+    gz-rendering::core
+  )
 
-target_include_directories(LightTuning
-  PUBLIC
-  ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  ${Qt5Quick_INCLUDE_DIRS}
-)
+  ament_target_dependencies(LightTuning
+    Qt5Core
+    Qt5Qml
+    Qt5Quick
+    rclcpp
+  )
 
-###############################
-# Install Targets
-###############################
+  target_include_directories(LightTuning
+    PUBLIC
+    ${Qt5Core_INCLUDE_DIRS}
+    ${Qt5Qml_INCLUDE_DIRS}
+    ${Qt5Quick_INCLUDE_DIRS}
+  )
 
-install(
-  TARGETS
-    teleport_dispenser
-    teleport_ingestor
-    readonly
-    slotcar
-    LightTuning
-  LIBRARY DESTINATION lib/${PROJECT_NAME}
-  ARCHIVE DESTINATION lib/${PROJECT_NAME}
-)
+  ###############################
+  # Install Targets
+  ###############################
+
+  install(
+    TARGETS
+      teleport_dispenser
+      teleport_ingestor
+      readonly
+      slotcar
+      LightTuning
+    LIBRARY DESTINATION lib/${PROJECT_NAME}
+    ARCHIVE DESTINATION lib/${PROJECT_NAME}
+  )
+endif()
 
 ament_package()
