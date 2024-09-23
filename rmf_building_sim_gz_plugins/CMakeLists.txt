@@ -135,7 +135,7 @@ ament_target_dependencies(crowd_simulator
   menge_vendor
 )
 
-if (SKIP_BUILDING_QT_PLUGINS)
+if (SKIP_RMF_BUILDING_QT_PLUGINS)
   ###############################
   # install stuff
   ###############################
