@@ -458,11 +458,11 @@ public:
             cur_lift_cmd.session_id != msg->session_id)
             {
               gzwarn << "Discarding request to go to ["
-                << msg->destination_floor
-                << "] for [" << msg->session_id << "]. Lift ["
-                << msg->lift_name << "] is busy going to ["
-                << cur_lift_cmd.destination_floor << "] for ["
-                << cur_lift_cmd.session_id << "]" << std::endl;
+                     << msg->destination_floor
+                     << "] for [" << msg->session_id << "]. Lift ["
+                     << msg->lift_name << "] is busy going to ["
+                     << cur_lift_cmd.destination_floor << "] for ["
+                     << cur_lift_cmd.session_id << "]" << std::endl;
               return;
             }
           }
