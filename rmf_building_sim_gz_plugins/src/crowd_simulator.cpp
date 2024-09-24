@@ -542,7 +542,7 @@ void CrowdSimulatorPlugin::_update_internal_object(
     convert_to_ign_math_pose_3d<gz::math::Pose3d>();
   gz::math::Pose3d agent_pose = get_agent_pose(obj_ptr->agent_ptr,
       delta_sim_time);
-  agent_pose += initial_pose;
+  agent_pose = initial_pose * agent_pose;
 
   // get components to be updated
   auto traj_pose_comp =

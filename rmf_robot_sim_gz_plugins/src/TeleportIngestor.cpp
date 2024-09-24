@@ -267,8 +267,8 @@ void TeleportIngestorPlugin::Configure(const Entity& entity,
 
   _ingestor = entity;
   _ingestor_common->_guid = ecm.Component<components::Name>(_ingestor)->Data();
-  ignwarn << "Initializing plugin with name " << _ingestor_common->_guid
-          << std::endl;
+  gzwarn << "Initializing plugin with name " << _ingestor_common->_guid
+         << std::endl;
   _ros_node = std::make_shared<rclcpp::Node>(_ingestor_common->_guid);
   _ingestor_common->init_ros_node(_ros_node);
   RCLCPP_INFO(_ingestor_common->ros_node->get_logger(),
