@@ -145,6 +145,7 @@ private:
           }
         }
         lift_command.destination_floor = initial_floor;
+        lift_command.door_state = DoorModeCmp::CLOSE;
         _last_lift_command[entity] = lift_command;
 
         std::vector<double> joint_position = {target_elevation};
@@ -338,6 +339,7 @@ private:
       {
         continue;
       }
+
       if (door_state_comp->Data() != cmd)
         return false;
     }
@@ -455,8 +457,12 @@ public:
             cur_lift_cmd.request_type != msg->request_type ||
             cur_lift_cmd.session_id != msg->session_id)
             {
-              gzwarn << "Discarding request: [" << msg->lift_name <<
-                "] is busy at the moment" << std::endl;
+              gzwarn << "Discarding request to go to ["
+                     << msg->destination_floor
+                     << "] for [" << msg->session_id << "]. Lift ["
+                     << msg->lift_name << "] is busy going to ["
+                     << cur_lift_cmd.destination_floor << "] for ["
+                     << cur_lift_cmd.session_id << "]" << std::endl;
               return;
             }
           }
