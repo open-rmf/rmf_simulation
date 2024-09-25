@@ -21,6 +21,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
 
 find_package(gz_sim_vendor REQUIRED)
 find_package(gz-sim REQUIRED)
@@ -36,6 +37,7 @@ find_package(gz_rendering_vendor REQUIRED)
 find_package(gz-rendering REQUIRED)
 
 find_package(Eigen3 REQUIRED)
+find_package(rmf_dispenser_msgs REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
@@ -161,6 +163,29 @@ target_include_directories(slotcar
 )
 
 ###############################
+# MoveIt Dispenser Plugin
+###############################
+
+add_executable(moveit_dispenser src/moveit_dispenser.cpp)
+# add_library(moveit_dispenser SHARED src/moveit_dispenser.cpp)
+target_link_libraries(moveit_dispenser
+  gz-sim::core
+)
+
+ament_target_dependencies(moveit_dispenser
+    rclcpp
+    geometry_msgs
+    rmf_dispenser_msgs
+    moveit_ros_planning_interface
+)
+
+target_include_directories(moveit_dispenser
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+###############################
 # LightTuning
 ###############################
 
@@ -203,7 +228,9 @@ install(
     teleport_ingestor
     readonly
     slotcar
+    moveit_dispenser
     LightTuning
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
