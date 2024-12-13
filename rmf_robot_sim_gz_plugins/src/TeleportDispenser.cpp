@@ -268,7 +268,7 @@ void TeleportDispenserPlugin::try_refill_dispenser(EntityComponentManager& ecm)
     // Occasionally check to see if dispensed item has been returned to it
     if (!_dispenser_filled && _item_en_found &&
       _dispenser_vicinity_box.Contains(
-      ecm.Component<components::Pose>(_item_en)->Data().Pos()))
+        ecm.Component<components::Pose>(_item_en)->Data().Pos()))
     {
       _dispenser_filled = true;
     }
