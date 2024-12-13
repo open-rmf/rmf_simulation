@@ -24,7 +24,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
-find_package(rmf_ingestor_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 
 include(GNUInstallDirs)
@@ -43,32 +42,6 @@ target_link_libraries(rmf_robot_sim_utils
 target_include_directories(rmf_robot_sim_utils
   PUBLIC
     ${rclcpp_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIRS}
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-##################################
-# TeleportIngestor Plugin Common #
-##################################
-
-add_library(ingestor_common SHARED ${PROJECT_SOURCE_DIR}/src/ingestor_common.cpp)
-
-target_link_libraries(ingestor_common
-    rmf_robot_sim_utils
-)
-
-ament_target_dependencies(ingestor_common
-    rmf_fleet_msgs
-    rmf_building_map_msgs
-    rmf_ingestor_msgs
-    rclcpp
-    std_msgs
-    Eigen3
-)
-
-target_include_directories(ingestor_common
-  PUBLIC
     ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -136,7 +109,6 @@ ament_export_dependencies(
   std_msgs
   tf2_ros
   rmf_fleet_msgs
-  rmf_ingestor_msgs
   rmf_building_map_msgs
 )
 
@@ -145,16 +117,8 @@ ament_export_include_directories(include)
 # cmake is sensitive to the order of these ament_export_targets calls
 # each library must be listed after any other libraries that it depends on
 ament_export_targets(rmf_robot_sim_utils HAS_LIBRARY_TARGET)
-ament_export_targets(ingestor_common HAS_LIBRARY_TARGET)
 ament_export_targets(readonly_common HAS_LIBRARY_TARGET)
 ament_export_targets(slotcar_common HAS_LIBRARY_TARGET)
-
-install(
-  TARGETS ingestor_common
-  EXPORT ingestor_common
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-)
 
 install(
   TARGETS readonly_common

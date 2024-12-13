@@ -19,7 +19,6 @@
   <depend>std_msgs</depend>
   <depend>tf2_ros</depend>
   <depend>rmf_fleet_msgs</depend>
-  <depend>rmf_ingestor_msgs</depend>
   <depend>rmf_building_map_msgs</depend>
 
   <export>
