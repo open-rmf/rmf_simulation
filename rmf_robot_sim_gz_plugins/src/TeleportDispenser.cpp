@@ -41,11 +41,9 @@
 #include <rmf_dispenser_msgs/msg/dispenser_result.hpp>
 #include <rmf_dispenser_msgs/msg/dispenser_request.hpp>
 
-#include <rmf_robot_sim_common/dispenser_common.hpp>
 #include <rmf_robot_sim_common/utils.hpp>
 
 using namespace gz::sim;
-using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
