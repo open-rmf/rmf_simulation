@@ -164,8 +164,6 @@ void ReadonlyCommon::initialize_graph()
   if (!_found_graph)
     return;
 
-  std::lock_guard<std::mutex> lock(_graph_update_mutex);
-
   _initialized_graph = false;
 
   _graph = _level.nav_graphs[_nav_graph_index];
@@ -328,7 +326,6 @@ ReadonlyCommon::Path ReadonlyCommon::compute_path(
 
   for (std::size_t i = 0; i < _lookahead; i++)
   {
-    std::lock_guard<std::mutex> lock(_graph_update_mutex);
     auto wp = get_next_waypoint(start_wp, heading);
     _next_wp[i] = wp;
     // Add to path here
