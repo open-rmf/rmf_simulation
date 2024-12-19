@@ -918,10 +918,7 @@ double SlotcarCommon::compute_change_in_rotation(
 
 void SlotcarCommon::publish_robot_state(const double time)
 {
-  const int32_t t_sec = static_cast<int32_t>(time);
-  const uint32_t t_nsec =
-    static_cast<uint32_t>((time-static_cast<double>(t_sec)) *1e9);
-  const rclcpp::Time ros_time{t_sec, t_nsec, RCL_ROS_TIME};
+  const rclcpp::Time ros_time = rmf_plugins_utils::simulation_now(time);
   if ((time - last_tf2_pub) > (1.0 / TF2_RATE))
   {
     // Publish tf2
