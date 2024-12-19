@@ -264,7 +264,6 @@ void SlotcarCommon::path_request_cb(
 {
   if (path_request_valid(msg) == false)
     return;
-  std::lock_guard<std::mutex> lock(_mutex);
 
   const auto old_path = _remaining_path;
 
@@ -335,7 +334,6 @@ void SlotcarCommon::pause_request_cb(
   if (msg->robot_name != _model_name)
     return;
 
-  std::lock_guard<std::mutex> lock(_mutex);
   pause_request = *msg;
 }
 
@@ -426,7 +424,6 @@ SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   const std::vector<Eigen::Vector3d>& obstacle_positions,
   const double time)
 {
-  std::lock_guard<std::mutex> lock(_mutex);
   _pose = pose;
   publish_robot_state(time);
 

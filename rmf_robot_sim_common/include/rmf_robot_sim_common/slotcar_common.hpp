@@ -161,8 +161,6 @@ private:
 
   rmf_fleet_msgs::msg::PauseRequest pause_request;
 
-  std::mutex _mutex;
-
   std::string _model_name;
   bool _emergency_stop = false;
   bool _adapter_error = false;
