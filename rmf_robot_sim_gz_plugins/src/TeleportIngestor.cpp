@@ -38,10 +38,13 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
-#include <rmf_robot_sim_common/ingestor_common.hpp>
+#include <rmf_ingestor_msgs/msg/ingestor_state.hpp>
+#include <rmf_ingestor_msgs/msg/ingestor_result.hpp>
+#include <rmf_ingestor_msgs/msg/ingestor_request.hpp>
+
+#include <rmf_robot_sim_common/utils.hpp>
 
 using namespace gz::sim;
-using namespace rmf_ingestor_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
@@ -55,6 +58,9 @@ public:
   using FleetState = rmf_fleet_msgs::msg::FleetState;
   using FleetStateIt =
     std::unordered_map<std::string, FleetState::UniquePtr>::iterator;
+  using IngestorState = rmf_ingestor_msgs::msg::IngestorState;
+  using IngestorRequest = rmf_ingestor_msgs::msg::IngestorRequest;
+  using IngestorResult = rmf_ingestor_msgs::msg::IngestorResult;
 
   TeleportIngestorPlugin();
   ~TeleportIngestorPlugin();
@@ -64,15 +70,43 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
-  // Stores params representing state of Ingestor, and handles all message pub/sub
-  std::unique_ptr<TeleportIngestorCommon> _ingestor_common;
-
   bool _non_static_models_filled = false;
   Entity _ingestor;
   Entity _ingested_entity; // Item that ingestor may contain
 
+  // Ingest request params
+  bool _ingest = false;
+  IngestorRequest _latest;
+
+  // Ingestor params
+  std::string _guid;
+  bool _ingestor_filled = false;
+
+  double _last_pub_time = 0.0;
+  double _last_ingested_time = 0.0;
+  double _sim_time = 0.0;
+
   rclcpp::Node::SharedPtr _ros_node;
   gz::transport::Node _gz_node;
+
+  std::unordered_map<std::string, Eigen::Isometry3d>
+  _non_static_models_init_poses;
+  std::unordered_map<std::string, FleetState::UniquePtr> _fleet_states;
+  IngestorState _current_state;
+
+  rclcpp::Subscription<FleetState>::SharedPtr _fleet_state_sub;
+  rclcpp::Publisher<IngestorState>::SharedPtr _state_pub;
+  rclcpp::Subscription<IngestorRequest>::SharedPtr _request_sub;
+  rclcpp::Publisher<IngestorResult>::SharedPtr _result_pub;
+  std::unordered_map<std::string, bool> _past_request_guids;
+
+  void init_ros_node();
+  void send_ingestor_response(uint8_t status) const;
+  void fleet_state_cb(FleetState::UniquePtr msg);
+  void ingestor_request_cb(IngestorRequest::UniquePtr msg);
+  void on_update(EntityComponentManager& ecm);
+  bool ingest_from_nearest_robot(EntityComponentManager& ecm,
+    const std::string& fleet_name);
 
   SimEntity find_nearest_model(const EntityComponentManager& ecm,
     const std::vector<SimEntity>& robot_model_entities,
@@ -86,6 +120,178 @@ private:
   void send_ingested_item_home(EntityComponentManager& ecm);
   void init_non_static_models_poses(EntityComponentManager& ecm);
 };
+
+void TeleportIngestorPlugin::init_ros_node()
+{
+  if (!_ros_node)
+  {
+    RCLCPP_ERROR(_ros_node->get_logger(),
+      "No ROS node created for TeleportIngestor plugin!");
+    return;
+  }
+
+  _fleet_state_sub = _ros_node->create_subscription<FleetState>(
+    "/fleet_states",
+    rclcpp::SystemDefaultsQoS().keep_last(10),
+    std::bind(&TeleportIngestorPlugin::fleet_state_cb, this,
+    std::placeholders::_1));
+
+  _state_pub = _ros_node->create_publisher<IngestorState>(
+    "/ingestor_states", 10);
+
+  _request_sub = _ros_node->create_subscription<IngestorRequest>(
+    "/ingestor_requests",
+    rclcpp::SystemDefaultsQoS().keep_last(10).reliable(),
+    std::bind(&TeleportIngestorPlugin::ingestor_request_cb, this,
+    std::placeholders::_1));
+
+  _result_pub = _ros_node->create_publisher<IngestorResult>(
+    "/ingestor_results", 10);
+
+  _current_state.guid = _guid;
+  _current_state.mode = IngestorState::IDLE;
+}
+
+void TeleportIngestorPlugin::send_ingestor_response(uint8_t status) const
+{
+  auto response = make_response<IngestorResult>(
+    status, _sim_time, _latest.request_guid, _guid);
+  _result_pub->publish(*response);
+}
+
+void TeleportIngestorPlugin::fleet_state_cb(FleetState::UniquePtr msg)
+{
+  _fleet_states[msg->name] = std::move(msg);
+}
+
+void TeleportIngestorPlugin::ingestor_request_cb(IngestorRequest::UniquePtr msg)
+{
+  _latest = *msg;
+
+  if (_guid == _latest.target_guid && !_ingestor_filled)
+  {
+    const auto it = _past_request_guids.find(_latest.request_guid);
+    if (it != _past_request_guids.end())
+    {
+      if (it->second)
+      {
+        RCLCPP_WARN(_ros_node->get_logger(),
+          "Request already succeeded: [%s]", _latest.request_guid.c_str());
+        send_ingestor_response(IngestorResult::SUCCESS);
+      }
+      else
+      {
+        RCLCPP_WARN(_ros_node->get_logger(),
+          "Request already failed: [%s]", _latest.request_guid.c_str());
+        send_ingestor_response(IngestorResult::FAILED);
+      }
+      return;
+    }
+
+    _ingest = true; // Mark true to ingest item next time PreUpdate() is called
+  }
+}
+
+void TeleportIngestorPlugin::on_update(EntityComponentManager& ecm)
+{
+  // periodic ingestor status publisher
+  constexpr double interval = 2.0;
+  if (_sim_time - _last_pub_time >= interval || _ingest)
+  {
+    _last_pub_time = _sim_time;
+    _current_state.time = simulation_now(_sim_time);
+
+    if (_ingest)
+    {
+      _current_state.mode = IngestorState::BUSY;
+      _current_state.request_guid_queue = {_latest.request_guid};
+    }
+    else
+    {
+      _current_state.mode = IngestorState::IDLE;
+      _current_state.request_guid_queue.clear();
+    }
+    _state_pub->publish(_current_state);
+  }
+
+  if (_ingest)
+  {
+    send_ingestor_response(IngestorResult::ACKNOWLEDGED);
+
+    bool is_success = false;
+    if (!_ingestor_filled)
+    {
+      RCLCPP_INFO(_ros_node->get_logger(), "Ingesting item");
+      bool res = ingest_from_nearest_robot(ecm, _latest.transporter_type);
+      if (res)
+      {
+        send_ingestor_response(IngestorResult::SUCCESS);
+        _last_ingested_time = _sim_time;
+        is_success = true;
+        RCLCPP_INFO(_ros_node->get_logger(), "Success");
+      }
+      else
+      {
+        send_ingestor_response(IngestorResult::FAILED);
+        RCLCPP_WARN(_ros_node->get_logger(), "Unable to dispense item");
+      }
+    }
+    else
+    {
+      RCLCPP_WARN(_ros_node->get_logger(),
+        "No item to ingest: [%s]", _latest.request_guid.c_str());
+      send_ingestor_response(IngestorResult::FAILED);
+    }
+
+    _past_request_guids.emplace(_latest.request_guid, is_success);
+
+    _ingest = false;
+  }
+
+  // Periodically try to teleport ingested item back to original location
+  constexpr double return_interval = 5.0;
+  if (_sim_time - _last_ingested_time >=
+    return_interval && _ingestor_filled)
+  {
+    send_ingested_item_home(ecm);
+  }
+}
+
+bool TeleportIngestorPlugin::ingest_from_nearest_robot(
+  EntityComponentManager& ecm,
+  const std::string& fleet_name)
+{
+  const auto fleet_state_it = _fleet_states.find(fleet_name);
+  if (fleet_state_it == _fleet_states.end())
+  {
+    RCLCPP_WARN(_ros_node->get_logger(),
+      "No such fleet: [%s]", fleet_name.c_str());
+    return false;
+  }
+
+  std::vector<SimEntity> robot_list;
+  fill_robot_list(ecm, fleet_state_it, robot_list);
+
+  bool found = false;
+  SimEntity robot_model = find_nearest_model(ecm, robot_list, found);
+  if (!found)
+  {
+    RCLCPP_WARN(_ros_node->get_logger(),
+      "No nearby robots of fleet [%s] found.", fleet_name.c_str());
+    return false;
+  }
+
+  if (!get_payload_model(ecm, robot_model, _ingested_entity))
+  {
+    RCLCPP_WARN(_ros_node->get_logger(),
+      "No delivery item found on the robot.");
+    return false;
+  }
+
+  transport_model(ecm);
+  _ingestor_filled = true;
+  return true;
+}
 
 SimEntity TeleportIngestorPlugin::find_nearest_model(
   const EntityComponentManager& ecm,
@@ -103,7 +309,7 @@ SimEntity TeleportIngestorPlugin::find_nearest_model(
     // guaranteed to have a valid entity field
     Entity en = sim_obj.get_entity();
     std::string name = ecm.Component<components::Name>(en)->Data();
-    if (name == _ingestor_common->_guid)
+    if (name == _guid)
       continue;
 
     const auto en_pos = ecm.Component<components::Pose>(en)->Data().Pos();
@@ -142,7 +348,7 @@ bool TeleportIngestorPlugin::get_payload_model(
     const components::Static* is_static
     ) -> bool
     {
-      if (!is_static->Data() && name->Data() != _ingestor_common->_guid
+      if (!is_static->Data() && name->Data() != _guid
       && name->Data() != Model(robot_entity).Name(ecm))
       {
         const double dist = pose->Data().Pos().Distance(robot_model_pos);
@@ -199,12 +405,12 @@ void TeleportIngestorPlugin::transport_model(EntityComponentManager& ecm)
 void TeleportIngestorPlugin::send_ingested_item_home(
   EntityComponentManager& ecm)
 {
-  if (_ingestor_common->ingestor_filled)
+  if (_ingestor_filled)
   {
     const auto it =
-      _ingestor_common->non_static_models_init_poses.find(
+      _non_static_models_init_poses.find(
       Model(_ingested_entity).Name(ecm));
-    if (it == _ingestor_common->non_static_models_init_poses.end())
+    if (it == _non_static_models_init_poses.end())
     {
       ecm.RequestRemoveEntity(_ingested_entity);
     }
@@ -220,7 +426,7 @@ void TeleportIngestorPlugin::send_ingested_item_home(
       ecm.Component<components::WorldPoseCmd>(_ingested_entity)->Data() =
         convert_to_pose<gz::math::Pose3d>(it->second);
     }
-    _ingestor_common->ingestor_filled = false;
+    _ingestor_filled = false;
   }
 }
 
@@ -237,9 +443,9 @@ void TeleportIngestorPlugin::init_non_static_models_poses(
     const components::Static* is_static
     ) -> bool
     {
-      if (!is_static->Data() && name->Data() != _ingestor_common->_guid)
+      if (!is_static->Data() && name->Data() != _guid)
       {
-        _ingestor_common->non_static_models_init_poses[name->Data()] =
+        _non_static_models_init_poses[name->Data()] =
         convert_pose(
           pose->Data());
       }
@@ -248,7 +454,6 @@ void TeleportIngestorPlugin::init_non_static_models_poses(
 }
 
 TeleportIngestorPlugin::TeleportIngestorPlugin()
-: _ingestor_common(std::make_unique<TeleportIngestorCommon>())
 {
 }
 
@@ -266,19 +471,18 @@ void TeleportIngestorPlugin::Configure(const Entity& entity,
     rclcpp::init(0, argv);
 
   _ingestor = entity;
-  _ingestor_common->_guid = ecm.Component<components::Name>(_ingestor)->Data();
-  gzwarn << "Initializing plugin with name " << _ingestor_common->_guid
-         << std::endl;
-  _ros_node = std::make_shared<rclcpp::Node>(_ingestor_common->_guid);
-  _ingestor_common->init_ros_node(_ros_node);
-  RCLCPP_INFO(_ingestor_common->ros_node->get_logger(),
+  _guid = ecm.Component<components::Name>(_ingestor)->Data();
+  gzwarn << "Initializing plugin with name " << _guid << std::endl;
+  _ros_node = std::make_shared<rclcpp::Node>(_guid);
+  init_ros_node();
+  RCLCPP_INFO(_ros_node->get_logger(),
     "Started TeleportIngestorPlugin node...");
 }
 
 void TeleportIngestorPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
-  _ingestor_common->sim_time =
+  _sim_time =
     std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
 
   if (!_non_static_models_filled)
@@ -289,36 +493,13 @@ void TeleportIngestorPlugin::PreUpdate(const UpdateInfo& info,
   }
 
   // TODO parallel thread executor?
-  rclcpp::spin_some(_ingestor_common->ros_node);
+  rclcpp::spin_some(_ros_node);
 
   // Don't update the pose if the simulation is paused
   if (info.paused)
     return;
 
-  std::function<void(void)> send_ingested_item_home_cb =
-    std::bind(&TeleportIngestorPlugin::send_ingested_item_home,
-      this, std::ref(ecm));
-
-  std::function<void(FleetStateIt,
-    std::vector<SimEntity>&)> fill_robot_list_cb =
-    std::bind(&TeleportIngestorPlugin::fill_robot_list, this,
-      std::ref(ecm), std::placeholders::_1, std::placeholders::_2);
-
-  std::function<SimEntity(const std::vector<SimEntity>&,
-    bool&)> find_nearest_model_cb =
-    std::bind(&TeleportIngestorPlugin::find_nearest_model, this,
-      std::ref(ecm), std::placeholders::_1, std::placeholders::_2);
-
-  std::function<bool(const SimEntity&)> get_payload_model_cb =
-    std::bind(&TeleportIngestorPlugin::get_payload_model, this,
-      std::ref(ecm), std::placeholders::_1, std::ref(_ingested_entity));
-
-  std::function<void()> transport_model_cb =
-    std::bind(&TeleportIngestorPlugin::transport_model, this,
-      std::ref(ecm));
-
-  _ingestor_common->on_update(fill_robot_list_cb, find_nearest_model_cb,
-    get_payload_model_cb, transport_model_cb, send_ingested_item_home_cb);
+  on_update(ecm);
 }
 
 GZ_ADD_PLUGIN(

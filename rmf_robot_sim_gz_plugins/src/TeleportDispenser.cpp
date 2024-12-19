@@ -37,12 +37,13 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rmf_fleet_msgs/msg/fleet_state.hpp>
+#include <rmf_dispenser_msgs/msg/dispenser_state.hpp>
+#include <rmf_dispenser_msgs/msg/dispenser_result.hpp>
+#include <rmf_dispenser_msgs/msg/dispenser_request.hpp>
 
-#include <rmf_robot_sim_common/dispenser_common.hpp>
 #include <rmf_robot_sim_common/utils.hpp>
 
 using namespace gz::sim;
-using namespace rmf_dispenser_common;
 using namespace rmf_plugins_utils;
 
 namespace rmf_robot_sim_gz_plugins {
@@ -56,6 +57,9 @@ public:
   using FleetState = rmf_fleet_msgs::msg::FleetState;
   using FleetStateIt =
     std::unordered_map<std::string, FleetState::UniquePtr>::iterator;
+  using DispenserState = rmf_dispenser_msgs::msg::DispenserState;
+  using DispenserRequest = rmf_dispenser_msgs::msg::DispenserRequest;
+  using DispenserResult = rmf_dispenser_msgs::msg::DispenserResult;
 
   TeleportDispenserPlugin();
   ~TeleportDispenserPlugin();
@@ -65,19 +69,42 @@ public:
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
-  // Stores params representing state of Dispenser, and handles the main dispenser logic
-  std::unique_ptr<TeleportDispenserCommon> _dispenser_common;
-
   gz::transport::Node _ign_node;
 
   Entity _dispenser;
   Entity _item_en; // Item that dispenser may contain
   gz::math::AxisAlignedBox _dispenser_vicinity_box;
 
-  bool tried_fill_dispenser = false; // Set to true if fill_dispenser() has been called at least once
+  bool _dispense = false;
+  DispenserRequest _latest; // Only store and act on last received request
 
+  std::string _guid; // Plugin name
+
+  double _last_pub_time = 0.0;
+  double _sim_time = 0.0;
+
+  bool _item_en_found = false; // True if entity to be dispensed has been determined. Used when locating item in future
+  bool _dispenser_filled = false;
+
+  std::unordered_map<std::string, FleetState::UniquePtr> _fleet_states;
+  DispenserState _current_state;
   rclcpp::Node::SharedPtr _ros_node;
 
+  bool tried_fill_dispenser = false; // Set to true if fill_dispenser() has been called at least once
+
+  rclcpp::Subscription<FleetState>::SharedPtr _fleet_state_sub;
+  rclcpp::Publisher<DispenserState>::SharedPtr _state_pub;
+  rclcpp::Subscription<DispenserRequest>::SharedPtr _request_sub;
+  rclcpp::Publisher<DispenserResult>::SharedPtr _result_pub;
+  std::unordered_map<std::string, bool> _past_request_guids;
+
+  void init_ros_node();
+  void send_dispenser_response(uint8_t status) const;
+  void fleet_state_cb(FleetState::UniquePtr msg);
+  void dispenser_request_cb(DispenserRequest::UniquePtr msg);
+  void on_update(EntityComponentManager& ecm);
+
+  void try_refill_dispenser(EntityComponentManager& ecm);
   SimEntity find_nearest_model(
     EntityComponentManager& ecm,
     const std::vector<SimEntity>& entities, bool& found) const;
@@ -92,13 +119,192 @@ private:
 };
 
 TeleportDispenserPlugin::TeleportDispenserPlugin()
-: _dispenser_common(std::make_unique<TeleportDispenserCommon>())
 {
 }
 
 TeleportDispenserPlugin::~TeleportDispenserPlugin()
 {
   rclcpp::shutdown();
+}
+
+void TeleportDispenserPlugin::init_ros_node()
+{
+  if (!_ros_node)
+  {
+    RCLCPP_ERROR(_ros_node->get_logger(),
+      "No ROS node created for TeleportDispenser plugin!");
+    return;
+  }
+
+  _fleet_state_sub = _ros_node->create_subscription<FleetState>(
+    "/fleet_states",
+    rclcpp::SystemDefaultsQoS().keep_last(10),
+    std::bind(&TeleportDispenserPlugin::fleet_state_cb, this,
+    std::placeholders::_1));
+
+  _state_pub = _ros_node->create_publisher<DispenserState>(
+    "/dispenser_states", 10);
+
+  _request_sub = _ros_node->create_subscription<DispenserRequest>(
+    "/dispenser_requests",
+    rclcpp::SystemDefaultsQoS().keep_last(10).reliable(),
+    std::bind(&TeleportDispenserPlugin::dispenser_request_cb, this,
+    std::placeholders::_1));
+
+  _result_pub = _ros_node->create_publisher<DispenserResult>(
+    "/dispenser_results", 10);
+
+  _current_state.guid = _guid;
+  _current_state.mode = DispenserState::IDLE;
+}
+
+void TeleportDispenserPlugin::send_dispenser_response(uint8_t status) const
+{
+  auto response = make_response<DispenserResult>(
+    status, _sim_time, _latest.request_guid, _guid);
+  _result_pub->publish(*response);
+}
+
+void TeleportDispenserPlugin::fleet_state_cb(FleetState::UniquePtr msg)
+{
+  _fleet_states[msg->name] = std::move(msg);
+}
+
+void TeleportDispenserPlugin::dispenser_request_cb(
+  DispenserRequest::UniquePtr msg)
+{
+  _latest = *msg;
+
+  if (_guid == _latest.target_guid)
+  {
+    // check if task has been completed previously
+    const auto it = _past_request_guids.find(_latest.request_guid);
+    if (it != _past_request_guids.end())
+    {
+      if (it->second)
+      {
+        RCLCPP_WARN(_ros_node->get_logger(),
+          "Request already succeeded: [%s]", _latest.request_guid.c_str());
+        send_dispenser_response(DispenserResult::SUCCESS);
+      }
+      else
+      {
+        RCLCPP_WARN(_ros_node->get_logger(),
+          "Request already failed: [%s]", _latest.request_guid.c_str());
+        send_dispenser_response(DispenserResult::FAILED);
+      }
+      return;
+    }
+
+    _dispense = true; // Mark true to dispense item next time PreUpdate() is called
+  }
+}
+
+void TeleportDispenserPlugin::on_update(EntityComponentManager& ecm)
+{
+  try_refill_dispenser(ecm);
+
+  // periodic pub on dispenser state
+  constexpr double interval = 2.0;
+  if (_sim_time - _last_pub_time >= interval || _dispense)
+  {
+    _last_pub_time = _sim_time;
+    _current_state.time = simulation_now(_sim_time);
+
+    if (_dispense)
+    {
+      _current_state.mode = DispenserState::BUSY;
+      _current_state.request_guid_queue = {_latest.request_guid};
+    }
+    else
+    {
+      _current_state.mode = DispenserState::IDLE;
+      _current_state.request_guid_queue.clear();
+    }
+    _state_pub->publish(_current_state);
+  }
+
+  // `dispense` is set to true if the dispenser plugin node has
+  // received a valid DispenserRequest
+  if (_dispense)
+  {
+    send_dispenser_response(DispenserResult::ACKNOWLEDGED);
+
+    bool is_success = false;
+    if (_dispenser_filled)
+    {
+      RCLCPP_INFO(_ros_node->get_logger(), "Dispensing item");
+      bool res = dispense_on_nearest_robot(ecm, _latest.transporter_type);
+      if (res)
+      {
+        is_success = true;
+        send_dispenser_response(DispenserResult::SUCCESS);
+        RCLCPP_INFO(_ros_node->get_logger(), "Success");
+      }
+      else
+      {
+        send_dispenser_response(DispenserResult::FAILED);
+        RCLCPP_WARN(_ros_node->get_logger(), "Unable to dispense item");
+      }
+    }
+    else
+    {
+      RCLCPP_WARN(_ros_node->get_logger(),
+        "No item to dispense: [%s]", _latest.request_guid.c_str());
+      send_dispenser_response(DispenserResult::FAILED);
+    }
+
+    _past_request_guids.emplace(_latest.request_guid, is_success);
+
+    _dispense = false;
+  }
+}
+
+void TeleportDispenserPlugin::try_refill_dispenser(EntityComponentManager& ecm)
+{
+  constexpr double interval = 2.0;
+  if (_sim_time - _last_pub_time >= interval)
+  {
+    // Occasionally check to see if dispensed item has been returned to it
+    if (!_dispenser_filled && _item_en_found &&
+      _dispenser_vicinity_box.Contains(
+        ecm.Component<components::Pose>(_item_en)->Data().Pos()))
+    {
+      _dispenser_filled = true;
+    }
+  }
+}
+
+bool TeleportDispenserPlugin::dispense_on_nearest_robot(
+  EntityComponentManager& ecm,
+  const std::string& fleet_name)
+{
+  if (!_dispenser_filled)
+    return false;
+
+  const auto fleet_state_it = _fleet_states.find(fleet_name);
+  if (fleet_state_it == _fleet_states.end())
+  {
+    RCLCPP_WARN(_ros_node->get_logger(),
+      "No such fleet: [%s]", fleet_name.c_str());
+    return false;
+  }
+
+  std::vector<SimEntity> robot_list;
+  fill_robot_list(ecm, fleet_state_it, robot_list);
+
+  bool found = false;
+  SimEntity robot_model = find_nearest_model(ecm, robot_list, found);
+  if (!found)
+  {
+    RCLCPP_WARN(_ros_node->get_logger(),
+      "No nearby robots of fleet [%s] found.", fleet_name.c_str());
+    return false;
+  }
+
+  place_on_entity(ecm, robot_model, _item_en);
+  _dispenser_filled = false; // Assumes Dispenser is configured to only dispense a single object
+  return true;
 }
 
 SimEntity TeleportDispenserPlugin::find_nearest_model(
@@ -115,7 +321,7 @@ SimEntity TeleportDispenserPlugin::find_nearest_model(
   {
     Entity en = sim_obj.get_entity();
     std::string name = ecm.Component<components::Name>(en)->Data();
-    if (name == _dispenser_common->guid)
+    if (name == _guid)
       continue;
 
     const auto en_pos = ecm.Component<components::Pose>(en)->Data().Pos();
@@ -157,7 +363,7 @@ void TeleportDispenserPlugin::place_on_entity(EntityComponentManager& ecm,
   else
   {
     RCLCPP_WARN(
-      _dispenser_common->ros_node->get_logger(),
+      _ros_node->get_logger(),
       "Either base entity or item to be dispensed does not have an AxisAlignedBox component. \
       Attempting to dispense item to approximate location.");
     new_pose = gz::math::Pose3<double>(0, 0, 0.5, 0, 0, 0) * new_pose;
@@ -198,7 +404,7 @@ void TeleportDispenserPlugin::fill_dispenser(EntityComponentManager& ecm)
     const components::Static* is_static
     ) -> bool
     {
-      if (!is_static->Data() && name->Data() != _dispenser_common->guid)
+      if (!is_static->Data() && name->Data() != _guid)
       {
         const auto dist = pose->Data().Pos().Distance(dispenser_pos);
 
@@ -207,22 +413,22 @@ void TeleportDispenserPlugin::fill_dispenser(EntityComponentManager& ecm)
         {
           _item_en = en;
           nearest_dist = dist;
-          _dispenser_common->dispenser_filled = true;
-          _dispenser_common->item_en_found = true;
+          _dispenser_filled = true;
+          _item_en_found = true;
         }
       }
       return true;
     });
 
-  if (!_dispenser_common->dispenser_filled)
+  if (!_dispenser_filled)
   {
-    RCLCPP_WARN(_dispenser_common->ros_node->get_logger(),
+    RCLCPP_WARN(_ros_node->get_logger(),
       "Could not find dispenser item model within 1 meter, "
       "this dispenser will not be operational");
   }
   else
   {
-    RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),
+    RCLCPP_INFO(_ros_node->get_logger(),
       "Found dispenser item: [%s]",
       ecm.Component<components::Name>(_item_en)->Data().c_str());
   }
@@ -249,15 +455,13 @@ void TeleportDispenserPlugin::Configure(const Entity& entity,
     rclcpp::init(0, argv);
 
   _dispenser = entity;
-  _dispenser_common->guid =
-    ecm.Component<components::Name>(_dispenser)->Data();
-  gzwarn << "Initializing plugin with name " << _dispenser_common->guid <<
-    std::endl;
+  _guid = ecm.Component<components::Name>(_dispenser)->Data();
+  gzwarn << "Initializing plugin with name " << _guid << std::endl;
 
-  _ros_node = std::make_shared<rclcpp::Node>(_dispenser_common->guid);
-  _dispenser_common->init_ros_node(_ros_node);
-  RCLCPP_INFO(_dispenser_common->ros_node->get_logger(),
-    "Started TeleportIngestorPlugin node...");
+  _ros_node = std::make_shared<rclcpp::Node>(_guid);
+  init_ros_node();
+  RCLCPP_INFO(_ros_node->get_logger(),
+    "Started TeleportDispenserPlugin node...");
 
   create_dispenser_bounding_box(ecm);
 }
@@ -265,10 +469,10 @@ void TeleportDispenserPlugin::Configure(const Entity& entity,
 void TeleportDispenserPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
-  _dispenser_common->sim_time =
+  _sim_time =
     std::chrono::duration_cast<std::chrono::seconds>(info.simTime).count();
   // TODO parallel thread executor?
-  rclcpp::spin_some(_dispenser_common->ros_node);
+  rclcpp::spin_some(_ros_node);
 
   // Don't update the pose if the simulation is paused
   if (info.paused)
@@ -282,28 +486,7 @@ void TeleportDispenserPlugin::PreUpdate(const UpdateInfo& info,
     tried_fill_dispenser = true;
   }
 
-  std::function<void(FleetStateIt,
-    std::vector<SimEntity>&)> fill_robot_list_cb =
-    std::bind(&TeleportDispenserPlugin::fill_robot_list, this,
-      std::ref(ecm), std::placeholders::_1, std::placeholders::_2);
-
-  std::function<SimEntity(const std::vector<SimEntity>&,
-    bool&)> find_nearest_model_cb =
-    std::bind(&TeleportDispenserPlugin::find_nearest_model, this,
-      std::ref(ecm), std::placeholders::_1, std::placeholders::_2);
-
-  std::function<void(const SimEntity&)> place_on_entity_cb =
-    std::bind(&TeleportDispenserPlugin::place_on_entity, this,
-      std::ref(ecm), std::placeholders::_1, _item_en);
-
-  std::function<bool(void)> check_filled_cb = [&]()
-  {
-    return _dispenser_vicinity_box.Contains(
-      ecm.Component<components::Pose>(_item_en)->Data().Pos());
-  };
-
-  _dispenser_common->on_update(fill_robot_list_cb, find_nearest_model_cb,
-    place_on_entity_cb, check_filled_cb);
+  on_update(ecm);
 }
 
 GZ_ADD_PLUGIN(
