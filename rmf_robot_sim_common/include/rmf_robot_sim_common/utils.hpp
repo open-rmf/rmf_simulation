@@ -76,7 +76,6 @@ struct MotionParams
   double a_max = 0.1;
   double a_nom = 0.08;
   double dx_min = 0.01;
-  double f_max = 10000000.0;
 };
 
 double compute_desired_rate_of_change(

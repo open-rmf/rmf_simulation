@@ -354,8 +354,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
     max_lin_vel,
     _max_drive_acceleration,
     _nominal_drive_acceleration,
-    0.01,
-    10000000.0};
+    0.01};
   const double v_target = rmf_plugins_utils::compute_desired_rate_of_change(
     displacements.first,
     v_robot,
@@ -368,8 +367,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
     _nominal_turn_speed,
     _max_turn_acceleration,
     _nominal_turn_acceleration,
-    0.01,
-    10000000.0};
+    0.01};
   const double w_target = rmf_plugins_utils::compute_desired_rate_of_change(
     displacements.second,
     w_robot,
@@ -379,18 +377,6 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
     dt);
 
   return std::array<double, 2>{v_target, w_target};
-}
-
-std::string to_str(uint32_t type)
-{
-  if (rmf_fleet_msgs::msg::PauseRequest::TYPE_RESUME == type)
-    return "resume";
-  else if (rmf_fleet_msgs::msg::PauseRequest::TYPE_PAUSE_IMMEDIATELY == type)
-    return "pause immediately";
-  else if (rmf_fleet_msgs::msg::PauseRequest::TYPE_PAUSE_AT_CHECKPOINT == type)
-    return "pause at checkpoint";
-
-  return "UNKNOWN: " + std::to_string(type) + "??";
 }
 
 SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
