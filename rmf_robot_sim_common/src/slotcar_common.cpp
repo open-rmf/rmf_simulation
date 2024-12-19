@@ -381,33 +381,6 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   return std::array<double, 2>{v_target, w_target};
 }
 
-std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
-  const std::array<double, 2>& w_tire,
-  const std::pair<double, double>& displacements,
-  const double dt,
-  const double linear_speed_target_now,
-  const double linear_speed_target_destination,
-  const std::optional<double>& linear_speed_limit) const
-{
-  std::array<double, 2> curr_velocities;
-  curr_velocities[0] = (w_tire[0] + w_tire[1]) * _tire_radius / 2.0;
-  curr_velocities[1] = (w_tire[1] - w_tire[0]) * _tire_radius / _base_width;
-
-  std::array<double, 2> new_velocities = calculate_control_signals(
-    curr_velocities, displacements, dt, linear_speed_target_now,
-    linear_speed_target_destination,
-    linear_speed_limit);
-
-  std::array<double, 2> joint_signals;
-  for (std::size_t i = 0; i < 2; ++i)
-  {
-    const double yaw_sign = i == 0 ? -1.0 : 1.0;
-    joint_signals[i] = (new_velocities[0] / _tire_radius) + (yaw_sign *
-      new_velocities[1] * _base_width / (2.0 * _tire_radius));
-  }
-  return joint_signals;
-}
-
 std::string to_str(uint32_t type)
 {
   if (rmf_fleet_msgs::msg::PauseRequest::TYPE_RESUME == type)

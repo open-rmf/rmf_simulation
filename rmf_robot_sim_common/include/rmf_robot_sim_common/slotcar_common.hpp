@@ -97,14 +97,6 @@ public:
     const double target_velocity_at_dest = 0.0,
     const std::optional<double>& linear_speed_limit = std::nullopt) const;
 
-  std::array<double, 2> calculate_joint_control_signals(
-    const std::array<double, 2>& w_tire,
-    const std::pair<double, double>& displacements,
-    const double dt,
-    const double target_linear_speed_now = 0.0,
-    const double target_linear_speed_destination = 0.0,
-    const std::optional<double>& linear_speed_limit = std::nullopt) const;
-
   void charge_state_cb(const std::string& name, bool selected);
 
   void publish_robot_state(const double time);
