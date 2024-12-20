@@ -264,7 +264,6 @@ void SlotcarCommon::path_request_cb(
 {
   if (path_request_valid(msg) == false)
     return;
-  std::lock_guard<std::mutex> lock(_mutex);
 
   const auto old_path = _remaining_path;
 
@@ -335,7 +334,6 @@ void SlotcarCommon::pause_request_cb(
   if (msg->robot_name != _model_name)
     return;
 
-  std::lock_guard<std::mutex> lock(_mutex);
   pause_request = *msg;
 }
 
@@ -356,8 +354,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
     max_lin_vel,
     _max_drive_acceleration,
     _nominal_drive_acceleration,
-    0.01,
-    10000000.0};
+    0.01};
   const double v_target = rmf_plugins_utils::compute_desired_rate_of_change(
     displacements.first,
     v_robot,
@@ -370,8 +367,7 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
     _nominal_turn_speed,
     _max_turn_acceleration,
     _nominal_turn_acceleration,
-    0.01,
-    10000000.0};
+    0.01};
   const double w_target = rmf_plugins_utils::compute_desired_rate_of_change(
     displacements.second,
     w_robot,
@@ -383,50 +379,10 @@ std::array<double, 2> SlotcarCommon::calculate_control_signals(
   return std::array<double, 2>{v_target, w_target};
 }
 
-std::array<double, 2> SlotcarCommon::calculate_joint_control_signals(
-  const std::array<double, 2>& w_tire,
-  const std::pair<double, double>& displacements,
-  const double dt,
-  const double linear_speed_target_now,
-  const double linear_speed_target_destination,
-  const std::optional<double>& linear_speed_limit) const
-{
-  std::array<double, 2> curr_velocities;
-  curr_velocities[0] = (w_tire[0] + w_tire[1]) * _tire_radius / 2.0;
-  curr_velocities[1] = (w_tire[1] - w_tire[0]) * _tire_radius / _base_width;
-
-  std::array<double, 2> new_velocities = calculate_control_signals(
-    curr_velocities, displacements, dt, linear_speed_target_now,
-    linear_speed_target_destination,
-    linear_speed_limit);
-
-  std::array<double, 2> joint_signals;
-  for (std::size_t i = 0; i < 2; ++i)
-  {
-    const double yaw_sign = i == 0 ? -1.0 : 1.0;
-    joint_signals[i] = (new_velocities[0] / _tire_radius) + (yaw_sign *
-      new_velocities[1] * _base_width / (2.0 * _tire_radius));
-  }
-  return joint_signals;
-}
-
-std::string to_str(uint32_t type)
-{
-  if (rmf_fleet_msgs::msg::PauseRequest::TYPE_RESUME == type)
-    return "resume";
-  else if (rmf_fleet_msgs::msg::PauseRequest::TYPE_PAUSE_IMMEDIATELY == type)
-    return "pause immediately";
-  else if (rmf_fleet_msgs::msg::PauseRequest::TYPE_PAUSE_AT_CHECKPOINT == type)
-    return "pause at checkpoint";
-
-  return "UNKNOWN: " + std::to_string(type) + "??";
-}
-
 SlotcarCommon::UpdateResult SlotcarCommon::update(const Eigen::Isometry3d& pose,
   const std::vector<Eigen::Vector3d>& obstacle_positions,
   const double time)
 {
-  std::lock_guard<std::mutex> lock(_mutex);
   _pose = pose;
   publish_robot_state(time);
 
@@ -962,10 +918,7 @@ double SlotcarCommon::compute_change_in_rotation(
 
 void SlotcarCommon::publish_robot_state(const double time)
 {
-  const int32_t t_sec = static_cast<int32_t>(time);
-  const uint32_t t_nsec =
-    static_cast<uint32_t>((time-static_cast<double>(t_sec)) *1e9);
-  const rclcpp::Time ros_time{t_sec, t_nsec, RCL_ROS_TIME};
+  const rclcpp::Time ros_time = rmf_plugins_utils::simulation_now(time);
   if ((time - last_tf2_pub) > (1.0 / TF2_RATE))
   {
     // Publish tf2
