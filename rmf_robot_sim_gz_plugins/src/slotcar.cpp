@@ -211,9 +211,6 @@ void SlotcarPlugin::Configure(const Entity& entity,
   enableComponent<components::Pose>(ecm, entity);
   // Initialize Bounding Box component
   enableComponent<components::AxisAlignedBox>(ecm, entity);
-  // Initialize Linear/AngularVelocityCmd components to drive slotcar
-  enableComponent<components::LinearVelocityCmd>(ecm, entity);
-  enableComponent<components::AngularVelocityCmd>(ecm, entity);
 
   // Respond to requests asking for height (e.g. for dispenser to dispense object)
   const std::string height_srv_name =
@@ -239,11 +236,6 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   const double target_linear_speed_destination,
   const std::optional<double>& max_linear_velocity)
 {
-  auto lin_vel_cmd =
-    ecm.Component<components::LinearVelocityCmd>(_entity);
-  auto ang_vel_cmd =
-    ecm.Component<components::AngularVelocityCmd>(_entity);
-
   // Open loop control
   double v_robot = _prev_v_command;
   double w_robot = _prev_w_command;
@@ -252,8 +244,13 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
       displacements, dt, target_linear_speed_now,
       target_linear_speed_destination, max_linear_velocity);
 
-  lin_vel_cmd->Data()[0] = target_vels[0];
-  ang_vel_cmd->Data()[2] = target_vels[1];
+  gz::math::Vector3d lin_vel_cmd(0, 0, 0);
+  lin_vel_cmd[0] = target_vels[0];
+  gz::math::Vector3d ang_vel_cmd(0, 0, 0);
+  ang_vel_cmd[2] = target_vels[1];
+
+  ecm.SetComponentData<components::LinearVelocityCmd>(_entity, lin_vel_cmd);
+  ecm.SetComponentData<components::AngularVelocityCmd>(_entity, ang_vel_cmd);
 
   // Update previous velocities
   _prev_v_command = target_vels[0];
