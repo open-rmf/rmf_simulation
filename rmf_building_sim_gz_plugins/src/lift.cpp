@@ -67,16 +67,10 @@ private:
   bool _components_initialized = false;
   bool _aabb_read = false;
 
-  std::size_t count = 0;
-
   std::vector<Entity> get_payloads(EntityComponentManager& ecm,
     const Entity& lift_entity)
   {
     std::vector<Entity> payloads;
-    if (!ecm.Component<components::Pose>(lift_entity))
-    {
-      std::cout << " >>>>>>>>>> NO POSE FOR LIFT" << std::endl;
-    }
     const auto& lift_pose =
       ecm.Component<components::Pose>(lift_entity)->Data();
     auto pose = _initial_poses.find(lift_entity);
@@ -114,29 +108,6 @@ private:
     ecm.Each<components::Lift>([&](const Entity& entity,
       const components::Lift* lift_comp) -> bool
       {
-        // for (auto joint : Model(entity).Joints(ecm))
-        // {
-        //   const auto* name_comp = ecm.Component<components::Name>(joint);
-        //   if (name_comp)
-        //   {
-        //     const auto* joint_pos_comp = ecm.Component<components::JointPosition>(joint);
-        //     if (joint_pos_comp)
-        //     {
-        //       std::cout << " >>>>>>>>>>> JOINT [" << name_comp->Data() << "] position: "
-        //         << joint_pos_comp->Data().size() << std::endl;
-        //     }
-        //     else
-        //     {
-        //       std::cout << " >>>>>>>>> JOINT [" << name_comp->Data() << "] HAS NO POSITION" << std::endl;
-        //     }
-        //   }
-        //   else
-        //   {
-        //     std::cout << " >>>>>> JOINT " << joint << " HAS NO NAME" << std::endl;
-        //   }
-        // }
-
-
         const auto& lift = lift_comp->Data();
         auto cabin_joint_entity =
           Model(entity).JointByName(ecm, lift.cabin_joint);
@@ -405,6 +376,11 @@ private:
     const LiftData& lift, double dt, double target_elevation,
     double cur_elevation)
   {
+    for (auto joint : Model(entity).Joints(ecm))
+    {
+      ecm.RemoveComponent<components::JointForceCmd>(joint);
+    }
+
     auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
     auto target_vel = 0.0;
     if (joint_entity != kNullEntity)
@@ -413,18 +389,10 @@ private:
           _last_cmd_vel[joint_entity], dt,
           lift.params);
 
-      if (count == 0)
-      {
-        std::cout << "Entity " << joint_entity << " cmd " << target_vel << std::endl;
-      }
       ecm.SetComponentData<components::JointVelocityCmd>(joint_entity, {target_vel});
       ecm.RemoveComponent<components::JointForceCmd>(joint_entity);
 
       _last_cmd_vel[joint_entity] = target_vel;
-    }
-    else
-    {
-      std::cout << " >>>>>>>>> UNABLE TO FIND LIFT CABIN JOINT ENTITY" << std::endl;
     }
     return target_vel;
   }
@@ -580,49 +548,48 @@ public:
 
     std::unordered_set<Entity> finished_cmds;
 
-    ++count;
-    if (count > 20)
-    {
-      count = 0;
-    }
-
     const double dt = to_seconds(info.dt);
     // Command lifts
     ecm.Each<components::Lift,
-      components::Pose,
-      components::LiftCmd>([&](const Entity& entity,
+      components::Pose>([&](const Entity& entity,
       const components::Lift* lift_comp,
-      const components::Pose* pose_comp,
-      const components::LiftCmd* lift_cmd_comp) -> bool
+      const components::Pose* pose_comp) -> bool
       {
+        const components::LiftCmd* lift_cmd_comp = ecm.Component<const components::LiftCmd>(entity);
+        const LiftCommand* lift_cmd = nullptr;
+        if (lift_cmd_comp)
+        {
+          lift_cmd = &lift_cmd_comp->Data();
+        }
+        else
+        {
+          const auto it = _last_lift_command.find(entity);
+          if (it != _last_lift_command.end())
+          {
+            lift_cmd = &it->second;
+          }
+          else
+          {
+            // We have no indication of where this lift should go, so
+            // just try to keep it in place.
+            auto cabin_joint_entity = Model(entity).JointByName(ecm, lift_comp->Data().cabin_joint);
+            ecm.SetComponentData<components::JointVelocityCmd>(cabin_joint_entity, {0.0});
+
+            return true;
+          }
+        }
+
         const auto& lift = lift_comp->Data();
         const auto& pose = pose_comp->Data();
 
-        const auto& lift_cmd = lift_cmd_comp->Data();
-
-        const auto& destination_floor = lift_cmd.destination_floor;
+        const auto& destination_floor = lift_cmd->destination_floor;
         const double target_elevation = lift.floors.at(
           destination_floor).elevation;
-        const auto target_door_state = lift_cmd.door_state;
+        const auto target_door_state = lift_cmd->door_state;
         const std::string cur_floor = get_current_floor(entity, ecm, lift);
 
         const auto doors = get_floor_doors(ecm, lift, cur_floor);
 
-        if (count == 0)
-        {
-          auto joint_entity = Model(entity).JointByName(ecm, lift.cabin_joint);
-          auto& position_data = ecm.Component<components::JointPosition>(joint_entity)->Data();
-          auto position = position_data[0];
-          auto& velocity_data = ecm.Component<components::JointVelocity>(joint_entity)->Data();
-          auto velocity = velocity_data[0];
-          std::cout << "Joint " << joint_entity << " position " << position
-            << " (" << position_data.size() << ")"
-            << " velocity " << velocity << " (" << velocity_data.size() << ")"
-            << " | Current floor: " << cur_floor
-            << " destination: " << destination_floor << " | z "
-            << pose.Z() << " target " << target_elevation << " dx_min "
-            << lift.params.dx_min << std::endl;
-        }
         if (std::abs(pose.Z() - target_elevation) < lift.params.dx_min)
         {
           // Just command the doors to the target state
@@ -643,21 +610,16 @@ public:
             auto target_velocity =
               command_lift(entity, ecm, lift, dt, target_elevation, pose.Z());
 
-            if (count == 0)
-            {
-              std::cout << "Target Velocity: " << target_velocity << std::endl;
-            }
             // Move payloads as well
             if (target_velocity != 0.0)
             {
               auto payloads = get_payloads(ecm, entity);
+
               for (const Entity& payload : payloads)
               {
-                if (ecm.EntityHasComponentType(payload,
-                components::LinearVelocityCmd().TypeId()))
+                if (ecm.EntityHasComponentType(payload, components::LinearVelocityCmd().TypeId()))
                 {
-                  auto lin_vel_cmd =
-                  ecm.Component<components::LinearVelocityCmd>(payload);
+                  auto lin_vel_cmd = ecm.Component<components::LinearVelocityCmd>(payload);
                   lin_vel_cmd->Data()[2] = target_velocity;
                 }
               }

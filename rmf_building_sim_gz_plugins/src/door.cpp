@@ -6,7 +6,7 @@
 #include <gz/sim/components/Joint.hh>
 #include <gz/sim/components/JointAxis.hh>
 #include <gz/sim/components/JointPosition.hh>
-#include <gz/sim/components/JointPositionReset.hh>
+#include <gz/sim/components/JointVelocityCmd.hh>
 #include <gz/sim/components/Name.hh>
 
 #include <rclcpp/rclcpp.hpp>
@@ -136,9 +136,7 @@ private:
         auto target_vel = calculate_target_velocity(target_pos, cur_pos,
             _last_cmd_vel[joint_entity],
             dt, door.params);
-        ecm.CreateComponent<components::JointPositionReset>(joint_entity,
-          components::JointPositionReset(
-            {cur_pos + target_vel * dt}));
+        ecm.SetComponentData<components::JointVelocityCmd>(joint_entity, {target_vel});
         _last_cmd_vel[joint_entity] = target_vel;
       }
     }

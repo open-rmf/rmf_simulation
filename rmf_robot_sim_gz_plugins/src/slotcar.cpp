@@ -34,6 +34,7 @@ using namespace gz::sim;
 class GZ_SIM_VISIBLE SlotcarPlugin
   : public System,
   public ISystemConfigure,
+  public ISystemConfigurePriority,
   public ISystemPreUpdate
 {
 public:
@@ -43,6 +44,7 @@ public:
   void Configure(const Entity& entity,
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& eventMgr) override;
+  int32_t ConfigurePriority() override;
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
@@ -249,6 +251,7 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   gz::math::Vector3d ang_vel_cmd(0, 0, 0);
   ang_vel_cmd[2] = target_vels[1];
 
+
   ecm.SetComponentData<components::LinearVelocityCmd>(_entity, lin_vel_cmd);
   ecm.SetComponentData<components::AngularVelocityCmd>(_entity, ang_vel_cmd);
 
@@ -451,6 +454,16 @@ void SlotcarPlugin::draw_lookahead_marker()
   _gz_node.Request("/marker", marker_msg);
 }
 
+int32_t SlotcarPlugin::ConfigurePriority()
+{
+  // Set the priority down by one so this runs before the infrastructure plugin
+  // which should have a default priority of 0. This is important for ensuring
+  // that the linear velocity command component is created before the
+  // infrastructure plugin runs since the lift needs to adjust its z value, and
+  // the physics plugin removes the component on every update.
+  return -1;
+}
+
 void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
@@ -520,6 +533,7 @@ GZ_ADD_PLUGIN(
   SlotcarPlugin,
   System,
   SlotcarPlugin::ISystemConfigure,
+  SlotcarPlugin::ISystemConfigurePriority,
   SlotcarPlugin::ISystemPreUpdate)
 
 GZ_ADD_PLUGIN_ALIAS(SlotcarPlugin, "slotcar")
