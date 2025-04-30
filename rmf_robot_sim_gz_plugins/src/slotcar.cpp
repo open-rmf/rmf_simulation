@@ -251,7 +251,6 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   gz::math::Vector3d ang_vel_cmd(0, 0, 0);
   ang_vel_cmd[2] = target_vels[1];
 
-
   ecm.SetComponentData<components::LinearVelocityCmd>(_entity, lin_vel_cmd);
   ecm.SetComponentData<components::AngularVelocityCmd>(_entity, ang_vel_cmd);
 

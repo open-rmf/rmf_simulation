@@ -8,13 +8,11 @@
 #include <gz/sim/components/Pose.hh>
 #include <gz/sim/components/Static.hh>
 #include <gz/sim/components/AxisAlignedBox.hh>
-#include <gz/sim/components/JointEffortLimitsCmd.hh>
 #include <gz/sim/components/JointForceCmd.hh>
 #include <gz/sim/components/JointPosition.hh>
+#include <gz/sim/components/JointPositionReset.hh>
 #include <gz/sim/components/JointVelocity.hh>
 #include <gz/sim/components/JointVelocityCmd.hh>
-#include <gz/sim/components/JointVelocityLimitsCmd.hh>
-#include <gz/sim/components/JointPositionReset.hh>
 #include <gz/sim/components/LinearVelocityCmd.hh>
 #include <gz/sim/components/AngularVelocityCmd.hh>
 #include <gz/sim/components/PoseCmd.hh>
@@ -204,9 +202,6 @@ private:
       gzwarn << "Cabin entity not found" << std::endl;
       return "";
     }
-
-    // const auto lift_pos =
-    //   ecm.Component<components::JointPosition>(joint_entity)->Data()[0];
 
     const auto lift_pos =
       ecm.Component<components::Pose>(entity)->Data().Z();
