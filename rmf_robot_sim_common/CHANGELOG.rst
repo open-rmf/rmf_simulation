@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.5.0 (2025-05-09)
+------------------
 * Remove unused code from slotcar / readonly (`#140 <https://github.com/open-rmf/rmf_simulation/issues/140>`_)
 * Port dispenser/ingestor common code to TeleportDispenser and TeleportIngestor (`#139 <https://github.com/open-rmf/rmf_simulation/issues/139>`_)
 * Contributors: Luca Della Vedova, Xiyu

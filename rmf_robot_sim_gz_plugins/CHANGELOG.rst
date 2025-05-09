@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.5.0 (2025-05-09)
+------------------
 * Recreate vel cmd components each cycle (`#141 <https://github.com/open-rmf/rmf_simulation/issues/141>`_)
 * Port dispenser/ingestor common code to TeleportDispenser and TeleportIngestor (`#139 <https://github.com/open-rmf/rmf_simulation/issues/139>`_)
 * Contributors: Grey, Xiyu
