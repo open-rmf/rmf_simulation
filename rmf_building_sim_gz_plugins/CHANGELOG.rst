@@ -2,6 +2,11 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.5.0 (2025-05-09)
+------------------
+* Recreate vel cmd components each cycle (`#141 <https://github.com/open-rmf/rmf_simulation/issues/141>`_)
+* Contributors: Grey
+
 2.4.1 (2024-11-13)
 ------------------
 * Add environment hooks for plugins path (`#136 <https://github.com/open-rmf/rmf_simulation/issues/136>`_)
