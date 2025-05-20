@@ -1,0 +1,2 @@
+prepend-non-duplicate;GZ_SIM_SYSTEM_PLUGIN_PATH;lib/rmf_robot_sim_gz_plugins/
+prepend-non-duplicate;GZ_GUI_PLUGIN_PATH;lib/rmf_robot_sim_gz_plugins/

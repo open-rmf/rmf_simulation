@@ -46,6 +46,8 @@ find_package(Qt5
 )
 find_package(menge_vendor REQUIRED)
 
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
+
 include(GNUInstallDirs)
 
 ###############################
