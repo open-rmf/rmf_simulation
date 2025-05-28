@@ -1,3 +1,5 @@
+#include <gz/math/Pose3.hh>
+
 #include <gz/plugin/Register.hh>
 
 #include <gz/sim/components/Factory.hh>
@@ -9,7 +11,9 @@
 
 #include <gz/sim/components/AxisAlignedBox.hh>
 #include <gz/sim/components/Name.hh>
+#include <gz/sim/components/Pose.hh>
 
+#include <rmf_building_sim_gz_plugins/components/Charger.hpp>
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
@@ -24,6 +28,54 @@ class RegisterComponentPlugin
   public ISystemConfigure
 {
 private:
+  void read_chargers_data(
+    EntityComponentManager& ecm,
+    const std::shared_ptr<const sdf::Element>& sdf)
+  {
+    auto component_element = sdf->FindElement("rmf_charger");
+    while (component_element)
+    {
+      if (auto err = populate_charger(ecm, component_element))
+      {
+        gzerr << "Failed initializing charger plugin, reason: [" << *err << "]" << std::endl;
+      }
+    }
+  }
+
+  std::optional<std::string> populate_charger(
+    EntityComponentManager& ecm,
+    const std::shared_ptr<const sdf::Element>& sdf)
+  {
+    gz::math::Pose3d pose;
+    auto entity = ecm.CreateEntity();
+    if (entity == kNullEntity)
+    {
+      return "Failed generating a new entity";
+    }
+
+    std::string charger_name;
+    double x,y,z;
+    if (!sdf->Get<std::string>("name", charger_name, ""))
+    {
+      return "Missing charger name";
+    }
+
+    if (!sdf->Get<double>("x", x, 0.0) ||
+        !sdf->Get<double>("y", y, 0.0) ||
+        !sdf->Get<double>("z", z, 0.0))
+    {
+      return "Missing required parameter for charger " + charger_name;
+    }
+
+    pose.SetX(x);
+    pose.SetY(y);
+    pose.SetZ(z);
+
+    ecm.CreateComponent(entity, components::Name(charger_name));
+    ecm.CreateComponent(entity, components::Pose(pose));
+    ecm.CreateComponent(entity, components::Charger());
+    return std::nullopt;
+  }
   std::optional<DoorData> read_door_data(
     const Entity& entity,
     EntityComponentManager& ecm,
@@ -224,6 +276,14 @@ public:
             // simplify logic at the lift plugin level
             enableComponent<components::AxisAlignedBox>(ecm, entity);
           }
+        }
+        // We store all charger data in a single world plugin since chargers are
+        // not attached to a specific model right now.
+        // In the future if we introduce charger models we can revisit this and
+        // have one plugin per charger.
+        else if (name == "Chargers")
+        {
+          read_chargers_data(ecm, component_element);
         }
         component_element = component_element->GetNextElement("component");
       }
