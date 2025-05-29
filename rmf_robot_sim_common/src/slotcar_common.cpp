@@ -194,6 +194,12 @@ std::string SlotcarCommon::model_name() const
   return _model_name;
 }
 
+void SlotcarCommon::set_charger_positions(
+  std::vector<Eigen::Vector3d> charger_positions)
+{
+  _charger_positions = std::move(charger_positions);
+}
+
 void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
 {
   _current_mode.mode = RobotMode::MODE_MOVING;
@@ -1042,21 +1048,15 @@ void SlotcarCommon::charge_state_cb(
 
 bool SlotcarCommon::near_charger(const Eigen::Isometry3d& pose) const
 {
-  std::string lvl_name = _last_known_level;
-  auto waypoints_it = _charger_waypoints.find(lvl_name);
-  if (waypoints_it != _charger_waypoints.end())
+  for (const Eigen::Vector3d& position : _charger_positions)
   {
-    const std::vector<ChargerWaypoint>& waypoints = waypoints_it->second;
-    for (const ChargerWaypoint& waypoint : waypoints)
+    const double dist =
+      sqrt(pow(position[0] - pose.translation()[0], 2)
+        + pow(position[1] - pose.translation()[1], 2)
+        + pow(position[2] - pose.translation()[2], 2));
+    if (dist < _charger_dist_thres)
     {
-      // Assumes it is on the same Z-plane
-      double dist =
-        sqrt(pow(waypoint.x - pose.translation()[0], 2)
-          + pow(waypoint.y - pose.translation()[1], 2));
-      if (dist < _charger_dist_thres)
-      {
-        return true;
-      }
+      return true;
     }
   }
   return false;

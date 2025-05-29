@@ -24,6 +24,7 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/slotcar_common.hpp>
 
+#include <rmf_building_sim_gz_plugins/components/Charger.hpp>
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
@@ -61,6 +62,7 @@ private:
   Eigen::Isometry3d _pose;
   std::unordered_set<Entity> _obstacle_exclusions;
   std::unordered_map<Entity, Eigen::Vector3d> _dispensable_positions;
+  bool _initialized_charger_positions = false;
   double _height = 0;
 
   bool _read_aabb_dimensions = true;
@@ -78,6 +80,8 @@ private:
     const double target_linear_speed_destination,
     const std::optional<double>& max_linear_velocity);
   void init_obstacle_exclusions(EntityComponentManager& ecm);
+  const std::vector<Eigen::Vector3d> get_charger_positions(
+    EntityComponentManager& ecm);
   bool get_slotcar_height(const gz::msgs::Entity& req,
     gz::msgs::Double& rep);
   std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity,
@@ -291,6 +295,23 @@ void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
   _obstacle_exclusions.insert(_entity);
 }
 
+const std::vector<Eigen::Vector3d> SlotcarPlugin::get_charger_positions(
+  EntityComponentManager& ecm)
+{
+  std::vector<Eigen::Vector3d> charger_positions;
+  // Cycle through all the entities with the Charger component
+  ecm.Each<components::Charger, components::Pose>(
+    [&](const Entity&,
+    const components::Charger*,
+    const components::Pose* pose
+    ) -> bool
+    {
+      charger_positions.push_back(rmf_plugins_utils::convert_vec(pose->Data().Pos()));
+      return true;
+    });
+  return charger_positions;
+}
+
 std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity,
   Eigen::Vector3d>>
 SlotcarPlugin::get_obstacle_positions(EntityComponentManager& ecm)
@@ -495,7 +516,16 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   // After initialization once, this set will have at least one exclusion, which
   // is the itself.
   if (_obstacle_exclusions.empty())
+  {
     init_obstacle_exclusions(ecm);
+  }
+
+  if (!_initialized_charger_positions)
+  {
+    auto chargers = get_charger_positions(ecm);
+    dataPtr->set_charger_positions(chargers);
+    _initialized_charger_positions = true;
+  }
 
   // Don't update the pose if the simulation is paused
   if (info.paused)
