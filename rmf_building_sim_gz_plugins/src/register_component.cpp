@@ -39,6 +39,7 @@ private:
       {
         gzerr << "Failed initializing charger plugin, reason: [" << *err << "]" << std::endl;
       }
+      component_element = component_element->GetNextElement("rmf_charger");
     }
   }
 

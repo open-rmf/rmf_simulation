@@ -62,7 +62,7 @@ private:
   Eigen::Isometry3d _pose;
   std::unordered_set<Entity> _obstacle_exclusions;
   std::unordered_map<Entity, Eigen::Vector3d> _dispensable_positions;
-  std::vector<Eigen::Vector3d> _charger_positions;
+  bool _initialized_charger_positions = false;
   double _height = 0;
 
   bool _read_aabb_dimensions = true;
@@ -306,7 +306,7 @@ const std::vector<Eigen::Vector3d> SlotcarPlugin::get_charger_positions(
     const components::Pose* pose
     ) -> bool
     {
-      _charger_positions.push_back(rmf_plugins_utils::convert_vec(pose->Data().Pos()));
+      charger_positions.push_back(rmf_plugins_utils::convert_vec(pose->Data().Pos()));
       return true;
     });
   return charger_positions;
@@ -520,10 +520,11 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
     init_obstacle_exclusions(ecm);
   }
 
-  if (_charger_positions.empty())
+  if (!_initialized_charger_positions)
   {
     auto chargers = get_charger_positions(ecm);
     dataPtr->set_charger_positions(chargers);
+    _initialized_charger_positions = true;
   }
 
   // Don't update the pose if the simulation is paused
