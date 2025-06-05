@@ -114,6 +114,7 @@ add_library(crowd_simulator
 target_include_directories(crowd_simulator
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  ${menge_vendor_INCLUDE_DIRS}
 )
 
 target_link_libraries(crowd_simulator
