@@ -21,7 +21,6 @@ find_package(Eigen3 REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
@@ -35,14 +34,12 @@ include(GNUInstallDirs)
 add_library(rmf_robot_sim_utils SHARED ${PROJECT_SOURCE_DIR}/src/utils.cpp)
 
 target_link_libraries(rmf_robot_sim_utils
+  Eigen3::Eigen
   rclcpp::rclcpp
-  ${Eigen3_LIBRARIES}
 )
 
 target_include_directories(rmf_robot_sim_utils
   PUBLIC
-    ${rclcpp_INCLUDE_DIRS}
-    ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -55,19 +52,14 @@ add_library(readonly_common SHARED ${PROJECT_SOURCE_DIR}/src/readonly_common.cpp
 
 target_link_libraries(readonly_common
     rmf_robot_sim_utils
-)
-
-ament_target_dependencies(readonly_common
-    rmf_fleet_msgs
-    rmf_building_map_msgs
-    rclcpp
-    std_msgs
-    Eigen3
+    Eigen3::Eigen
+    rclcpp::rclcpp
+    ${rmf_fleet_msgs_TARGETS}
+    ${rmf_building_map_msgs_TARGETS}
 )
 
 target_include_directories(readonly_common
   PUBLIC
-    ${EIGEN3_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
@@ -78,25 +70,19 @@ target_include_directories(readonly_common
 
 add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
 
-ament_target_dependencies(slotcar_common
-    Eigen3
-    rmf_fleet_msgs
-    rmf_building_map_msgs
-    rclcpp
-    std_msgs
-    geometry_msgs
-    tf2_ros
+target_link_libraries(slotcar_common
+    Eigen3::Eigen
+    rclcpp::rclcpp
+    ${geometry_msgs_TARGETS}
+    ${rmf_fleet_msgs_TARGETS}
+    ${rmf_building_map_msgs_TARGETS}
+    tf2_ros::tf2_ros
 )
 
 target_include_directories(slotcar_common
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${EIGEN3_INCLUDE_DIRS}
-)
-
-target_link_libraries(slotcar_common
-    rmf_robot_sim_utils
 )
 
 ###############################
@@ -106,7 +92,6 @@ ament_export_dependencies(
   Eigen3
   rclcpp
   geometry_msgs
-  std_msgs
   tf2_ros
   rmf_fleet_msgs
   rmf_building_map_msgs

@@ -58,18 +58,14 @@ add_library(door SHARED src/door.cpp)
 
 target_include_directories(door
   PUBLIC
-    ${rmf_door_msgs_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(door
   gz-sim::core
   gz-plugin::core
-)
-
-ament_target_dependencies(door
-    rclcpp
-    rmf_door_msgs
+  rclcpp::rclcpp
+  ${rmf_door_msgs_TARGETS}
 )
 
 ###############################
@@ -96,20 +92,15 @@ add_library(lift SHARED src/lift.cpp)
 
 target_include_directories(lift
   PUBLIC
-    ${rmf_lift_msgs_INCLUDE_DIRS}
-    ${rmf_door_msgs_INCLUDE_DIRS}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 target_link_libraries(lift
   gz-sim::core
   gz-plugin::core
-)
-
-ament_target_dependencies(lift
-  rclcpp
-  rmf_lift_msgs
-  rmf_door_msgs
+  rclcpp::rclcpp
+  ${rmf_door_msgs_TARGETS}
+  ${rmf_lift_msgs_TARGETS}
 )
 
 ###############################
@@ -123,18 +114,14 @@ add_library(crowd_simulator
 target_include_directories(crowd_simulator
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  ${rclcpp_INCLUDE_DIRS}
   ${menge_vendor_INCLUDE_DIRS}
 )
 
 target_link_libraries(crowd_simulator
   gz-sim::core
   gz-plugin::core
-)
-
-ament_target_dependencies(crowd_simulator
-  rclcpp
-  menge_vendor
+  rclcpp::rclcpp
+  ${menge_vendor_TARGETS}
 )
 
 ###############################
@@ -152,20 +139,10 @@ target_link_libraries(toggle_charging
   gz-sim::core
   gz-msgs::core
   gz-transport::core
-)
-
-ament_target_dependencies(toggle_charging
-  Qt5Core
-  Qt5Qml
-  Qt5Quick
-  rclcpp
-)
-
-target_include_directories(toggle_charging
-  PUBLIC
-  ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  ${Qt5Quick_INCLUDE_DIRS}
+  Qt5::Core
+  Qt5::Qml
+  Qt5::Quick
+  rclcpp::rclcpp
 )
 
 ###############################
@@ -186,21 +163,11 @@ target_link_libraries(toggle_floors
   gz-plugin::core
   gz-rendering::core
   gz-transport::core
-)
-
-ament_target_dependencies(toggle_floors
-  Qt5Core
-  Qt5Qml
-  Qt5Quick
-  rclcpp
-  rmf_fleet_msgs
-)
-
-target_include_directories(toggle_floors
-  PUBLIC
-  ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  ${Qt5Quick_INCLUDE_DIRS}
+  Qt5::Core
+  Qt5::Qml
+  Qt5::Quick
+  rclcpp::rclcpp
+  ${rmf_fleet_msgs_TARGETS}
 )
 
 ###############################

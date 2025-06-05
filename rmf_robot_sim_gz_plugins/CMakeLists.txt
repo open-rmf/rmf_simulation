@@ -61,25 +61,21 @@ include(GNUInstallDirs)
 add_library(teleport_ingestor SHARED src/TeleportIngestor.cpp)
 
 target_link_libraries(teleport_ingestor
+  Eigen3::Eigen
   gz-sim::core
   gz-plugin::core
   gz-msgs::core
   gz-transport::core
-)
-
-ament_target_dependencies(teleport_ingestor
-    rmf_fleet_msgs
-    rmf_ingestor_msgs
-    rclcpp
-    rmf_robot_sim_common
-    Eigen3
+  rclcpp::rclcpp
+  ${rmf_fleet_msgs_TARGETS}
+  ${rmf_ingestor_msgs_TARGETS}
+  ${rmf_robot_sim_common_TARGETS}
 )
 
 target_include_directories(teleport_ingestor
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${EIGEN3_INCLUDE_DIRS}
 )
 
 ###############################
@@ -89,25 +85,21 @@ target_include_directories(teleport_ingestor
 add_library(teleport_dispenser SHARED src/TeleportDispenser.cpp)
 
 target_link_libraries(teleport_dispenser
+  Eigen3::Eigen
   gz-sim::core
   gz-plugin::core
   gz-msgs::core
   gz-transport::core
-)
-
-ament_target_dependencies(teleport_dispenser
-    rmf_fleet_msgs
-    rmf_dispenser_msgs
-    rclcpp
-    rmf_robot_sim_common
-    Eigen3
+  rclcpp::rclcpp
+  ${rmf_dispenser_msgs_TARGETS}
+  ${rmf_fleet_msgs_TARGETS}
+  ${rmf_robot_sim_common_TARGETS}
 )
 
 target_include_directories(teleport_dispenser
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${EIGEN3_INCLUDE_DIRS}
 )
 
 ###############################
@@ -117,23 +109,19 @@ target_include_directories(teleport_dispenser
 add_library(readonly SHARED ${PROJECT_SOURCE_DIR}/src/readonly.cpp)
 
 target_link_libraries(readonly
+  Eigen3::Eigen
   gz-sim::core
   gz-plugin::core
-)
-
-ament_target_dependencies(readonly
-    rmf_fleet_msgs
-    rmf_building_map_msgs
-    rclcpp
-    rmf_robot_sim_common
-    Eigen3
+  rclcpp::rclcpp
+  ${rmf_building_map_msgs_TARGETS}
+  ${rmf_fleet_msgs_TARGETS}
+  ${rmf_robot_sim_common_TARGETS}
 )
 
 target_include_directories(readonly
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${EIGEN3_INCLUDE_DIRS}
 )
 
 ###############################
@@ -145,26 +133,18 @@ add_library(slotcar SHARED ${PROJECT_SOURCE_DIR}/src/slotcar.cpp)
 target_link_libraries(slotcar
   gz-sim::core
   gz-plugin::core
-)
-
-ament_target_dependencies(slotcar
-  rmf_robot_sim_common
-  rmf_building_sim_gz_plugins
-  rmf_fleet_msgs
-  rmf_dispenser_msgs
-  rmf_ingestor_msgs
-  rclcpp
+  rclcpp::rclcpp
+  ${rmf_building_sim_gz_plugins_TARGETS}
+  ${rmf_dispenser_msgs_TARGETS}
+  ${rmf_fleet_msgs_TARGETS}
+  ${rmf_ingestor_msgs_TARGETS}
+  ${rmf_robot_sim_common_TARGETS}
 )
 
 target_include_directories(slotcar
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${rmf_robot_sim_common_INCLUDE_DIRS}
-    ${rmf_fleet_msgs_INCLUDE_DIRS}
-    ${rmf_dispenser_msgs_INCLUDE_DIRS}
-    ${rmf_ingestor_msgs_INCLUDE_DIRS}
-    ${rmf_building_map_msgs_INCLUDE_DIRS}
     ${rmf_building_sim_gz_plugins_INCLUDE_DIRS}
 )
 
@@ -185,20 +165,10 @@ target_link_libraries(LightTuning
   gz-msgs::core
   gz-transport::core
   gz-rendering::core
-)
-
-ament_target_dependencies(LightTuning
-  Qt5Core
-  Qt5Qml
-  Qt5Quick
-  rclcpp
-)
-
-target_include_directories(LightTuning
-  PUBLIC
-  ${Qt5Core_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS}
-  ${Qt5Quick_INCLUDE_DIRS}
+  Qt5::Core
+  Qt5::Qml
+  Qt5::Quick
+  rclcpp::rclcpp
 )
 
 ###############################

@@ -120,10 +120,6 @@ This package has the following direct runtime ROS dependencies.
 
 `geometry_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/QUALITY_DECLARATION.md).
 
-#### std\_msgs
-
-`std_msgs` is [**Quality Level 1**](https://github.com/ros2/common_interfaces/blob/master/std_msgs/QUALITY_DECLARATION.md).
-
 #### tf2\_ros
 
 `tf2_ros` does not declare a quality level.
