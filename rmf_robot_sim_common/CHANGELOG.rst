@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.6.0 (2025-06-09)
+------------------
 * Use a world plugin for chargers registration (`#146 <https://github.com/open-rmf/rmf_simulation/issues/146>`_)
 * Contributors: Luca Della Vedova
 
