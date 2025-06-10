@@ -647,6 +647,10 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     // Allow spinning but not translating
     result.v = 0.0;
   }
+  if (_soc < 0.01)
+  {
+    result.v = 0.0;
+  }
 
   _rot_dir = result.w >= 0 ? 1 : -1;
   return result;
