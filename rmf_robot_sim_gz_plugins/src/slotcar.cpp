@@ -24,6 +24,7 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/slotcar_common.hpp>
 
+#include <rmf_building_sim_gz_plugins/components/Charger.hpp>
 #include <rmf_building_sim_gz_plugins/components/Door.hpp>
 #include <rmf_building_sim_gz_plugins/components/Lift.hpp>
 
@@ -34,6 +35,7 @@ using namespace gz::sim;
 class GZ_SIM_VISIBLE SlotcarPlugin
   : public System,
   public ISystemConfigure,
+  public ISystemConfigurePriority,
   public ISystemPreUpdate
 {
 public:
@@ -43,6 +45,7 @@ public:
   void Configure(const Entity& entity,
     const std::shared_ptr<const sdf::Element>& sdf,
     EntityComponentManager& ecm, EventManager& eventMgr) override;
+  int32_t ConfigurePriority() override;
   void PreUpdate(const UpdateInfo& info, EntityComponentManager& ecm) override;
 
 private:
@@ -59,6 +62,7 @@ private:
   Eigen::Isometry3d _pose;
   std::unordered_set<Entity> _obstacle_exclusions;
   std::unordered_map<Entity, Eigen::Vector3d> _dispensable_positions;
+  bool _initialized_charger_positions = false;
   double _height = 0;
 
   bool _read_aabb_dimensions = true;
@@ -76,6 +80,8 @@ private:
     const double target_linear_speed_destination,
     const std::optional<double>& max_linear_velocity);
   void init_obstacle_exclusions(EntityComponentManager& ecm);
+  const std::vector<Eigen::Vector3d> get_charger_positions(
+    EntityComponentManager& ecm);
   bool get_slotcar_height(const gz::msgs::Entity& req,
     gz::msgs::Double& rep);
   std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity,
@@ -211,9 +217,6 @@ void SlotcarPlugin::Configure(const Entity& entity,
   enableComponent<components::Pose>(ecm, entity);
   // Initialize Bounding Box component
   enableComponent<components::AxisAlignedBox>(ecm, entity);
-  // Initialize Linear/AngularVelocityCmd components to drive slotcar
-  enableComponent<components::LinearVelocityCmd>(ecm, entity);
-  enableComponent<components::AngularVelocityCmd>(ecm, entity);
 
   // Respond to requests asking for height (e.g. for dispenser to dispense object)
   const std::string height_srv_name =
@@ -239,11 +242,6 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
   const double target_linear_speed_destination,
   const std::optional<double>& max_linear_velocity)
 {
-  auto lin_vel_cmd =
-    ecm.Component<components::LinearVelocityCmd>(_entity);
-  auto ang_vel_cmd =
-    ecm.Component<components::AngularVelocityCmd>(_entity);
-
   // Open loop control
   double v_robot = _prev_v_command;
   double w_robot = _prev_w_command;
@@ -252,8 +250,13 @@ void SlotcarPlugin::send_control_signals(EntityComponentManager& ecm,
       displacements, dt, target_linear_speed_now,
       target_linear_speed_destination, max_linear_velocity);
 
-  lin_vel_cmd->Data()[0] = target_vels[0];
-  ang_vel_cmd->Data()[2] = target_vels[1];
+  gz::math::Vector3d lin_vel_cmd(0, 0, 0);
+  lin_vel_cmd[0] = target_vels[0];
+  gz::math::Vector3d ang_vel_cmd(0, 0, 0);
+  ang_vel_cmd[2] = target_vels[1];
+
+  ecm.SetComponentData<components::LinearVelocityCmd>(_entity, lin_vel_cmd);
+  ecm.SetComponentData<components::AngularVelocityCmd>(_entity, ang_vel_cmd);
 
   // Update previous velocities
   _prev_v_command = target_vels[0];
@@ -290,6 +293,23 @@ void SlotcarPlugin::init_obstacle_exclusions(EntityComponentManager& ecm)
     });
   // Also add itself
   _obstacle_exclusions.insert(_entity);
+}
+
+const std::vector<Eigen::Vector3d> SlotcarPlugin::get_charger_positions(
+  EntityComponentManager& ecm)
+{
+  std::vector<Eigen::Vector3d> charger_positions;
+  // Cycle through all the entities with the Charger component
+  ecm.Each<components::Charger, components::Pose>(
+    [&](const Entity&,
+    const components::Charger*,
+    const components::Pose* pose
+    ) -> bool
+    {
+      charger_positions.push_back(rmf_plugins_utils::convert_vec(pose->Data().Pos()));
+      return true;
+    });
+  return charger_positions;
 }
 
 std::pair<std::vector<Eigen::Vector3d>, std::unordered_map<Entity,
@@ -454,6 +474,16 @@ void SlotcarPlugin::draw_lookahead_marker()
   _gz_node.Request("/marker", marker_msg);
 }
 
+int32_t SlotcarPlugin::ConfigurePriority()
+{
+  // Set the priority down by one so this runs before the infrastructure plugin
+  // which should have a default priority of 0. This is important for ensuring
+  // that the linear velocity command component is created before the
+  // infrastructure plugin runs since the lift needs to adjust its z value, and
+  // the physics plugin removes the component on every update.
+  return -1;
+}
+
 void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   EntityComponentManager& ecm)
 {
@@ -486,7 +516,16 @@ void SlotcarPlugin::PreUpdate(const UpdateInfo& info,
   // After initialization once, this set will have at least one exclusion, which
   // is the itself.
   if (_obstacle_exclusions.empty())
+  {
     init_obstacle_exclusions(ecm);
+  }
+
+  if (!_initialized_charger_positions)
+  {
+    auto chargers = get_charger_positions(ecm);
+    dataPtr->set_charger_positions(chargers);
+    _initialized_charger_positions = true;
+  }
 
   // Don't update the pose if the simulation is paused
   if (info.paused)
@@ -523,6 +562,7 @@ GZ_ADD_PLUGIN(
   SlotcarPlugin,
   System,
   SlotcarPlugin::ISystemConfigure,
+  SlotcarPlugin::ISystemConfigurePriority,
   SlotcarPlugin::ISystemPreUpdate)
 
 GZ_ADD_PLUGIN_ALIAS(SlotcarPlugin, "slotcar")

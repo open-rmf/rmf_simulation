@@ -2,6 +2,17 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.6.0 (2025-06-09)
+------------------
+* Use a world plugin for chargers registration (`#146 <https://github.com/open-rmf/rmf_simulation/issues/146>`_)
+* Contributors: Luca Della Vedova
+
+2.5.0 (2025-05-09)
+------------------
+* Remove unused code from slotcar / readonly (`#140 <https://github.com/open-rmf/rmf_simulation/issues/140>`_)
+* Port dispenser/ingestor common code to TeleportDispenser and TeleportIngestor (`#139 <https://github.com/open-rmf/rmf_simulation/issues/139>`_)
+* Contributors: Luca Della Vedova, Xiyu
+
 2.4.1 (2024-11-13)
 ------------------
 * Enable cart attachment in slotcar (`#120 <https://github.com/open-rmf/rmf_simulation/issues/120>`_)
