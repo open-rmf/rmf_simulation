@@ -558,8 +558,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       {
         const auto goal_heading =
           compute_heading(trajectory.at(_traj_wp_idx).pose);
-        result.w = compute_change_in_rotation(
-          current_heading, goal_heading);
+        result.w = compute_change_in_rotation(current_heading, goal_heading);
       }
       result.target_linear_speed_now = 0.0;
       _current_mode.mode = RobotMode::MODE_PAUSED;
@@ -588,9 +587,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     if (!rotate_towards_next_target && _traj_wp_idx < trajectory.size())
     {
       const double d_yaw_tolerance = 5.0 * M_PI / 180.0;
-      auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx).pose);
       double dir = 1.0;
-      result.w = compute_change_in_rotation(current_heading, dpos);
+      result.w = compute_change_in_rotation(current_heading, dpos, nullptr, &dir);
 
       // If d_yaw is less than a certain tolerance (i.e. we don't need to spin
       // too much), then we'll include the forward velocity. Otherwise, we will
@@ -900,9 +898,18 @@ double SlotcarCommon::compute_change_in_rotation(
   Eigen::Vector3d target = dpos;
   // If a traj_vec is provided and slotcar is reversible, of the two possible
   // headings (dpos/-dpos), choose the one closest to traj_vec
-  if (traj_vec && _reversible)
+  if (_reversible)
   {
-    const double dot = traj_vec->dot(dpos);
+    double dot = 0.0;
+    if (traj_vec)
+    {
+      dot = traj_vec->dot(dpos);
+    }
+    else
+    {
+      dot = heading_vec.dot(dpos);
+    }
+
     target = dot < 0 ? -dpos : dpos;
     // dir is negative if slotcar will need to reverse to go towards target
     if (dir)
