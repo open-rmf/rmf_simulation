@@ -539,27 +539,14 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
 
     if (rotate_towards_next_target)
     {
-      if (_traj_wp_idx+1 < trajectory.size())
-      {
-        const auto dpos_next =
-          compute_dpos(trajectory.at(_traj_wp_idx+1).pose, _pose);
+      const auto goal_heading =
+        compute_heading(trajectory.at(_traj_wp_idx).pose);
 
-        const auto goal_heading =
-          compute_heading(trajectory.at(_traj_wp_idx+1).pose);
+      result.w = compute_change_in_rotation(
+        current_heading,
+        Eigen::Vector3d::Zero(),
+        &goal_heading);
 
-        double dir = 1.0;
-        result.w = compute_change_in_rotation(
-          current_heading, dpos_next, &goal_heading, &dir);
-
-        if (dir < 0.0)
-          current_heading *= -1.0;
-      }
-      else
-      {
-        const auto goal_heading =
-          compute_heading(trajectory.at(_traj_wp_idx).pose);
-        result.w = compute_change_in_rotation(current_heading, goal_heading);
-      }
       result.target_linear_speed_now = 0.0;
       _current_mode.mode = RobotMode::MODE_PAUSED;
     }
@@ -607,7 +594,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     const auto goal_heading = compute_heading(trajectory.back().pose);
     result.w = compute_change_in_rotation(
       current_heading,
-      goal_heading);
+      Eigen::Vector3d::Zero(),
+      &goal_heading);
 
     result.v = 0.0;
   }
@@ -885,7 +873,7 @@ std::string SlotcarCommon::get_level_name(const double z)
 double SlotcarCommon::compute_change_in_rotation(
   const Eigen::Vector3d& heading_vec,
   const Eigen::Vector3d& dpos,
-  const Eigen::Vector3d* traj_vec,
+  const Eigen::Vector3d* requested_heading,
   double* const dir) const
 {
   if (dpos.norm() < 1e-3)
@@ -896,21 +884,21 @@ double SlotcarCommon::compute_change_in_rotation(
   }
 
   Eigen::Vector3d target = dpos;
-  // If a traj_vec is provided and slotcar is reversible, of the two possible
-  // headings (dpos/-dpos), choose the one closest to traj_vec
-  if (_reversible)
+  if (requested_heading)
   {
-    double dot = 0.0;
-    if (traj_vec)
-    {
-      dot = traj_vec->dot(dpos);
-    }
-    else
-    {
-      dot = heading_vec.dot(dpos);
-    }
+    // If requested_heading was provided, use that instead of dpos because requested_heading means
+    // we are already close enough to the target
+    target = *requested_heading;
+  }
+  else if (_reversible)
+  {
+    // If no requested_heading is given then the robot needs to turn to face the
+    // direction that it needs to move towards, i.e. dpos. If the robot is
+    // reversible, then this dot product tells us if it should actually move
+    // towards the goal in reverse.
+    const auto dot = heading_vec.dot(target);
 
-    target = dot < 0 ? -dpos : dpos;
+    target = dot < 0 ? -target : target;
     // dir is negative if slotcar will need to reverse to go towards target
     if (dir)
     {
