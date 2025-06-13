@@ -590,10 +590,7 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
       const double d_yaw_tolerance = 5.0 * M_PI / 180.0;
       auto goal_heading = compute_heading(trajectory.at(_traj_wp_idx).pose);
       double dir = 1.0;
-      result.w =
-        compute_change_in_rotation(current_heading, dpos, &goal_heading, &dir);
-      if (dir < 0.0)
-        current_heading *= -1.0;
+      result.w = compute_change_in_rotation(current_heading, dpos);
 
       // If d_yaw is less than a certain tolerance (i.e. we don't need to spin
       // too much), then we'll include the forward velocity. Otherwise, we will
