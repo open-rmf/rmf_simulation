@@ -82,8 +82,7 @@ void ReadonlyCommon::on_update(Eigen::Isometry3d& pose, double sim_time)
     initialize_start(_pose);
 
     _last_update_time = _sim_time;
-    const rclcpp::Time now(
-      std::move(rmf_plugins_utils::simulation_now(_sim_time)));
+    const rclcpp::Time now(rmf_plugins_utils::simulation_now(_sim_time));
 
     constexpr double battery_percent = 98.0;
     _robot_state_msg.name = _name;
