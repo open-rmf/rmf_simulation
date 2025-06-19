@@ -578,7 +578,8 @@ SlotcarCommon::UpdateResult SlotcarCommon::update_diff_drive(
     {
       const double d_yaw_tolerance = 5.0 * M_PI / 180.0;
       double dir = 1.0;
-      result.w = compute_change_in_rotation(current_heading, dpos, nullptr, &dir);
+      result.w = compute_change_in_rotation(
+        current_heading, dpos, nullptr, &dir);
 
       // If d_yaw is less than a certain tolerance (i.e. we don't need to spin
       // too much), then we'll include the forward velocity. Otherwise, we will
