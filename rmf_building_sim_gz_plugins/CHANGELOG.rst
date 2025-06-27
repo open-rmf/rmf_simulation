@@ -2,6 +2,16 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add environment hooks for plugins path (`#136 <https://github.com/open-rmf/rmf_simulation/issues/136>`_) (`#144 <https://github.com/open-rmf/rmf_simulation/issues/144>`_)
+  * Add environment hooks for plugins path (`#136 <https://github.com/open-rmf/rmf_simulation/issues/136>`_)
+  * Build CI against jazzy
+  * Missed out asan and tsan
+  ---------
+  Co-authored-by: Luca Della Vedova <lucadv@intrinsic.ai>
+* Contributors: Xiyu
+
 2.3.2 (2024-06-15)
 ------------------
 
