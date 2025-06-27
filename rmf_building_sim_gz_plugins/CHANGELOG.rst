@@ -2,8 +2,8 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.3 (2025-06-27)
+------------------
 * Add environment hooks for plugins path (`#136 <https://github.com/open-rmf/rmf_simulation/issues/136>`_) (`#144 <https://github.com/open-rmf/rmf_simulation/issues/144>`_)
   * Add environment hooks for plugins path (`#136 <https://github.com/open-rmf/rmf_simulation/issues/136>`_)
   * Build CI against jazzy
