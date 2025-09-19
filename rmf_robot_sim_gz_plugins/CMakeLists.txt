@@ -148,28 +148,28 @@ target_include_directories(slotcar
     ${rmf_building_sim_gz_plugins_INCLUDE_DIRS}
 )
 
-###############################
-# LightTuning
-###############################
+# ###############################
+# # LightTuning
+# ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/LightTuning/LightTuning.qrc)
+# QT5_ADD_RESOURCES(resources_RCC src/LightTuning/LightTuning.qrc)
 
-add_library(LightTuning SHARED ${headers_MOC}
-  src/LightTuning/LightTuning.cpp
-  ${resources_RCC}
-)
+# add_library(LightTuning SHARED ${headers_MOC}
+#   src/LightTuning/LightTuning.cpp
+#   ${resources_RCC}
+# )
 
-target_link_libraries(LightTuning
-  gz-gui::core
-  gz-sim::core
-  gz-msgs::core
-  gz-transport::core
-  gz-rendering::core
-  Qt5::Core
-  Qt5::Qml
-  Qt5::Quick
-  rclcpp::rclcpp
-)
+# target_link_libraries(LightTuning
+#   gz-gui::core
+#   gz-sim::core
+#   gz-msgs::core
+#   gz-transport::core
+#   gz-rendering::core
+#   Qt5::Core
+#   Qt5::Qml
+#   Qt5::Quick
+#   rclcpp::rclcpp
+# )
 
 ###############################
 # Install Targets
@@ -181,7 +181,7 @@ install(
     teleport_ingestor
     readonly
     slotcar
-    LightTuning
+    # LightTuning
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )

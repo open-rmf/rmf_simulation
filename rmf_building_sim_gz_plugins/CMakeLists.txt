@@ -37,13 +37,13 @@ find_package(gz_rendering_vendor REQUIRED)
 find_package(gz-rendering REQUIRED)
 
 find_package(rmf_fleet_msgs REQUIRED)
-find_package(Qt5
-  COMPONENTS
-    Core
-    Qml
-    Quick
-  REQUIRED
-)
+# find_package(Qt5
+#   COMPONENTS
+#     Core
+#     Qml
+#     Quick
+#   REQUIRED
+# )
 find_package(menge_vendor REQUIRED)
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
@@ -124,51 +124,51 @@ target_link_libraries(crowd_simulator
   ${menge_vendor_TARGETS}
 )
 
-###############################
-# toggle charging
-###############################
+# ###############################
+# # toggle charging
+# ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging.qrc)
+# QT5_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging.qrc)
 
-add_library(toggle_charging SHARED ${headers_MOC}
-  src/toggle_charging/toggle_charging.cpp
-  ${resources_RCC}
-)
+# add_library(toggle_charging SHARED ${headers_MOC}
+#   src/toggle_charging/toggle_charging.cpp
+#   ${resources_RCC}
+# )
 
-target_link_libraries(toggle_charging
-  gz-sim::core
-  gz-msgs::core
-  gz-transport::core
-  Qt5::Core
-  Qt5::Qml
-  Qt5::Quick
-  rclcpp::rclcpp
-)
+# target_link_libraries(toggle_charging
+#   gz-sim::core
+#   gz-msgs::core
+#   gz-transport::core
+#   Qt5::Core
+#   Qt5::Qml
+#   Qt5::Quick
+#   rclcpp::rclcpp
+# )
 
-###############################
-# toggle floors
-###############################
+# ###############################
+# # toggle floors
+# ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors.qrc)
+# QT5_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors.qrc)
 
-add_library(toggle_floors SHARED ${headers_MOC}
-  src/toggle_floors/toggle_floors.cpp
-  ${resources_RCC}
-)
+# add_library(toggle_floors SHARED ${headers_MOC}
+#   src/toggle_floors/toggle_floors.cpp
+#   ${resources_RCC}
+# )
 
-target_link_libraries(toggle_floors
-  gz-sim::core
-  gz-gui::core
-  gz-msgs::core
-  gz-plugin::core
-  gz-rendering::core
-  gz-transport::core
-  Qt5::Core
-  Qt5::Qml
-  Qt5::Quick
-  rclcpp::rclcpp
-  ${rmf_fleet_msgs_TARGETS}
-)
+# target_link_libraries(toggle_floors
+#   gz-sim::core
+#   gz-gui::core
+#   gz-msgs::core
+#   gz-plugin::core
+#   gz-rendering::core
+#   gz-transport::core
+#   Qt5::Core
+#   Qt5::Qml
+#   Qt5::Quick
+#   rclcpp::rclcpp
+#   ${rmf_fleet_msgs_TARGETS}
+# )
 
 ###############################
 # install stuff
@@ -177,7 +177,8 @@ target_link_libraries(toggle_floors
 ament_export_include_directories(include)
 
 install(
-  TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
+  # TARGETS door lift crowd_simulator toggle_charging toggle_floors register_component
+  TARGETS door lift crowd_simulator register_component
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
