@@ -42,13 +42,13 @@ find_package(rmf_ingestor_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
 find_package(rmf_building_sim_gz_plugins REQUIRED)
-find_package (Qt5
-  COMPONENTS
-    Core
-    Qml
-    Quick
-  REQUIRED
-)
+# find_package (Qt5
+#   COMPONENTS
+#     Core
+#     Qml
+#     Quick
+#   REQUIRED
+# )
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
 
