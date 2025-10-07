@@ -46,7 +46,11 @@ ToolBar {
       Layout.leftMargin: 2
       checked: true
       onClicked: {
-        _toggle_charging.OnEnableCharge(checked)
+        if (qt_version < 0x060000) {
+          toggle_charging.OnEnableCharge(checked)
+        } else {
+          _toggle_charging.OnEnableCharge(checked)
+        }
       }
     }
 
@@ -57,7 +61,11 @@ ToolBar {
       Layout.leftMargin: 2
       checked: false
       onClicked: {
-        _toggle_charging.OnEnableInstantCharge(checked)
+        if (qt_version < 0x060000) {
+          toggle_charging.OnEnableInstantCharge(checked)
+        } else {
+          _toggle_charging.OnEnableInstantCharge(checked)
+        }
       }
     }
 
@@ -68,7 +76,11 @@ ToolBar {
       Layout.leftMargin: 2
       checked: true
       onClicked: {
-        _toggle_charging.OnEnableDrain(checked)
+        if (qt_version < 0x060000) {
+          toggle_charging.OnEnableDrain(checked)
+        } else {
+          _toggle_charging.OnEnableDrain(checked)
+        }
       }
     }
 

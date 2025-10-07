@@ -121,11 +121,7 @@ target_link_libraries(crowd_simulator
 # toggle charging
 ###############################
 
-if(TARGET Qt5::Core)
-  set(QRC_SUFFIX "_qt5")
-endif()
-
-QT_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging${QRC_SUFFIX}.qrc)
+QT_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging.qrc)
 
 add_library(toggle_charging SHARED ${headers_MOC}
   src/toggle_charging/toggle_charging.cpp
@@ -144,7 +140,7 @@ target_link_libraries(toggle_charging
 # toggle floors
 ###############################
 
-QT_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors${QRC_SUFFIX}.qrc)
+QT_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors.qrc)
 
 add_library(toggle_floors SHARED ${headers_MOC}
   src/toggle_floors/toggle_floors.cpp

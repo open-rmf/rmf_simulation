@@ -45,7 +45,11 @@ ToolBar {
         Layout.leftMargin: 2
         checked: true
         onClicked: {
-          _toggle_floors.OnFloorChecked(text, checked)
+          if (qt_version < 0x060000) {
+            toggle_floors.OnFloorChecked(text, checked)
+          } else {
+            _toggle_floors.OnFloorChecked(text, checked)
+          }
         }
       }
 
