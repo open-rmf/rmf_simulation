@@ -178,8 +178,7 @@ class CrowdSimulatorPlugin
 {
 public:
   CrowdSimulatorPlugin()
-  : _transport_node_ptr(std::make_shared<gz::transport::Node>()),
-    _initialized(false)
+  : _transport_node_ptr(std::make_shared<gz::transport::Node>())
   {}
 
   // inherit from ISystemConfigure
@@ -195,8 +194,8 @@ public:
 private:
   static constexpr double ANIMATION_DISTANCE_SWITCH_THRESHOLD = 0.01;
   std::shared_ptr<gz::transport::Node> _transport_node_ptr;
-  bool _initialized;
-  bool _enabled;
+  bool _initialized = false;
+  bool _enabled = false;
   std::string _resource_path;
   std::string _behavior_file;
   std::string _scene_file;

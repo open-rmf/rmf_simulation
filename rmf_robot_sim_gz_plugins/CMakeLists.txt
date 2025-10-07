@@ -26,8 +26,6 @@ find_package(gz_sim_vendor REQUIRED)
 find_package(gz-sim REQUIRED)
 find_package(gz_plugin_vendor REQUIRED)
 find_package(gz-plugin REQUIRED)
-find_package(gz_gui_vendor REQUIRED)
-find_package(gz-gui REQUIRED)
 find_package(gz_msgs_vendor REQUIRED)
 find_package(gz-msgs REQUIRED)
 find_package(gz_transport_vendor REQUIRED)
@@ -42,13 +40,6 @@ find_package(rmf_ingestor_msgs REQUIRED)
 find_package(rmf_building_map_msgs REQUIRED)
 find_package(rmf_robot_sim_common REQUIRED)
 find_package(rmf_building_sim_gz_plugins REQUIRED)
-find_package (Qt5
-  COMPONENTS
-    Core
-    Qml
-    Quick
-  REQUIRED
-)
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
 
@@ -149,29 +140,6 @@ target_include_directories(slotcar
 )
 
 ###############################
-# LightTuning
-###############################
-
-QT5_ADD_RESOURCES(resources_RCC src/LightTuning/LightTuning.qrc)
-
-add_library(LightTuning SHARED ${headers_MOC}
-  src/LightTuning/LightTuning.cpp
-  ${resources_RCC}
-)
-
-target_link_libraries(LightTuning
-  gz-gui::core
-  gz-sim::core
-  gz-msgs::core
-  gz-transport::core
-  gz-rendering::core
-  Qt5::Core
-  Qt5::Qml
-  Qt5::Quick
-  rclcpp::rclcpp
-)
-
-###############################
 # Install Targets
 ###############################
 
@@ -181,7 +149,6 @@ install(
     teleport_ingestor
     readonly
     slotcar
-    LightTuning
   LIBRARY DESTINATION lib/${PROJECT_NAME}
   ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )

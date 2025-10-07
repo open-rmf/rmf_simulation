@@ -37,13 +37,6 @@ find_package(gz_rendering_vendor REQUIRED)
 find_package(gz-rendering REQUIRED)
 
 find_package(rmf_fleet_msgs REQUIRED)
-find_package(Qt5
-  COMPONENTS
-    Core
-    Qml
-    Quick
-  REQUIRED
-)
 find_package(menge_vendor REQUIRED)
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
@@ -128,7 +121,11 @@ target_link_libraries(crowd_simulator
 # toggle charging
 ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging.qrc)
+if(TARGET Qt5::Core)
+  set(QRC_SUFFIX "_qt5")
+endif()
+
+QT_ADD_RESOURCES(resources_RCC src/toggle_charging/toggle_charging${QRC_SUFFIX}.qrc)
 
 add_library(toggle_charging SHARED ${headers_MOC}
   src/toggle_charging/toggle_charging.cpp
@@ -137,11 +134,9 @@ add_library(toggle_charging SHARED ${headers_MOC}
 
 target_link_libraries(toggle_charging
   gz-sim::core
+  gz-gui::core
   gz-msgs::core
   gz-transport::core
-  Qt5::Core
-  Qt5::Qml
-  Qt5::Quick
   rclcpp::rclcpp
 )
 
@@ -149,7 +144,7 @@ target_link_libraries(toggle_charging
 # toggle floors
 ###############################
 
-QT5_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors.qrc)
+QT_ADD_RESOURCES(resources_RCC src/toggle_floors/toggle_floors${QRC_SUFFIX}.qrc)
 
 add_library(toggle_floors SHARED ${headers_MOC}
   src/toggle_floors/toggle_floors.cpp
@@ -163,9 +158,6 @@ target_link_libraries(toggle_floors
   gz-plugin::core
   gz-rendering::core
   gz-transport::core
-  Qt5::Core
-  Qt5::Qml
-  Qt5::Quick
   rclcpp::rclcpp
   ${rmf_fleet_msgs_TARGETS}
 )

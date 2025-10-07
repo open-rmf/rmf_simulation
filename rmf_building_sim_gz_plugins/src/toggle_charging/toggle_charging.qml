@@ -21,7 +21,6 @@ import QtQuick.Controls 2.1
 import QtQuick.Controls.Material 2.2
 import QtQuick.Controls.Material.impl 2.2
 import QtQuick.Layouts 1.3
-import QtQuick.Controls.Styles 1.4
 
 ToolBar {
   Layout.minimumWidth: 280
@@ -47,7 +46,7 @@ ToolBar {
       Layout.leftMargin: 2
       checked: true
       onClicked: {
-        toggle_charging.OnEnableCharge(checked)
+        _toggle_charging.OnEnableCharge(checked)
       }
     }
 
@@ -58,7 +57,7 @@ ToolBar {
       Layout.leftMargin: 2
       checked: false
       onClicked: {
-        toggle_charging.OnEnableInstantCharge(checked)
+        _toggle_charging.OnEnableInstantCharge(checked)
       }
     }
 
@@ -69,7 +68,7 @@ ToolBar {
       Layout.leftMargin: 2
       checked: true
       onClicked: {
-        toggle_charging.OnEnableDrain(checked)
+        _toggle_charging.OnEnableDrain(checked)
       }
     }
 
