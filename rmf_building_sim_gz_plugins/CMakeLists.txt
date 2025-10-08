@@ -30,9 +30,9 @@ find_package(gz-plugin REQUIRED)
 find_package(gz_gui_vendor REQUIRED)
 find_package(gz-gui REQUIRED)
 find_package(gz_msgs_vendor REQUIRED)
-find_package(gz-msgs REQUIRED)
+find_package(gz-msgs11 REQUIRED)
 find_package(gz_transport_vendor REQUIRED)
-find_package(gz-transport REQUIRED)
+find_package(gz-transport14 REQUIRED)
 find_package(gz_rendering_vendor REQUIRED)
 find_package(gz-rendering REQUIRED)
 
@@ -137,8 +137,8 @@ add_library(toggle_charging SHARED ${headers_MOC}
 
 target_link_libraries(toggle_charging
   gz-sim::core
-  gz-msgs::core
-  gz-transport::core
+  gz-msgs11::core
+  gz-transport14::core
   Qt5::Core
   Qt5::Qml
   Qt5::Quick
@@ -159,10 +159,10 @@ add_library(toggle_floors SHARED ${headers_MOC}
 target_link_libraries(toggle_floors
   gz-sim::core
   gz-gui::core
-  gz-msgs::core
+  gz-msgs11::core
   gz-plugin::core
   gz-rendering::core
-  gz-transport::core
+  gz-transport14::core
   Qt5::Core
   Qt5::Qml
   Qt5::Quick

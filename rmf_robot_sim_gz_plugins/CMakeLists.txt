@@ -29,9 +29,9 @@ find_package(gz-plugin REQUIRED)
 find_package(gz_gui_vendor REQUIRED)
 find_package(gz-gui REQUIRED)
 find_package(gz_msgs_vendor REQUIRED)
-find_package(gz-msgs REQUIRED)
+find_package(gz-msgs11 REQUIRED)
 find_package(gz_transport_vendor REQUIRED)
-find_package(gz-transport REQUIRED)
+find_package(gz-transport14 REQUIRED)
 find_package(gz_rendering_vendor REQUIRED)
 find_package(gz-rendering REQUIRED)
 
@@ -64,8 +64,8 @@ target_link_libraries(teleport_ingestor
   Eigen3::Eigen
   gz-sim::core
   gz-plugin::core
-  gz-msgs::core
-  gz-transport::core
+  gz-msgs11::core
+  gz-transport14::core
   rclcpp::rclcpp
   ${rmf_fleet_msgs_TARGETS}
   ${rmf_ingestor_msgs_TARGETS}
@@ -88,8 +88,8 @@ target_link_libraries(teleport_dispenser
   Eigen3::Eigen
   gz-sim::core
   gz-plugin::core
-  gz-msgs::core
-  gz-transport::core
+  gz-msgs11::core
+  gz-transport14::core
   rclcpp::rclcpp
   ${rmf_dispenser_msgs_TARGETS}
   ${rmf_fleet_msgs_TARGETS}
@@ -162,8 +162,8 @@ add_library(LightTuning SHARED ${headers_MOC}
 target_link_libraries(LightTuning
   gz-gui::core
   gz-sim::core
-  gz-msgs::core
-  gz-transport::core
+  gz-msgs11::core
+  gz-transport14::core
   gz-rendering::core
   Qt5::Core
   Qt5::Qml
