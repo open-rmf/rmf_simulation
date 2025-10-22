@@ -182,6 +182,7 @@ void toggle_floors::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
     });
 
   this->Context()->setContextProperty("qfloors", qfloors);
+  this->Context()->setContextProperty("qt_version", QVariant(QT_VERSION));
   gz::gui::App()->findChild<
     gz::gui::MainWindow*>()->installEventFilter(this);
 }

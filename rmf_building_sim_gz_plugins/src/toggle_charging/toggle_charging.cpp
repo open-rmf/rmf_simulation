@@ -74,6 +74,7 @@ void toggle_charging::LoadConfig(const tinyxml2::XMLElement* _pluginElem)
 
   if (this->title.empty())
     this->title = "Toggle Charging";
+  this->Context()->setContextProperty("qt_version", QVariant(QT_VERSION));
 }
 
 void toggle_charging::OnEnableCharge(bool checked)
