@@ -138,7 +138,7 @@ private:
 
   // Constants for update rate of tf2 and robot_state topic
   static constexpr float TF2_RATE = 100.0;
-  static constexpr float STATE_TOPIC_RATE = 2.0;
+  static constexpr float STATE_TOPIC_RATE = 10.0;
 
   // Initial distance threshold over which a fleet adapter error is reported
   static constexpr float INITIAL_DISTANCE_THRESHOLD = 1.0;
