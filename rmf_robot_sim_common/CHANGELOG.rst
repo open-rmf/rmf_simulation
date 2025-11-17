@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.6.1 (2025-11-17)
+------------------
 * Fix reverse drive for slotcar (`#150 <https://github.com/open-rmf/rmf_simulation/issues/150>`_)
 * Migrate to target_link_libraries (`#147 <https://github.com/open-rmf/rmf_simulation/issues/147>`_)
 * Rotate directly towards the immediate target (`#149 <https://github.com/open-rmf/rmf_simulation/issues/149>`_)
