@@ -2,6 +2,13 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix reverse drive for slotcar (`#150 <https://github.com/open-rmf/rmf_simulation/issues/150>`_)
+* Migrate to target_link_libraries (`#147 <https://github.com/open-rmf/rmf_simulation/issues/147>`_)
+* Rotate directly towards the immediate target (`#149 <https://github.com/open-rmf/rmf_simulation/issues/149>`_)
+* Contributors: Grey, Luca Della Vedova
+
 2.6.0 (2025-06-09)
 ------------------
 * Use a world plugin for chargers registration (`#146 <https://github.com/open-rmf/rmf_simulation/issues/146>`_)

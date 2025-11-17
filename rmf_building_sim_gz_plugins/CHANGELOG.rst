@@ -2,6 +2,12 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Qt5 and Qt6 compatibility (`#157 <https://github.com/open-rmf/rmf_simulation/issues/157>`_)
+* Migrate to target_link_libraries (`#147 <https://github.com/open-rmf/rmf_simulation/issues/147>`_)
+* Contributors: Luca Della Vedova
+
 2.6.0 (2025-06-09)
 ------------------
 * Use a world plugin for chargers registration (`#146 <https://github.com/open-rmf/rmf_simulation/issues/146>`_)
