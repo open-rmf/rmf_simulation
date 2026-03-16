@@ -16,6 +16,10 @@
 */
 
 #include <memory>
+#include <iomanip>
+#include <sstream>
+#include <unordered_map>
+#include <mutex>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rmf_fleet_msgs/msg/destination_request.hpp>
@@ -24,6 +28,40 @@
 #include <rmf_robot_sim_common/utils.hpp>
 #include <rmf_robot_sim_common/slotcar_common.hpp>
 
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
+
+
+// Escape minimal JSON characters in simple strings (no external deps).
+static std::string EscapeJson(const std::string &s) {
+  std::string out;
+  out.reserve(s.size()*2);
+  for (char c : s) {
+    switch (c) {
+      case '\"': out += "\\\""; break;
+      case '\\': out += "\\\\"; break;
+      case '\b': out += "\\b"; break;
+      case '\f': out += "\\f"; break;
+      case '\n': out += "\\n"; break;
+      case '\r': out += "\\r"; break;
+      case '\t': out += "\\t"; break;
+      default: out += c;
+    }
+  }
+  return out;
+}
+
+// Small local struct to hold per-model collision publisher config.
+struct CollisionPubData {
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub;
+  bool pause_on_collision{false};
+};
+
+// Global maps are used so we don't need to modify class headers.
+static std::unordered_map<std::string, CollisionPubData> g_collision_pub_map;
+static std::mutex g_collision_pub_map_mutex;
+
+// ---------------------------------------------------------------------------
 
 static double compute_yaw(const Eigen::Isometry3d& pose)
 {
@@ -234,6 +272,31 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     "/robot_mode_requests",
     10,
     std::bind(&SlotcarCommon::mode_request_cb, this, std::placeholders::_1));
+
+  // ----------------------- collision publisher init (non-invasive) ----------
+  // Create a per-model publisher and optionally read a pause parameter.
+  try {
+    std::lock_guard<std::mutex> lk(g_collision_pub_map_mutex);
+    CollisionPubData data;
+    data.pub = _ros_node->create_publisher<std_msgs::msg::String>(
+      "/rmf_simulation/collision_event", rclcpp::SystemDefaultsQoS());
+    // declare parameter with default false (safe)
+    bool pause_param = false;
+    try {
+      pause_param = _ros_node->declare_parameter("pause_on_collision", false);
+    } catch (...) {
+      // declare_parameter may throw if node already declared differently.
+      // ignore and default to false.
+      pause_param = false;
+    }
+    data.pause_on_collision = pause_param;
+    if (!_model_name.empty())
+      g_collision_pub_map[_model_name] = std::move(data);
+  } catch (...) {
+    // Keep this non-fatal: publishing collisions is best-effort.
+    RCLCPP_DEBUG(logger(), "collision publisher init failed for model [%s]", _model_name.c_str());
+  }
+  // -------------------------------------------------------------------------
 }
 
 bool SlotcarCommon::path_request_valid(
@@ -247,7 +310,8 @@ bool SlotcarCommon::path_request_valid(
   if (msg->task_id == _current_task_id)
   {
     RCLCPP_INFO(
-      logger(), "[%s] already received request [%s] -- continuing as normal",
+      logger(),
+      "[%s] already received request [%s] -- continuing as normal",
       _model_name.c_str(), _current_task_id.c_str());
     return false;
   }
@@ -841,12 +905,69 @@ bool SlotcarCommon::emergency_stop(
     _emergency_stop = need_to_stop;
     // TODO flush logger here
     // TODO get collision object name
-    if (need_to_stop)
+    if (need_to_stop) {
       RCLCPP_INFO_STREAM(logger(), "Stopping [" << _model_name <<
         "] to avoid a collision");
-    else
+
+      // ------------------ publish structured collision event (JSON) -------------
+      try {
+        std::lock_guard<std::mutex> lk(g_collision_pub_map_mutex);
+        auto it = g_collision_pub_map.find(_model_name);
+        if (it != g_collision_pub_map.end() && it->second.pub) {
+          // Build minimal contact point (unknown here, use zeros)
+          double contact_x = 0.0, contact_y = 0.0, contact_z = 0.0;
+          // Severity: 2 = critical (emergency stop)
+          int severity = 2;
+
+          // timestamp using node if available
+          double ts = 0.0;
+          if (_ros_node) {
+            try {
+              ts = _ros_node->now().seconds();
+            } catch (...) {
+              // fallback
+              rclcpp::Clock clk;
+              ts = clk.now().seconds();
+            }
+          } else {
+            rclcpp::Clock clk;
+            ts = clk.now().seconds();
+          }
+
+          std::ostringstream ss;
+          ss << "{";
+          ss << "\"time\":\"" << std::to_string(ts) << "\",";
+          ss << "\"robot_name\":\"" << EscapeJson(_model_name) << "\",";
+          ss << "\"other_entity\":\"\",";
+          ss << "\"contact_point\":{";
+          ss << "\"x\":" << std::fixed << std::setprecision(6) << contact_x << ",";
+          ss << "\"y\":" << std::fixed << std::setprecision(6) << contact_y << ",";
+          ss << "\"z\":" << std::fixed << std::setprecision(6) << contact_z;
+          ss << "},";
+          ss << "\"severity\":" << severity;
+          ss << "}";
+
+          std_msgs::msg::String out;
+          out.data = ss.str();
+          it->second.pub->publish(out);
+
+          // Optionally pause if parameter set for this model (default false)
+          if (it->second.pause_on_collision) {
+            // world pause not available here in all contexts; log instead
+            RCLCPP_WARN(logger(), "pause_on_collision requested but pause not implemented in this context");
+          }
+        }
+      } catch (const std::exception &e) {
+        RCLCPP_WARN(logger(), "Failed to publish collision_event: %s", e.what());
+      } catch (...) {
+        // swallow; publishing collision event is best-effort
+      }
+      // ----------------- end publish -----------------------------------------
+    }
+    else {
       RCLCPP_INFO_STREAM(logger(), "No more obstacles; resuming course for [" <<
         _model_name << "]");
+    }
   }
 
   return _emergency_stop;
