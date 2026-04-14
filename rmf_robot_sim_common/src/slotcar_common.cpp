@@ -212,7 +212,7 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
     "/robot_state", 10);
 
   _collision_pub =
-    _ros_node->create_publisher<std_msgs::msg::String>(
+    _ros_node->create_publisher<rmf_fleet_msgs::msg::RobotCollision>(
     "/robot_collisions", 10);
 
   auto qos_profile = rclcpp::QoS(10);
@@ -849,9 +849,20 @@ bool SlotcarCommon::emergency_stop(
     {
       RCLCPP_INFO_STREAM(logger(), "Stopping [" << _model_name <<
         "] to avoid a collision");
-        
-      std_msgs::msg::String msg;
-      msg.data = _model_name;
+
+      rmf_fleet_msgs::msg::RobotCollision msg;
+      msg.robot_name = _model_name;
+
+      msg.location.t = _ros_node->get_clock()->now();
+      msg.location.x = _pose.translation()[0];
+      msg.location.y = _pose.translation()[1];
+      msg.location.yaw = compute_yaw(_pose);
+      msg.location.level_name = get_level_name(_pose.translation()[2]);
+      if (!_remaining_path.empty())
+      {
+        msg.location.index = _remaining_path.front().index;
+      }
+
       _collision_pub->publish(msg);
     }
     else
