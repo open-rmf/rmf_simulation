@@ -876,7 +876,7 @@ double SlotcarCommon::compute_change_in_rotation(
   const Eigen::Vector3d* requested_heading,
   double* const dir) const
 {
-  if (dpos.norm() < 1e-3)
+  if (dpos.norm() < 1e-3 && !requested_heading)
   {
     // We're right next to the waypoint, so we don't really need any heading
     // to reach it.
