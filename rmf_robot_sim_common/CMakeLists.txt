@@ -20,6 +20,7 @@ find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rmf_fleet_msgs REQUIRED)
@@ -74,6 +75,7 @@ target_link_libraries(slotcar_common
     Eigen3::Eigen
     rclcpp::rclcpp
     ${geometry_msgs_TARGETS}
+    ${std_msgs_TARGETS}
     ${rmf_fleet_msgs_TARGETS}
     ${rmf_building_map_msgs_TARGETS}
     tf2_ros::tf2_ros
@@ -91,6 +93,7 @@ target_include_directories(slotcar_common
 ament_export_dependencies(
   Eigen3
   rclcpp
+  std_msgs
   geometry_msgs
   tf2_ros
   rmf_fleet_msgs

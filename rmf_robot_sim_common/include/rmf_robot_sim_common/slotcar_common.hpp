@@ -25,6 +25,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
+#include <rmf_fleet_msgs/msg/robot_collision.hpp>
 #include <rmf_fleet_msgs/msg/robot_mode.hpp>
 #include <rmf_fleet_msgs/msg/robot_state.hpp>
 #include <rmf_fleet_msgs/msg/path_request.hpp>
@@ -174,6 +175,7 @@ private:
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> _tf2_broadcaster;
   rclcpp::Publisher<rmf_fleet_msgs::msg::RobotState>::SharedPtr _robot_state_pub;
+  rclcpp::Publisher<rmf_fleet_msgs::msg::RobotCollision>::SharedPtr _collision_pub;
 
   rclcpp::Subscription<rmf_fleet_msgs::msg::PathRequest>::SharedPtr _traj_sub;
   rclcpp::Subscription<rmf_fleet_msgs::msg::PauseRequest>::SharedPtr _pause_sub;
