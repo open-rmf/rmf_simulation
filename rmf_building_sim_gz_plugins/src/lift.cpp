@@ -174,7 +174,6 @@ private:
           // TODO(luca) this could be a component instead of a hash map
           _initial_aabbs[entity] = aabb->Data();
           _initial_poses[entity] = pose->Data();
-          enableComponent<components::AxisAlignedBox>(ecm, entity, false);
         }
         return true;
       });
