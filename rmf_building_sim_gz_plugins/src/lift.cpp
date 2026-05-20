@@ -160,6 +160,7 @@ private:
 
   void read_aabbs(EntityComponentManager& ecm)
   {
+    std::vector<Entity> remove_from;
     ecm.Each<components::AxisAlignedBox,
       components::Pose>([&](const Entity& entity,
       const components::AxisAlignedBox* aabb,
@@ -174,9 +175,21 @@ private:
           // TODO(luca) this could be a component instead of a hash map
           _initial_aabbs[entity] = aabb->Data();
           _initial_poses[entity] = pose->Data();
+          remove_from.push_back(entity);
         }
         return true;
       });
+
+    for (const auto entity : remove_from)
+    {
+      // We remove this component from all the entities because we've observed
+      // a significant drop in RTF while lifts are moving if they contain this
+      // component.
+      //
+      // TODO(mxgrey): Identify why the RTF would drop, and see if there's a way
+      // to avoid removing this component.
+      enableComponent<components::AxisAlignedBox>(ecm, entity, false);
+    }
   }
 
   std::vector<std::string> get_available_floors(const LiftData& lift) const
