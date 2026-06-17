@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.7.0 (2026-06-17)
+------------------
 * feat: publish collision string message during emergency stop (Resolves `#159 <https://github.com/open-rmf/rmf_simulation/issues/159>`_) (`#160 <https://github.com/open-rmf/rmf_simulation/issues/160>`_)
   Implemented feature
   This PR introduces a ROS 2 publisher to broadcast collision events, enabling automated CI and QA scripts to detect when simulated robots enter an emergency stop state.
