@@ -2,6 +2,15 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.7.0 (2026-06-17)
+------------------
+* Lyrical compatibility (`#163 <https://github.com/open-rmf/rmf_simulation/issues/163>`_)
+  * Remove line that was causing UB segfault in gz_sim
+  * Return to removing AxisAlignedBox component
+  ---------
+  Co-authored-by: Luca Della Vedova <lucadv@intrinsic.ai>
+* Contributors: Grey
+
 2.6.1 (2025-11-17)
 ------------------
 * Qt5 and Qt6 compatibility (`#157 <https://github.com/open-rmf/rmf_simulation/issues/157>`_)
