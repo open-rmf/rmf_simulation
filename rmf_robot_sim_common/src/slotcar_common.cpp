@@ -205,7 +205,8 @@ void SlotcarCommon::init_ros_node(const rclcpp::Node::SharedPtr node)
   _current_mode.mode = RobotMode::MODE_MOVING;
   _ros_node = std::move(node);
 
-  _tf2_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(_ros_node);
+  _tf2_broadcaster =
+    std::make_shared<tf2_ros::TransformBroadcaster>(*_ros_node);
 
   _robot_state_pub =
     _ros_node->create_publisher<rmf_fleet_msgs::msg::RobotState>(
