@@ -22,7 +22,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Geometry>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.hpp>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rmf_fleet_msgs/msg/robot_collision.hpp>
