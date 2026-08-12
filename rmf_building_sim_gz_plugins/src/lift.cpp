@@ -114,6 +114,7 @@ private:
 
         LiftCommand lift_command;
         lift_command.request_type = LiftRequest::REQUEST_AGV_MODE;
+        lift_command.door_state = DoorModeCmp::CLOSE;
         // Set the initial floor
         const auto target_it = lift.floors.find(lift.initial_floor);
         auto initial_floor = std::string("");
