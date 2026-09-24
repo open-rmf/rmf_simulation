@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.8.0 (2026-09-25)
+------------------
 * Fix deprecation warning and error on rolling (`#166 <https://github.com/open-rmf/rmf_simulation/issues/166>`_)
 * Contributors: Luca Della Vedova
 
