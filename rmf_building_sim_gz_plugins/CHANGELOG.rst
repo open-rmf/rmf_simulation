@@ -2,6 +2,9 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.7.0 (2026-06-17)
 ------------------
 * Lyrical compatibility (`#163 <https://github.com/open-rmf/rmf_simulation/issues/163>`_)
