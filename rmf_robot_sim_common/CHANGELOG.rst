@@ -2,6 +2,11 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.8.0 (2026-09-25)
+------------------
+* Fix deprecation warning and error on rolling (`#166 <https://github.com/open-rmf/rmf_simulation/issues/166>`_)
+* Contributors: Luca Della Vedova
+
 2.7.0 (2026-06-17)
 ------------------
 * feat: publish collision string message during emergency stop (Resolves `#159 <https://github.com/open-rmf/rmf_simulation/issues/159>`_) (`#160 <https://github.com/open-rmf/rmf_simulation/issues/160>`_)
