@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.8.1 (2026-11-13)
+------------------
 * bump cmake version (`#171 <https://github.com/open-rmf/rmf_simulation/issues/171>`_)
 * Contributors: Aaron Chong
 
