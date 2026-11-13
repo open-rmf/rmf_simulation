@@ -2,6 +2,11 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.8.1 (2026-11-13)
+------------------
+* bump cmake version (`#171 <https://github.com/open-rmf/rmf_simulation/issues/171>`_)
+* Contributors: Aaron Chong
+
 2.8.0 (2026-09-25)
 ------------------
 * Fix deprecation warning and error on rolling (`#166 <https://github.com/open-rmf/rmf_simulation/issues/166>`_)
