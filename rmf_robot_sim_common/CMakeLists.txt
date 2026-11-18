@@ -71,6 +71,7 @@ target_include_directories(readonly_common
 add_library(slotcar_common SHARED ${PROJECT_SOURCE_DIR}/src/slotcar_common.cpp)
 
 target_link_libraries(slotcar_common
+    rmf_robot_sim_utils
     Eigen3::Eigen
     rclcpp::rclcpp
     ${geometry_msgs_TARGETS}
