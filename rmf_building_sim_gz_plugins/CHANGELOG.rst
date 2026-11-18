@@ -2,6 +2,11 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* bump cmake version (`#171 <https://github.com/open-rmf/rmf_simulation/issues/171>`_)
+* Contributors: Aaron Chong
+
 2.8.0 (2026-09-25)
 ------------------
 
