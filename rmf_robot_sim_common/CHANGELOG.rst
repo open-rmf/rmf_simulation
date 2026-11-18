@@ -2,8 +2,8 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.8.1 (2026-11-18)
+------------------
 * Read graph_index and look_ahead as uint64_t (`#175 <https://github.com/open-rmf/rmf_simulation/issues/175>`_)
   ReadonlyCommon::read_sdf() reads both values with Get<std::size_t>().
   sdformat keeps parameter values in a std::variant whose 64-bit
