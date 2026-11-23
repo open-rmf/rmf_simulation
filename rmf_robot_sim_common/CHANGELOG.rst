@@ -2,6 +2,9 @@
 Changelog for package rmf\_robot\_sim\_common
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.3.3 (2025-06-27)
 ------------------
 * Cherry-pick reversibility fixes to jazzy (`#152 <https://github.com/open-rmf/rmf_simulation/issues/152>`_)
