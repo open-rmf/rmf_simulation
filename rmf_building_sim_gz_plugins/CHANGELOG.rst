@@ -2,8 +2,8 @@
 Changelog for package rmf\_building\_sim\_gz\_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.3.4 (2026-11-23)
+------------------
 * Remove undefined behavior from the startup conditions (`#132 <https://github.com/open-rmf/rmf_simulation/issues/132>`_) (`#172 <https://github.com/open-rmf/rmf_simulation/issues/172>`_)
 * Contributors: Arjo Chakravarty
 
